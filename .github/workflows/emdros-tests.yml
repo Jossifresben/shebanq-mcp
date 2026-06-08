@@ -48,6 +48,11 @@ jobs:
             --with-swig-language-csharp=no \
             --with-swig-language-php7=no \
             --disable-debug
+          # Drop the 'doc' subdir: it builds a LaTeX PDF user guide we do not
+          # need and which pulls in a heavy toolchain. Everything we use (MQL,
+          # src, SWIG python bindings) lives in later SUBDIRS.
+          sed -i -E 's/^(SUBDIRS *= *)doc /\1/' Makefile
+          grep -E '^SUBDIRS' Makefile | head -3
           make -j"$(nproc)"
           sudo make install
           sudo ldconfig
