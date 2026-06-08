@@ -1,0 +1,105 @@
+name: emdros-tests
+
+# Builds Emdros (SQLite backend + Python bindings) from source, builds the BHSA
+# SQLite database from the ETCBC 2021 MQL dump, and runs the Emdros-backed tests.
+# The first runs are partly a probe: the diagnostic steps (find/probe/versions)
+# are non-fatal so one run surfaces the module name, mql syntax, and real counts.
+
+on:
+  push:
+    branches: ["**"]
+  workflow_dispatch:
+
+jobs:
+  emdros:
+    runs-on: ubuntu-latest
+    env:
+      EMDROS_VERSION: "3.9.0"
+      MQL_URL: "https://github.com/ETCBC/bhsa/raw/master/shebanq/2021/shebanq_etcbc2021.mql.bz2"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential python3-dev swig libpcre3-dev \
+            libsqlite3-dev bzip2 wget pkg-config
+
+      - name: Cache Emdros build
+        id: cache-emdros
+        uses: actions/cache@v4
+        with:
+          path: /usr/local
+          key: emdros-${{ env.EMDROS_VERSION }}-sqlite-py3-${{ runner.os }}
+
+      - name: Build and install Emdros (SQLite + Python3 bindings)
+        if: steps.cache-emdros.outputs.cache-hit != 'true'
+        run: |
+          wget -q "https://emdros.org/download/emdros-${EMDROS_VERSION}.tar.gz"
+          tar xzf "emdros-${EMDROS_VERSION}.tar.gz"
+          cd "emdros-${EMDROS_VERSION}"
+          ./configure --prefix=/usr/local \
+            --with-sqlite3=yes \
+            --with-mysql=no \
+            --with-postgresql=no \
+            --with-swig-language-python3=yes \
+            --disable-debug
+          make -j"$(nproc)"
+          sudo make install
+          sudo ldconfig
+
+      - name: Locate Emdros Python module (diagnostic, non-fatal)
+        continue-on-error: true
+        run: |
+          echo "=== files matching *emdros* / *Emdros* under /usr/local ==="
+          sudo find /usr/local -iname "*emdros*" 2>/dev/null | head -80
+          echo "=== EmdrosPy.py locations ==="
+          sudo find / -iname "EmdrosPy.py" 2>/dev/null | head -20
+
+      - name: Install the package
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install -e ".[dev]"
+
+      - name: Expose Emdros module on PYTHONPATH
+        run: |
+          PYFILE="$(sudo find /usr/local -iname 'EmdrosPy.py' 2>/dev/null | head -1)"
+          if [ -n "$PYFILE" ]; then
+            echo "PYTHONPATH=$(dirname "$PYFILE")" >> "$GITHUB_ENV"
+            echo "Emdros module dir: $(dirname "$PYFILE")"
+          else
+            echo "EmdrosPy.py not found; relying on default import path"
+          fi
+
+      - name: Probe Emdros import (diagnostic, non-fatal)
+        continue-on-error: true
+        run: |
+          python3 - <<'PY'
+          import importlib
+          for name in ("emdros", "EmdrosPy"):
+              try:
+                  m = importlib.import_module(name)
+                  syms = [a for a in dir(m) if ("Env" in a or "BACKEND" in a or a.startswith("kC") or a.startswith("kOK"))]
+                  print("IMPORT OK:", name, "-> relevant symbols:", syms[:20])
+              except Exception as e:
+                  print("import failed:", name, repr(e))
+          PY
+
+      - name: Download and build BHSA SQLite database
+        run: |
+          mkdir -p data
+          wget -q -O data/bhsa.mql.bz2 "$MQL_URL"
+          bunzip2 -kf data/bhsa.mql.bz2
+          ls -la data/
+          echo "=== mql version ==="
+          /usr/local/bin/mql --version 2>&1 | head -5 || true
+          echo "=== building sqlite db ==="
+          /usr/local/bin/mql --backend sqlite3 -d data/bhsa.sqlite3 data/bhsa.mql
+          ls -la data/
+
+      - name: Run Emdros-backed tests
+        env:
+          BHSA_SQLITE: data/bhsa.sqlite3
+        run: |
+          python3 -m pytest -m emdros -v

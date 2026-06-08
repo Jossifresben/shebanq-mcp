@@ -7,8 +7,19 @@ class RunResult:
     matches: list[dict] = field(default_factory=list)
 
 
+def _import_emdros():
+    """The SWIG Python module ships under different names across Emdros builds
+    (`EmdrosPy` historically, `emdros` in some packagings). Try both."""
+    try:
+        import emdros
+        return emdros
+    except ImportError:
+        import EmdrosPy as emdros
+        return emdros
+
+
 def _make_env(db_path: str):
-    import emdros  # lazy: only needed when actually executing a query
+    emdros = _import_emdros()  # lazy: only needed when actually executing a query
     return emdros.EmdrosEnv(
         emdros.kOKConsole,
         emdros.kCSUTF8,

@@ -11,7 +11,10 @@ def _emdros_available() -> bool:
     try:
         import emdros  # noqa: F401
     except ImportError:
-        return False
+        try:
+            import EmdrosPy  # noqa: F401
+        except ImportError:
+            return False
     return os.path.exists(DB_PATH)
 
 
