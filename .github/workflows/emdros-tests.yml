@@ -110,8 +110,20 @@ jobs:
           echo "=== mql version ==="
           /usr/local/bin/mql --version 2>&1 | head -5 || true
           echo "=== building sqlite db ==="
+          # The dump contains `CREATE DATABASE 'shebanq_etcbc2021'`, so mql writes
+          # the populated SQLite file under that internal name (in the cwd), not
+          # the -d path. Run it, then relocate the real file to data/bhsa.sqlite3.
           /usr/local/bin/mql --backend sqlite3 -d data/bhsa.sqlite3 data/bhsa.mql
+          echo "=== locate populated db ==="
+          ls -la
+          find . -maxdepth 2 \( -name 'shebanq_etcbc2021*' -o -name '*.sqlite3' -o -name '*.db' \) ! -name '*.mql*' 2>/dev/null
+          if [ ! -s data/bhsa.sqlite3 ]; then
+            DBFILE="$(find . -maxdepth 2 -name 'shebanq_etcbc2021*' ! -name '*.mql*' | head -1)"
+            echo "Relocating populated DB: $DBFILE -> data/bhsa.sqlite3"
+            mv "$DBFILE" data/bhsa.sqlite3
+          fi
           ls -la data/
+          test -s data/bhsa.sqlite3
 
       - name: Run Emdros-backed tests
         env:
