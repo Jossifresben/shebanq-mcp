@@ -1,36 +1,128 @@
 # shebanq-mcp
 
-MCP server for querying the BHSA Hebrew Bible (the ETCBC database behind
-SHEBANQ) in plain language. Returns a citable MQL query plus glossed,
-verse-referenced results, produced by a local Emdros engine.
+Ask the Hebrew Bible a linguistic question in plain language and get back two
+things together: the **MQL query** and the **results**. An LLM drafts the query,
+a local [Emdros](https://emdros.org/) engine runs it against the
+[BHSA](https://github.com/ETCBC/bhsa) database (the same data behind
+[SHEBANQ](https://shebanq.ancient-data.org/)), and the server returns both. The
+query is always shown, so it stays the thing you read, verify, and cite.
+
+This is an [MCP](https://modelcontextprotocol.io/) server: it plugs into clients
+like Claude as a set of tools.
+
+> **Status: early.** The core server is built and unit-tested. The Emdros
+> execution path is implemented but exercised only where a built BHSA database
+> is present (those tests skip otherwise). The demo web app and deployment are
+> not done yet. Feedback welcome, especially from people who teach or use MQL.
+
+## Why
+
+Querying BHSA today means knowing MQL, the BHSA feature vocabulary, and the
+SHEBANQ interface. Generative AI can draft a query from a plain-language
+question, which raises a real worry for scholarship and teaching: if a machine
+writes the query, does the scholar still learn anything?
+
+This tool takes a position on that question. The translation was never the whole
+of the work. The scholarly act is judging whether a query faithfully captures a
+form-to-function question, reading what a result does and does not show, and
+catching a query that quietly asks the wrong thing. So the design keeps the
+query visible and central rather than hiding it:
+
+- **The query is the product, not the answer.** Every result carries the exact
+  MQL that produced it. It is reproducible and pastes straight into SHEBANQ to
+  save, share, and cite. Nothing comes back as a black box.
+- **Validation before execution.** A query is checked against the BHSA feature
+  catalogue first, so a wrong code like `vs=niphal` (the correct code is
+  `vs=nif`) fails loudly instead of silently returning zero.
+- **Honest empty results.** Zero matches returns the query and a clear "0
+  results", so you can tell "the query is wrong" from "the phenomenon is not
+  there".
+
+AI as a way in, not a way around.
 
 ## Tools
-- `search_bhsa(question)` — NL question -> generated MQL + results
-- `run_mql(mql)` — validate and run MQL you already have
-- `lookup_feature(name_or_term)` — BHSA feature gloss + valid values
+
+| Tool | Purpose |
+| --- | --- |
+| `search_bhsa(question)` | Plain-language question to generated MQL plus results |
+| `run_mql(mql)` | Validate and run MQL you already have |
+| `lookup_feature(name_or_term)` | A BHSA feature's gloss and valid values |
+
+`run_mql` and `lookup_feature` need no LLM. `search_bhsa` calls the Anthropic API
+to draft the query, with the feature catalogue injected into the prompt.
+
+## How it works
+
+```
+question
+  -> LLM drafts MQL (guided by the feature catalogue)
+  -> validator (reject unknown features/values; reject unparseable MQL)
+  -> Emdros runner (execute on the local BHSA SQLite database)
+  -> formatter (verse references, Hebrew, glosses)
+  -> { mql, result_count, results }
+```
+
+Four small, independently testable units: a static feature reference, a
+validator, an Emdros runner, and a formatter, wired together behind the MCP
+tools. See [`docs/specs`](docs/specs) for the design and
+[`docs/superpowers/plans`](docs/superpowers/plans) for the implementation plan.
 
 ## Setup
-1. Install Emdros (provides the `mql` CLI and the `emdros` Python binding).
-2. Build the database (see Data below).
+
+1. Install [Emdros](https://emdros.org/) (provides the `mql` CLI and the
+   `emdros` Python binding).
+2. Build the database (see [Data](#data)).
 3. `pip install -e ".[dev]"` (Python 3.10+).
 4. Set `ANTHROPIC_API_KEY` (needed only for `search_bhsa`).
 5. Run: `BHSA_SQLITE=data/bhsa.sqlite3 shebanq-mcp`
 
 ## Data
-BHSA version: **2021** (pinned). Download the MQL dump to `data/bhsa.mql`, then:
-`mql --backend sqlite3 -d data/bhsa.sqlite3 data/bhsa.mql`
-Data files are gitignored.
+
+BHSA version: **2021** (pinned). Download the MQL dump from the
+[ETCBC/bhsa](https://github.com/ETCBC/bhsa) release assets to `data/bhsa.mql`,
+then build the read-only SQLite database:
+
+```bash
+mql --backend sqlite3 -d data/bhsa.sqlite3 data/bhsa.mql
+```
+
+Data files are gitignored and never committed.
 
 ## Tests
-- `pytest -q` runs unit tests (no db required). Emdros-backed tests skip when the
-  binding or database is absent.
-- `BHSA_SQLITE=data/bhsa.sqlite3 pytest -m emdros` runs db-backed tests.
 
-After building the database, pin the featured-search counts:
-`BHSA_SQLITE=data/bhsa.sqlite3 python scripts/spike_emdros.py data/bhsa.sqlite3`
-confirms the Emdros Python API, then fill in `expected_count` values in
-`tests/fixtures/featured_searches.json` from real runs.
+```bash
+pytest -q                                   # unit tests, no database needed
+BHSA_SQLITE=data/bhsa.sqlite3 pytest -m emdros   # database-backed tests
+```
 
-## Deploy
-Render Pro Web Service (Docker, Emdros-on-SQLite, data baked into the image).
-See the separate deploy plan.
+Emdros-backed tests skip cleanly when the binding or database is absent. After
+building the database, confirm the Emdros Python API and pin the
+featured-search counts:
+
+```bash
+python scripts/spike_emdros.py data/bhsa.sqlite3
+```
+
+then fill in the `expected_count` values in
+[`tests/fixtures/featured_searches.json`](tests/fixtures/featured_searches.json)
+from real runs. Those fixtures are the regression backbone and, later, the demo
+gallery content.
+
+## Roadmap
+
+- [x] Core MCP server: feature reference, validator, Emdros runner, formatter,
+      three tools
+- [ ] Pin featured-search counts against a built BHSA database
+- [ ] Demo web app (static front-end with curated, validated searches)
+- [ ] Deploy: Render Pro Web Service (Docker, Emdros-on-SQLite, data baked in)
+- [ ] Full feature-catalogue generation from the ETCBC feature docs
+
+## Credits
+
+Built on the work of the [Eep Talstra Centre for Bible and Computer
+(ETCBC)](https://www.etcbc.nl/): the BHSA dataset, SHEBANQ, and the Emdros query
+engine. This project wraps that work; it does not replace it.
+
+## License
+
+TBD.
