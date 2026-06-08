@@ -1,0 +1,6 @@
+data/*.mql
+data/*.sqlite3
+__pycache__/
+*.egg-info/
+.pytest_cache/
+.venv/
