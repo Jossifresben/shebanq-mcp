@@ -1,0 +1,40 @@
+{
+  "version": "bhsa-2021",
+  "features": {
+    "lex": {"gloss": "lexeme (dictionary form)", "values": null},
+    "sp": {
+      "gloss": "part of speech",
+      "values": {
+        "verb": "verb", "subs": "noun", "nmpr": "proper noun",
+        "advb": "adverb", "prep": "preposition", "conj": "conjunction",
+        "art": "article", "pron": "pronoun", "intj": "interjection",
+        "nega": "negative", "inrg": "interrogative", "prde": "demonstrative",
+        "prin": "interrogative pronoun", "prps": "personal pronoun"
+      }
+    },
+    "vs": {
+      "gloss": "verbal stem",
+      "values": {
+        "qal": "Qal", "nif": "Niphal", "piel": "Piel", "pual": "Pual",
+        "hif": "Hiphil", "hof": "Hophal", "hit": "Hitpael"
+      }
+    },
+    "vt": {
+      "gloss": "verbal tense",
+      "values": {
+        "perf": "perfect", "impf": "imperfect", "wayq": "wayyiqtol",
+        "impv": "imperative", "infa": "infinitive absolute",
+        "infc": "infinitive construct", "ptca": "active participle",
+        "ptcp": "passive participle"
+      }
+    },
+    "function": {
+      "gloss": "phrase function in the clause",
+      "values": {
+        "Pred": "predicate", "Subj": "subject", "Objc": "object",
+        "Cmpl": "complement", "Adju": "adjunct", "Time": "time",
+        "Loca": "location", "Modi": "modifier"
+      }
+    }
+  }
+}
