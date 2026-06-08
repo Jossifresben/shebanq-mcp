@@ -24,10 +24,12 @@ def _import_emdros():
 
 def _make_env(db_path: str):
     emdros = _import_emdros()  # lazy: only needed when actually executing a query
+    # Signature: (output_kind, charset, hostname, user, password, initial_db,
+    # backend). For SQLite the database file path is the initial_db.
     return emdros.EmdrosEnv(
         emdros.kOKConsole,
         emdros.kCSUTF8,
-        "", "", db_path,
+        "", "", "", db_path,
         emdros.kSQLite3,
     )
 
