@@ -161,9 +161,25 @@ server, not to be the product.
   rejects unparseable MQL.
 - **Runner unit tests.** Known MQL → known count against the local BHSA DB.
 
+## Hosting
+
+The demo has two halves with different needs:
+
+- **Backend (the Emdros engine + MCP server): Render Pro Web Service, Docker,
+  single always-on container.** Built from one Dockerfile: base image → build/
+  install Emdros → `pip install` the MCP server → copy in the baked BHSA SQLite
+  file → expose the HTTP/SSE endpoint. Uses **Emdros with its SQLite backend**
+  (not MySQL), so the whole stack is one container with the read-only BHSA data
+  baked into the image — no separate database service, no persistent disk.
+  Render Pro keeps the service always-on (no cold starts) with ample RAM/CPU
+  headroom, so single-query demo traffic is comfortable. (MySQL parity with
+  `shebanq-local` is possible later but unnecessary for a read-only demo.)
+- **Front-end (the demo web app): Netlify static**, consistent with the existing
+  setup. The featured-search gallery is **precomputed to static JSON at build
+  time** — instant load, no backend hit, and the same fixtures drive the
+  regression tests. Only free-form queries call the Render backend.
+
 ## Open questions / deferred
 
-- Exact hosting model for the demo server instance (the Emdros stack is heavier
-  than a static site — needs a real backend host, not just Netlify static).
 - Whether `lookup_feature` should also surface usage examples per feature.
 - BHSA data version to pin against for v1.
