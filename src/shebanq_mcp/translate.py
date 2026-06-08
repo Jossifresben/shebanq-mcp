@@ -23,19 +23,28 @@ Prefer querying the appropriate object type (word, phrase, clause, sentence). \
 Always end the query with GO. Add a GET clause listing the features needed to \
 display results (e.g. GET sp, gloss).
 
-BHSA feature reference (feature: gloss; valid values):
+CRITICAL quoting rule:
+- Enumeration features are compared UNQUOTED: write sp=verb, vs=nif (NOT \
+sp='verb').
+- String features are compared QUOTED: write lex='BR>[', gloss='create'.
+Getting this wrong makes the query fail to compile.
+
+BHSA feature reference (feature [kind]: gloss; values):
 {reference}"""
 
 
 def _reference_block(ref: FeatureReference) -> str:
     lines = []
     for name, spec in ref.features.items():
+        kind = spec.get("kind", "string")
         values = spec.get("values")
-        if values:
+        if kind == "enum" and values:
             vals = ", ".join(f"{k}={v}" for k, v in values.items())
-            lines.append(f"- {name}: {spec['gloss']}; values: {vals}")
+            lines.append(f"- {name} [enum, UNQUOTED]: {spec['gloss']}; values: {vals}")
+        elif kind == "string":
+            lines.append(f"- {name} [string, QUOTED]: {spec['gloss']}")
         else:
-            lines.append(f"- {name}: {spec['gloss']}; (open value)")
+            lines.append(f"- {name} [{kind}]: {spec['gloss']}")
     return "\n".join(lines)
 
 

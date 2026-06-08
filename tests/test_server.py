@@ -7,7 +7,7 @@ def test_get_features_extracts_clause_in_order():
 
 
 def test_get_features_empty_when_no_get_clause():
-    mql = "SELECT ALL OBJECTS WHERE [word vs='nif'] GO"
+    mql = "SELECT ALL OBJECTS WHERE [word vs=nif] GO"
     assert server._get_features(mql) == []
 
 
@@ -45,7 +45,7 @@ def test_run_mql_valid_runs_and_formats(monkeypatch):
         ])
 
     monkeypatch.setattr(server, "run_query", _fake_run)
-    out = server.handle_run_mql("SELECT ALL OBJECTS WHERE [word vs='nif'] GO")
+    out = server.handle_run_mql("SELECT ALL OBJECTS WHERE [word vs=nif] GO")
     assert out["mql"].startswith("SELECT")
     assert out["result_count"] == 1
     assert out["results"][0]["reference"] == "Genesis 1:1"
@@ -64,7 +64,7 @@ def test_search_bhsa_translates_then_runs(monkeypatch):
 
     monkeypatch.setattr(
         server, "_translator",
-        _FakeTranslator("SELECT ALL OBJECTS WHERE [word vs='nif'] GO"),
+        _FakeTranslator("SELECT ALL OBJECTS WHERE [word vs=nif] GO"),
     )
     monkeypatch.setattr(
         server, "run_query",

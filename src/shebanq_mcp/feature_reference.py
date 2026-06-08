@@ -7,6 +7,7 @@ from dataclasses import dataclass
 class FeatureReference:
     version: str
     features: dict
+    enum_constants: frozenset
 
     @classmethod
     def load(cls) -> "FeatureReference":
@@ -14,7 +15,11 @@ class FeatureReference:
             encoding="utf-8"
         )
         data = json.loads(text)
-        return cls(version=data["version"], features=data["features"])
+        return cls(
+            version=data["version"],
+            features=data["features"],
+            enum_constants=frozenset(data.get("enum_constants", [])),
+        )
 
     def has_feature(self, name: str) -> bool:
         return name in self.features
@@ -22,6 +27,22 @@ class FeatureReference:
     def feature_gloss(self, name: str) -> str | None:
         f = self.features.get(name)
         return f["gloss"] if f else None
+
+    def kind(self, feature: str) -> str | None:
+        """'enum', 'string', or 'integer' — or None if the feature is unknown."""
+        f = self.features.get(feature)
+        return f.get("kind") if f else None
+
+    def is_enum(self, feature: str) -> bool:
+        return self.kind(feature) == "enum"
+
+    def is_string(self, feature: str) -> bool:
+        return self.kind(feature) == "string"
+
+    def is_enum_constant(self, value: str) -> bool:
+        """Whether a value is a member of the shared all_enum set (the constants
+        the engine accepts for any enumeration feature)."""
+        return value in self.enum_constants
 
     def is_valid(self, feature: str, value: str) -> bool:
         f = self.features.get(feature)

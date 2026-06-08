@@ -1,18 +1,38 @@
 {
   "version": "bhsa-2021",
+  "enum_constants": [
+    "verb", "subs", "nmpr", "advb", "prep", "conj", "art", "prde", "prin",
+    "prps", "intj", "nega", "inrg",
+    "qal", "nif", "piel", "pual", "hif", "hof", "hit", "hsht", "nit", "htpe",
+    "perf", "impf", "wayq", "impv", "infa", "infc", "ptca", "ptcp",
+    "p1", "p2", "p3",
+    "m", "f",
+    "sg", "pl", "du",
+    "a", "c", "e",
+    "Pred", "PreO", "PreS", "Subj", "Objc", "Cmpl", "Adju", "Time", "Loca",
+    "Modi", "PrAd", "Conj", "Rela", "Nega", "Intj", "Voct", "Frnt", "ExsS",
+    "VP", "NP", "PP", "AdvP", "AdjP", "PrNP", "DPrP", "IPrP", "InjP", "NegP",
+    "CP", "PPrP",
+    "NA", "unknown", "none", "absent"
+  ],
   "features": {
-    "lex": {"gloss": "lexeme (dictionary form)", "values": null},
+    "lex": {"kind": "string", "gloss": "lexeme (dictionary form); verbs carry a trailing [", "values": null},
+    "gloss": {"kind": "string", "gloss": "English gloss of the lexeme", "values": null},
+    "g_word_utf8": {"kind": "string", "gloss": "the word as it appears in the text (UTF-8)", "values": null},
+    "voc_lex_utf8": {"kind": "string", "gloss": "vocalized lexeme (UTF-8)", "values": null},
     "sp": {
+      "kind": "enum",
       "gloss": "part of speech",
       "values": {
         "verb": "verb", "subs": "noun", "nmpr": "proper noun",
         "advb": "adverb", "prep": "preposition", "conj": "conjunction",
-        "art": "article", "pron": "pronoun", "intj": "interjection",
-        "nega": "negative", "inrg": "interrogative", "prde": "demonstrative",
-        "prin": "interrogative pronoun", "prps": "personal pronoun"
+        "art": "article", "prde": "demonstrative", "prin": "interrogative pronoun",
+        "prps": "personal pronoun", "intj": "interjection", "nega": "negative",
+        "inrg": "interrogative"
       }
     },
     "vs": {
+      "kind": "enum",
       "gloss": "verbal stem",
       "values": {
         "qal": "Qal", "nif": "Niphal", "piel": "Piel", "pual": "Pual",
@@ -20,6 +40,7 @@
       }
     },
     "vt": {
+      "kind": "enum",
       "gloss": "verbal tense",
       "values": {
         "perf": "perfect", "impf": "imperfect", "wayq": "wayyiqtol",
@@ -28,12 +49,42 @@
         "ptcp": "passive participle"
       }
     },
+    "ps": {
+      "kind": "enum",
+      "gloss": "grammatical person",
+      "values": {"p1": "first person", "p2": "second person", "p3": "third person"}
+    },
+    "gn": {
+      "kind": "enum",
+      "gloss": "grammatical gender",
+      "values": {"m": "masculine", "f": "feminine"}
+    },
+    "nu": {
+      "kind": "enum",
+      "gloss": "grammatical number",
+      "values": {"sg": "singular", "pl": "plural", "du": "dual"}
+    },
+    "st": {
+      "kind": "enum",
+      "gloss": "state",
+      "values": {"a": "absolute", "c": "construct", "e": "emphatic"}
+    },
     "function": {
+      "kind": "enum",
       "gloss": "phrase function in the clause",
       "values": {
         "Pred": "predicate", "Subj": "subject", "Objc": "object",
         "Cmpl": "complement", "Adju": "adjunct", "Time": "time",
         "Loca": "location", "Modi": "modifier"
+      }
+    },
+    "typ": {
+      "kind": "enum",
+      "gloss": "phrase type",
+      "values": {
+        "VP": "verbal phrase", "NP": "nominal phrase",
+        "PP": "prepositional phrase", "AdvP": "adverbial phrase",
+        "AdjP": "adjective phrase"
       }
     }
   }

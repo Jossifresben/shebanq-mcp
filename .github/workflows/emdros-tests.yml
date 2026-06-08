@@ -89,8 +89,8 @@ jobs:
         run: |
           echo "=== files matching *emdros* / *Emdros* under /usr/local ==="
           sudo find /usr/local -iname "*emdros*" 2>/dev/null | head -80
-          echo "=== EmdrosPy.py locations ==="
-          sudo find / -iname "EmdrosPy.py" 2>/dev/null | head -20
+          echo "=== EmdrosPy*.py locations ==="
+          sudo find /usr/local -iname "EmdrosPy*.py" 2>/dev/null | head -20
 
       - name: Install the package
         run: |
