@@ -2,13 +2,13 @@
   {
     "id": "niphal-verbs",
     "question": "Find all Niphal verbs in the Hebrew Bible.",
-    "mql": "SELECT ALL OBJECTS WHERE [word sp='verb' AND vs='nif' GET sp, vs, gloss] GO",
-    "expected_count": null
+    "mql": "SELECT ALL OBJECTS WHERE [word sp=verb AND vs=nif GET sp, vs, gloss] GO",
+    "expected_count": 4145
   },
   {
     "id": "bara-occurrences",
     "question": "Where does the verb BR> (to create) occur?",
     "mql": "SELECT ALL OBJECTS WHERE [word lex='BR>[' GET lex, gloss] GO",
-    "expected_count": null
+    "expected_count": 48
   }
 ]
