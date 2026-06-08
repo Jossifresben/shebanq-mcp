@@ -49,7 +49,7 @@ def run_query(mql: str, db_path: str, features: list[str] | None = None) -> RunR
         sit = straw.const_iterator()
         while sit.hasNext():
             mo = sit.next()
-            row = {"id_d": mo.getID_D(), "monad": mo.getFirst()}
+            row = {"id_d": mo.getID_D()}
             for i, feat in enumerate(features):
                 row[feat] = mo.getFeatureAsString(i)
             matches.append(row)
