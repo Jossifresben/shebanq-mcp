@@ -157,7 +157,7 @@ jobs:
         env:
           BHSA_SQLITE: data/bhsa.sqlite3
         run: |
-          python3 scripts/dump_schema.py data/bhsa.sqlite3 2>&1 | head -200
+          python3 scripts/dump_schema.py data/bhsa.sqlite3 2>&1 | head -3000
 
       - name: Print real featured-search counts (diagnostic)
         if: always()
