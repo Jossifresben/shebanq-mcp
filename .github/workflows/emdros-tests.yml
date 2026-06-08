@@ -28,25 +28,12 @@ jobs:
             re2c bison flex imagemagick graphviz \
             libpcre3-dev libsqlite3-dev bzip2 wget ca-certificates
 
-      - name: Cache Emdros install
-        id: cache-emdros
-        uses: actions/cache@v4
-        with:
-          path: |
-            /usr/local/lib/emdros
-            /usr/local/lib/libemdros_amalgamation.*
-            /usr/local/lib/libsqlite3_emdros.*
-            /usr/local/include/emdros
-            /usr/local/bin/mql
-            /usr/local/bin/sqlite3_emdros
-            /usr/local/bin/emdros_qdtry
-            /usr/local/bin/emdros_utiltry
-            /usr/local/share/emdros
-            /usr/local/share/pkgconfig/emdros.pc
-          key: emdros-rel-3-9-0-sqlite-py3-v1
-
+      # NOTE: caching /usr/local does not work — actions/cache restores as the
+      # unprivileged runner user and cannot write to root-owned /usr/local. A
+      # real cache would need a user-writable --prefix (e.g. ~/.local/emdros) and
+      # LD_LIBRARY_PATH; deferred as a future optimization. Build runs each time
+      # (~5-6 min).
       - name: Build and install Emdros (SQLite + Python3 bindings)
-        if: steps.cache-emdros.outputs.cache-hit != 'true'
         run: |
           set -x
           wget --tries=3 --timeout=30 -O emdros.tar.gz \
@@ -80,9 +67,6 @@ jobs:
           make -j"$(nproc)"
           sudo make install
           sudo ldconfig
-
-      - name: Refresh linker cache (needed on cache hit)
-        run: sudo ldconfig
 
       - name: Locate Emdros Python module (diagnostic, non-fatal)
         continue-on-error: true
