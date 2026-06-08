@@ -78,20 +78,21 @@ jobs:
 
       - name: Expose Emdros module on PYTHONPATH
         run: |
-          PYFILE="$(sudo find /usr/local -iname 'EmdrosPy.py' 2>/dev/null | head -1)"
-          if [ -n "$PYFILE" ]; then
-            echo "PYTHONPATH=$(dirname "$PYFILE")" >> "$GITHUB_ENV"
-            echo "Emdros module dir: $(dirname "$PYFILE")"
-          else
-            echo "EmdrosPy.py not found; relying on default import path"
-          fi
+          # The SWIG python wrapper installs to /usr/local/lib/emdros as
+          # EmdrosPy3.py + _EmdrosPy3.so. Put that dir on PYTHONPATH.
+          EMDROS_PYDIR="/usr/local/lib/emdros"
+          PYFILE="$(sudo find /usr/local -iname 'EmdrosPy3.py' 2>/dev/null | head -1)"
+          [ -n "$PYFILE" ] && EMDROS_PYDIR="$(dirname "$PYFILE")"
+          echo "PYTHONPATH=$EMDROS_PYDIR" >> "$GITHUB_ENV"
+          echo "Emdros module dir: $EMDROS_PYDIR"
+          ls -la "$EMDROS_PYDIR" || true
 
       - name: Probe Emdros import (diagnostic, non-fatal)
         continue-on-error: true
         run: |
           python3 - <<'PY'
           import importlib
-          for name in ("emdros", "EmdrosPy"):
+          for name in ("emdros", "EmdrosPy3", "EmdrosPy"):
               try:
                   m = importlib.import_module(name)
                   syms = [a for a in dir(m) if ("Env" in a or "BACKEND" in a or a.startswith("kC") or a.startswith("kOK"))]

@@ -7,15 +7,19 @@ class RunResult:
     matches: list[dict] = field(default_factory=list)
 
 
+# The SWIG Python module ships under different names across Emdros builds:
+# `EmdrosPy3` (3.9.0 source build), `EmdrosPy` (historical), or `emdros`.
+_EMDROS_MODULE_NAMES = ("emdros", "EmdrosPy3", "EmdrosPy")
+
+
 def _import_emdros():
-    """The SWIG Python module ships under different names across Emdros builds
-    (`EmdrosPy` historically, `emdros` in some packagings). Try both."""
-    try:
-        import emdros
-        return emdros
-    except ImportError:
-        import EmdrosPy as emdros
-        return emdros
+    last_err: ImportError | None = None
+    for name in _EMDROS_MODULE_NAMES:
+        try:
+            return __import__(name)
+        except ImportError as exc:
+            last_err = exc
+    raise last_err if last_err else ImportError("no Emdros module found")
 
 
 def _make_env(db_path: str):
