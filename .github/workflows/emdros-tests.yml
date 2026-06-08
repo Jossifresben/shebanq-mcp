@@ -41,7 +41,12 @@ jobs:
             --with-sqlite3=yes \
             --with-mysql=no \
             --with-postgresql=no \
+            --with-wx=no \
             --with-swig-language-python3=yes \
+            --with-swig-language-python2=no \
+            --with-swig-language-java=no \
+            --with-swig-language-csharp=no \
+            --with-swig-language-php7=no \
             --disable-debug
           make -j"$(nproc)"
           sudo make install
