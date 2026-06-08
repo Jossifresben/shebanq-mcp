@@ -152,13 +152,6 @@ jobs:
         run: |
           python3 -m pytest -m emdros -v
 
-      - name: Dump BHSA schema (diagnostic)
-        if: always()
-        env:
-          BHSA_SQLITE: data/bhsa.sqlite3
-        run: |
-          python3 scripts/dump_schema.py data/bhsa.sqlite3 2>&1 | head -3000
-
       - name: Print real featured-search counts (diagnostic)
         if: always()
         env:
@@ -174,17 +167,4 @@ jobs:
                   print(f"COUNT {c['id']}: {n}")
               except Exception as e:
                   print(f"COUNT {c['id']}: ERROR {e!r}")
-          # Probe enum-vs-string quoting: enums (sp, vs) should be unquoted.
-          probes = [
-              ("lex quoted",   "SELECT ALL OBJECTS WHERE [word lex='BR>['] GO"),
-              ("sp unquoted",  "SELECT ALL OBJECTS WHERE [word sp=verb] GO"),
-              ("vs unquoted",  "SELECT ALL OBJECTS WHERE [word vs=nif] GO"),
-              ("sp+vs unquoted","SELECT ALL OBJECTS WHERE [word sp=verb and vs=nif] GO"),
-              ("sp quoted",    "SELECT ALL OBJECTS WHERE [word sp='verb'] GO"),
-          ]
-          for label, q in probes:
-              try:
-                  print(f"PROBE {label}: {run_query(q, 'data/bhsa.sqlite3').count}")
-              except Exception as e:
-                  print(f"PROBE {label}: ERROR {e!r}")
           PY
