@@ -53,6 +53,12 @@ jobs:
           # src, SWIG python bindings) lives in later SUBDIRS.
           sed -i -E 's/^(SUBDIRS *= *)doc /\1/' Makefile
           grep -E '^SUBDIRS' Makefile | head -3
+          # A nested EQT (query-tool) user guide still tries to build a PDF via
+          # pdflatex, which we neither have nor need. Stub pdflatex so the rule
+          # produces an (empty) .pdf and succeeds, instead of pulling in LaTeX.
+          printf '%s\n' '#!/bin/sh' 'for a in "$@"; do case "$a" in *.tex) : > "${a%.tex}.pdf";; esac; done' 'exit 0' \
+            | sudo tee /usr/local/bin/pdflatex >/dev/null
+          sudo chmod +x /usr/local/bin/pdflatex
           make -j"$(nproc)"
           sudo make install
           sudo ldconfig
