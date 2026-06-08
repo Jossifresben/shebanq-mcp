@@ -8,7 +8,7 @@
   {
     "id": "bara-occurrences",
     "question": "Where does the verb BR> (to create) occur?",
-    "mql": "SELECT ALL OBJECTS WHERE [word lex='BR>' GET lex, gloss] GO",
+    "mql": "SELECT ALL OBJECTS WHERE [word lex='BR>[' GET lex, gloss] GO",
     "expected_count": null
   }
 ]

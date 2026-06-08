@@ -130,3 +130,20 @@ jobs:
           BHSA_SQLITE: data/bhsa.sqlite3
         run: |
           python3 -m pytest -m emdros -v
+
+      - name: Print real featured-search counts (diagnostic)
+        if: always()
+        env:
+          BHSA_SQLITE: data/bhsa.sqlite3
+        run: |
+          python3 - <<'PY'
+          import json
+          from shebanq_mcp.runner import run_query
+          cases = json.load(open("tests/fixtures/featured_searches.json"))
+          for c in cases:
+              try:
+                  n = run_query(c["mql"], "data/bhsa.sqlite3").count
+                  print(f"COUNT {c['id']}: {n}")
+              except Exception as e:
+                  print(f"COUNT {c['id']}: ERROR {e!r}")
+          PY

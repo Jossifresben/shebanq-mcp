@@ -3,9 +3,9 @@ from shebanq_mcp.runner import run_query, RunResult
 
 
 @pytest.mark.emdros
-def test_known_lexeme_returns_matches(require_emdros, db_path):
-    # BR> ("bara", to create) — appears a small, stable number of times.
-    mql = "SELECT ALL OBJECTS WHERE [word lex='BR>'] GO"
+def test_known_query_returns_matches(require_emdros, db_path):
+    # Niphal verbs: a real, stable, sizeable set in the BHSA.
+    mql = "SELECT ALL OBJECTS WHERE [word sp='verb' AND vs='nif'] GO"
     result = run_query(mql, db_path)
     assert isinstance(result, RunResult)
     assert result.count > 0
@@ -25,7 +25,7 @@ def test_empty_result_is_honest(require_emdros, db_path):
 def test_run_query_with_features_returns_values(require_emdros, db_path):
     mql = (
         "SELECT ALL OBJECTS WHERE "
-        "[word lex='BR>' GET sp, vs, gloss] GO"
+        "[word sp='verb' AND vs='nif' GET sp, vs, gloss] GO"
     )
     result = run_query(mql, db_path, features=["sp", "vs", "gloss"])
     assert result.count > 0
