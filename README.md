@@ -125,4 +125,5 @@ engine. This project wraps that work; it does not replace it.
 
 ## License
 
-TBD.
+[MIT](LICENSE). The BHSA data is licensed separately by the ETCBC and is not
+included in this repository.
