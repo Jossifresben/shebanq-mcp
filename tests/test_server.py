@@ -51,12 +51,20 @@ def test_run_mql_valid_runs_and_formats(monkeypatch):
     assert out["results"][0]["reference"] == "Genesis 1:1"
 
 
+class _FakeTranslator:
+    def __init__(self, mql):
+        self._mql = mql
+
+    def translate(self, question, ref):
+        return self._mql
+
+
 def test_search_bhsa_translates_then_runs(monkeypatch):
     from shebanq_mcp.runner import RunResult
 
     monkeypatch.setattr(
-        server, "translate_to_mql",
-        lambda q, ref: "SELECT ALL OBJECTS WHERE [word vs='nif'] GO",
+        server, "_translator",
+        _FakeTranslator("SELECT ALL OBJECTS WHERE [word vs='nif'] GO"),
     )
     monkeypatch.setattr(
         server, "run_query",
@@ -66,3 +74,12 @@ def test_search_bhsa_translates_then_runs(monkeypatch):
     assert out["mql"].startswith("SELECT")
     assert out["result_count"] == 0
     assert out["results"] == []
+
+
+def test_search_bhsa_without_translator_returns_error(monkeypatch):
+    # The "nod to C": translation-free server. search_bhsa is unavailable,
+    # and the error points the caller at run_mql.
+    monkeypatch.setattr(server, "_translator", None)
+    out = server.handle_search_bhsa("all niphal verbs")
+    assert out["error"]
+    assert "run_mql" in out["error"]

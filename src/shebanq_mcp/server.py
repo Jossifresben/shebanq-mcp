@@ -7,7 +7,7 @@ from .feature_reference import FeatureReference
 from .validator import validate_mql
 from .runner import run_query
 from .formatter import format_results
-from .translate import translate_to_mql
+from .translate import build_translator
 
 DB_PATH = os.environ.get("BHSA_SQLITE", "data/bhsa.sqlite3")
 
@@ -15,6 +15,8 @@ DB_PATH = os.environ.get("BHSA_SQLITE", "data/bhsa.sqlite3")
 _GET_CLAUSE = re.compile(r"\bGET\s+([A-Za-z0-9_,\s]+?)\s*\]")
 
 _ref = FeatureReference.load()
+# The configured LLM translator (None if LLM_PROVIDER=none -> translation-free).
+_translator = build_translator()
 mcp = FastMCP("shebanq")
 
 
@@ -49,7 +51,11 @@ def handle_run_mql(mql: str) -> dict:
 
 
 def handle_search_bhsa(question: str) -> dict:
-    mql = translate_to_mql(question, _ref)
+    if _translator is None:
+        return {"error": "No LLM translator configured (LLM_PROVIDER=none). "
+                "Set LLM_PROVIDER (e.g. 'anthropic') with the matching API key, "
+                "or use run_mql with a query composed by your MCP client."}
+    mql = _translator.translate(question, _ref)
     return _run_pipeline(mql)
 
 

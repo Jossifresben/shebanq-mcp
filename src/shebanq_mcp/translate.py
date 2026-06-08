@@ -1,6 +1,20 @@
+"""NL -> MQL translation.
+
+Translation is the one model-dependent seam in the server. It is isolated behind
+the `Translator` protocol so the provider is a swappable adapter. An Anthropic
+adapter ships as the default; add others (OpenAI, a local model) by writing a
+class with a `translate()` method and a branch in `build_translator()`.
+
+The server may also run translation-free: `build_translator("none")` returns
+None, in which case `search_bhsa` is unavailable and callers use `run_mql` with
+a query composed elsewhere (e.g. by the MCP host's own model).
+"""
+import os
+from typing import Protocol
+
 from .feature_reference import FeatureReference
 
-_MODEL = "claude-opus-4-8"
+DEFAULT_MODEL = "claude-opus-4-8"
 
 _INSTRUCTIONS = """You translate questions about the Hebrew Bible into Emdros \
 MQL queries over the BHSA database. Output ONLY the MQL query, nothing else: no \
@@ -33,18 +47,52 @@ def _strip_fences(text: str) -> str:
     return t.strip()
 
 
-def _default_client():
-    import anthropic
-    return anthropic.Anthropic()
+def build_prompt(ref: FeatureReference) -> str:
+    """The provider-agnostic system prompt, shared by all adapters."""
+    return _INSTRUCTIONS.format(reference=_reference_block(ref))
 
 
-def translate_to_mql(question: str, ref: FeatureReference, client=None) -> str:
-    client = client or _default_client()
-    system = _INSTRUCTIONS.format(reference=_reference_block(ref))
-    msg = client.messages.create(
-        model=_MODEL,
-        max_tokens=1024,
-        system=system,
-        messages=[{"role": "user", "content": question}],
+class Translator(Protocol):
+    """Anything that turns a plain-language question into candidate MQL."""
+
+    def translate(self, question: str, ref: FeatureReference) -> str: ...
+
+
+class AnthropicTranslator:
+    """Default adapter: drafts MQL with the Anthropic API."""
+
+    def __init__(self, client=None, model: str = DEFAULT_MODEL):
+        self._client = client
+        self._model = model
+
+    def _ensure_client(self):
+        if self._client is None:
+            import anthropic
+            self._client = anthropic.Anthropic()
+        return self._client
+
+    def translate(self, question: str, ref: FeatureReference) -> str:
+        client = self._ensure_client()
+        msg = client.messages.create(
+            model=self._model,
+            max_tokens=1024,
+            system=build_prompt(ref),
+            messages=[{"role": "user", "content": question}],
+        )
+        return _strip_fences(msg.content[0].text)
+
+
+def build_translator(provider: str | None = None) -> "Translator | None":
+    """Construct the configured translator.
+
+    `provider` defaults to the LLM_PROVIDER env var, then to "anthropic".
+    "none"/"off"/"" returns None (translation-free server).
+    """
+    provider = (provider or os.environ.get("LLM_PROVIDER", "anthropic")).strip().lower()
+    if provider in ("none", "off", ""):
+        return None
+    if provider == "anthropic":
+        return AnthropicTranslator()
+    raise ValueError(
+        f"unknown LLM_PROVIDER '{provider}' (supported: anthropic, none)"
     )
-    return _strip_fences(msg.content[0].text)

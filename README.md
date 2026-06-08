@@ -48,8 +48,25 @@ AI as a way in, not a way around.
 | `run_mql(mql)` | Validate and run MQL you already have |
 | `lookup_feature(name_or_term)` | A BHSA feature's gloss and valid values |
 
-`run_mql` and `lookup_feature` need no LLM. `search_bhsa` calls the Anthropic API
-to draft the query, with the feature catalogue injected into the prompt.
+`run_mql` and `lookup_feature` need no LLM. `search_bhsa` drafts the query with
+an LLM, with the feature catalogue injected into the prompt.
+
+### LLM provider
+
+Translation is isolated behind a `Translator` interface, so the provider is
+swappable. Select it with the `LLM_PROVIDER` environment variable:
+
+- `anthropic` (default) — drafts MQL with the Anthropic API. Needs
+  `ANTHROPIC_API_KEY`.
+- `none` — runs translation-free. `search_bhsa` is disabled and returns an error
+  pointing you at `run_mql`. Use this inside an MCP client (Claude can draft the
+  query itself and call `run_mql`), so the server makes no external calls and
+  needs no key.
+
+Adding another provider (OpenAI, a local model) is a small adapter: a class with
+a `translate()` method plus a branch in `build_translator()`. Query quality
+varies by model, so use the featured-search regression set to measure any given
+model's reliability.
 
 ## How it works
 
@@ -73,7 +90,8 @@ tools. See [`docs/specs`](docs/specs) for the design and
    `emdros` Python binding).
 2. Build the database (see [Data](#data)).
 3. `pip install -e ".[dev]"` (Python 3.10+).
-4. Set `ANTHROPIC_API_KEY` (needed only for `search_bhsa`).
+4. Choose an LLM provider (see [LLM provider](#llm-provider)). For the default,
+   set `ANTHROPIC_API_KEY`; or set `LLM_PROVIDER=none` to run translation-free.
 5. Run: `BHSA_SQLITE=data/bhsa.sqlite3 shebanq-mcp`
 
 ## Data

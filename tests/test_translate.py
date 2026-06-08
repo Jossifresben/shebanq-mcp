@@ -1,5 +1,7 @@
+import pytest
+
 from shebanq_mcp.feature_reference import FeatureReference
-from shebanq_mcp.translate import translate_to_mql
+from shebanq_mcp.translate import AnthropicTranslator, build_translator
 
 
 class _FakeBlock:
@@ -27,21 +29,41 @@ class _FakeClient:
         self.messages = _FakeMessages(text)
 
 
-def test_translate_returns_mql_string():
+def test_anthropic_translator_returns_mql():
     client = _FakeClient("SELECT ALL OBJECTS WHERE [word vs='nif'] GO")
-    mql = translate_to_mql("all niphal verbs", FeatureReference.load(), client=client)
+    t = AnthropicTranslator(client=client)
+    mql = t.translate("all niphal verbs", FeatureReference.load())
     assert mql == "SELECT ALL OBJECTS WHERE [word vs='nif'] GO"
 
 
-def test_translate_injects_feature_reference_into_prompt():
+def test_translator_injects_feature_reference_into_prompt():
     client = _FakeClient("SELECT ALL OBJECTS WHERE [word vs='nif'] GO")
-    translate_to_mql("all niphal verbs", FeatureReference.load(), client=client)
+    AnthropicTranslator(client=client).translate("all niphal verbs", FeatureReference.load())
     system = client.messages.last_kwargs["system"]
     assert "vs" in system and "Niphal" in system
 
 
-def test_translate_strips_code_fences():
-    fenced = "```\nSELECT ALL OBJECTS WHERE [word vs='nif'] GO\n```"
-    client = _FakeClient(fenced)
-    mql = translate_to_mql("x", FeatureReference.load(), client=client)
+def test_translator_strips_code_fences():
+    client = _FakeClient("```\nSELECT ALL OBJECTS WHERE [word vs='nif'] GO\n```")
+    mql = AnthropicTranslator(client=client).translate("x", FeatureReference.load())
     assert mql.startswith("SELECT") and "```" not in mql
+
+
+def test_build_translator_default_is_anthropic():
+    t = build_translator("anthropic")
+    assert isinstance(t, AnthropicTranslator)
+
+
+def test_build_translator_none_returns_none():
+    # The "nod to C": the server can run translation-free.
+    assert build_translator("none") is None
+
+
+def test_build_translator_reads_env(monkeypatch):
+    monkeypatch.setenv("LLM_PROVIDER", "none")
+    assert build_translator() is None
+
+
+def test_build_translator_unknown_provider_raises():
+    with pytest.raises(ValueError):
+        build_translator("bogus")
