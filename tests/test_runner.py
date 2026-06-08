@@ -19,3 +19,15 @@ def test_empty_result_is_honest(require_emdros, db_path):
     result = run_query(mql, db_path)
     assert result.count == 0
     assert result.matches == []
+
+
+@pytest.mark.emdros
+def test_run_query_with_features_returns_values(require_emdros, db_path):
+    mql = (
+        "SELECT ALL OBJECTS WHERE "
+        "[word lex='BR>' GET sp, vs, gloss] GO"
+    )
+    result = run_query(mql, db_path, features=["sp", "vs", "gloss"])
+    assert result.count > 0
+    first = result.matches[0]
+    assert "sp" in first and "gloss" in first
