@@ -28,7 +28,7 @@ def _make_env(db_path: str):
         emdros.kOKConsole,
         emdros.kCSUTF8,
         "", "", db_path,
-        emdros.BACKEND_SQLITE3,
+        emdros.kSQLite3,
     )
 
 
