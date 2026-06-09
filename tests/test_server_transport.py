@@ -71,3 +71,12 @@ def test_main_rejects_nonpositive_guard_config(monkeypatch):
     monkeypatch.setenv("MAX_CONCURRENT_QUERIES", "0")
     with pytest.raises(SystemExit):
         server.main()
+
+
+def test_mql_prompt_text_includes_full_reference_and_question():
+    text = server._mql_prompt_text("all niphal verbs")
+    assert "UNQUOTED" in text
+    assert "all niphal verbs" in text
+    assert "run_mql" in text
+    # The prompt carries the full reference (much larger than the primer).
+    assert len(text) > 600

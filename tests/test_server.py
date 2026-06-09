@@ -76,10 +76,13 @@ def test_search_bhsa_translates_then_runs(monkeypatch):
     assert out["results"] == []
 
 
-def test_search_bhsa_without_translator_returns_error(monkeypatch):
-    # The "nod to C": translation-free server. search_bhsa is unavailable,
-    # and the error points the caller at run_mql.
+def test_search_bhsa_without_translator_returns_concise_primer(monkeypatch):
     monkeypatch.setattr(server, "_translator", None)
     out = server.handle_search_bhsa("all niphal verbs")
-    assert out["error"]
-    assert "run_mql" in out["error"]
+    assert out["question"] == "all niphal verbs"
+    assert "UNQUOTED" in out["guidance"]
+    assert "lookup_feature" in out["hint"]
+    assert "run_mql" in out["next"]
+    assert "error" not in out
+    # Concise: it must NOT dump the full 237-constant reference.
+    assert len(out["guidance"]) < 600

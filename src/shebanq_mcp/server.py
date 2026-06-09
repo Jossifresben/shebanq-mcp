@@ -8,7 +8,7 @@ from .guard import QueryGuard
 from .validator import validate_mql
 from .runner import run_query
 from .formatter import format_results
-from .translate import build_translator
+from .translate import build_translator, build_prompt
 
 DB_PATH = os.environ.get("BHSA_SQLITE", "data/bhsa.sqlite3")
 
@@ -25,6 +25,12 @@ def _resolve_transport() -> str:
 
 # Matches the feature list inside an MQL `GET a, b, c` clause.
 _GET_CLAUSE = re.compile(r"\bGET\s+([A-Za-z0-9_,\s]+?)\s*\]")
+
+_QUOTING_RULE = (
+    "MQL quoting rule: enumeration features compare UNQUOTED (sp=verb, vs=nif); "
+    "string features compare QUOTED (lex='BR>[', gloss='create'). BHSA verb "
+    "lexemes carry a trailing '['. Queries must be read-only (SELECT/GET)."
+)
 
 _ref = FeatureReference.load()
 # The configured LLM translator (None if LLM_PROVIDER=none -> translation-free).
@@ -101,11 +107,24 @@ def handle_run_mql(mql: str) -> dict:
 
 def handle_search_bhsa(question: str) -> dict:
     if _translator is None:
-        return {"error": "No LLM translator configured (LLM_PROVIDER=none). "
-                "Set LLM_PROVIDER (e.g. 'anthropic') with the matching API key, "
-                "or use run_mql with a query composed by your MCP client."}
+        return {
+            "question": question,
+            "guidance": _QUOTING_RULE,
+            "hint": "Call lookup_feature(name) to check a feature's kind and "
+                    "values, or use the write-mql prompt for the full reference.",
+            "next": "Write a read-only MQL SELECT for this question, then call "
+                    "run_mql with it.",
+        }
     mql = _translator.translate(question, _ref)
     return _run_pipeline(mql)
+
+
+def _mql_prompt_text(question: str) -> str:
+    return (
+        build_prompt(_ref)
+        + f"\n\nQuestion: {question}\n\n"
+        "Write a read-only MQL SELECT for this question, then call run_mql with it."
+    )
 
 
 @mcp.tool()
@@ -116,14 +135,32 @@ def lookup_feature(name_or_term: str) -> dict:
 
 @mcp.tool()
 def run_mql(mql: str) -> dict:
-    """Validate and run an MQL query; return the query and glossed results."""
+    """Validate and run a read-only MQL query; return the query and glossed results.
+
+    Only read-only queries (SELECT/GET) are accepted. Quoting rule (getting it
+    wrong fails typechecking): enumeration features compare UNQUOTED (sp=verb,
+    vs=nif); string features compare QUOTED (lex='BR>['). Verb lexemes carry a
+    trailing '['. Call lookup_feature(name) to check a feature's kind/values.
+    """
     return handle_run_mql(mql)
 
 
 @mcp.tool()
 def search_bhsa(question: str) -> dict:
-    """Answer a plain-language question: returns the generated MQL and results."""
+    """Answer a plain-language question about the Hebrew Bible.
+
+    With server-side translation enabled, returns generated MQL + results. On
+    the public deploy (no server-side LLM) it returns a concise MQL-writing
+    primer so you compose a read-only query yourself and call run_mql. Use the
+    write-mql prompt for the full feature reference.
+    """
     return handle_search_bhsa(question)
+
+
+@mcp.prompt()
+def write_mql(question: str) -> str:
+    """Compose a read-only BHSA MQL query for a plain-language question."""
+    return _mql_prompt_text(question)
 
 
 @mcp.custom_route("/health", methods=["GET"])
