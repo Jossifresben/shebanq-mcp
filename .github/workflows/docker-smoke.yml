@@ -1,0 +1,50 @@
+name: docker-smoke
+
+on:
+  push:
+    branches: ["**"]
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build --build-arg BHSA_REF=4db00e2157915495e1a4d3d57e41223df24775da -t shebanq-mcp:ci .
+
+      - name: Measure cold start (run -> first 200 from /health)
+        run: |
+          start=$(date +%s.%N)
+          docker run -d --name shebanq -p 8000:8000 shebanq-mcp:ci
+          for i in $(seq 1 60); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8000/health || true)
+            if [ "$code" = "200" ]; then break; fi
+            sleep 1
+          done
+          end=$(date +%s.%N)
+          echo "COLD_START_SECONDS=$(echo "$end - $start" | bc)"
+          curl -fsS http://localhost:8000/health
+
+      - name: Set up Python + MCP client
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python3 -m pip install "mcp>=1.27.2" anyio
+
+      - name: MCP smoke (multi-query + mutation rejection)
+        run: python3 scripts/smoke_mcp.py http://localhost:8000/mcp
+
+      - name: Measure memory under concurrent load
+        run: |
+          for n in 1 2; do
+            python3 scripts/smoke_mcp.py http://localhost:8000/mcp >/dev/null &
+          done
+          sleep 2
+          echo "PEAK_MEM=$(docker stats --no-stream --format '{{.MemUsage}}' shebanq)"
+          wait || true
+
+      - name: Container logs on failure
+        if: failure()
+        run: docker logs shebanq || true
