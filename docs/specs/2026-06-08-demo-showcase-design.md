@@ -91,7 +91,10 @@ A single column, generous whitespace.
   3. the result count ("4,145 results")
   4. ~5 real sample rows: Hebrew word (right-to-left), English gloss, and a
      verse reference when available
-  5. a small "verify in SHEBANQ" link
+  5. a "verify in SHEBANQ" link (SHEBANQ shares queries by saved-query ID, not
+     arbitrary MQL-by-URL, so the link points to SHEBANQ's query page and the
+     card's MQL block is what the scholar pastes to reproduce the result; later,
+     links can be swapped for direct saved-query URLs)
 - **Footer:** a line noting the data version (BHSA 2021) and that the queries run
   on the same Emdros engine behind SHEBANQ.
 
