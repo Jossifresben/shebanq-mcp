@@ -17,7 +17,7 @@ SAMPLE_N = 5
 SEARCHES = [
     {
         "id": "niphal-verbs",
-        "question": "Find all Niphal verbs in the Hebrew Bible.",
+        "question": "Find all Niphal verbs.",
         "mql": "SELECT ALL OBJECTS WHERE [word sp=verb AND vs=nif GET g_word_utf8, gloss] GO",
         "where": "sp=verb AND vs=nif",
     },

@@ -1,7 +1,7 @@
 [
   {
     "id": "niphal-verbs",
-    "question": "Find all Niphal verbs in the Hebrew Bible.",
+    "question": "Find all Niphal verbs.",
     "mql": "SELECT ALL OBJECTS WHERE [word sp=verb AND vs=nif GET sp, vs, gloss] GO",
     "expected_count": 4145
   },
