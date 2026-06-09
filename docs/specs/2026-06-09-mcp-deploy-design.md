@@ -108,6 +108,22 @@ pool is engaged in `http` mode.
   does.
 - Render auto-deploys from the repo on push to `main` via the Dockerfile.
 
+## Documentation deliverable
+
+Add a **"Connect in Claude Desktop"** section to the README with verified,
+copy-paste setup steps and the real deployed URL. Cover both paths and document
+whichever actually works against the auth-less streamable-HTTP endpoint:
+
+- **Custom Connector** (Settings → Connectors → Add custom connector): name +
+  the `/mcp` URL.
+- **`mcp-remote` bridge** via `claude_desktop_config.json` (a local stdio shim
+  proxying to the remote URL), for clients/plans where the native connector does
+  not accept an auth-less server.
+
+Include what a scholar sees after connecting: the three tools appear, and the
+host model does NL→MQL itself and calls `run_mql` (since `search_bhsa` returns
+guidance on the deploy).
+
 ## Testing strategy
 
 - Existing unit tests unchanged (run in stdio/local path).
@@ -129,6 +145,8 @@ pool is engaged in `http` mode.
 - A future web app can connect as an MCP-over-HTTP client.
 - A runaway query is bounded by the timeout and does not take down the container.
 - The image builds reproducibly from source.
+- The README has verified copy-paste steps for connecting in Claude Desktop,
+  using the real deployed URL.
 
 ## Out of scope (deliberately)
 
