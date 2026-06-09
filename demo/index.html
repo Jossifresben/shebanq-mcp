@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SHEBANQ MCP — Ask the Hebrew Bible in plain language</title>
+<style>
+  :root {
+    --ink: #1a1a1a; --muted: #6b6b6b; --line: #e3e0d8;
+    --bg: #faf8f3; --card: #ffffff; --accent: #7a5c2e;
+    --code-bg: #f4f1ea;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: Georgia, "Times New Roman", serif;
+    line-height: 1.55;
+  }
+  .wrap { max-width: 820px; margin: 0 auto; padding: 56px 24px 80px; }
+  header h1 {
+    font-size: 30px; font-weight: 600; margin: 0 0 8px; letter-spacing: -0.01em;
+  }
+  header .lede { font-size: 18px; color: var(--accent); margin: 0 0 18px; }
+  header p { font-size: 16px; color: var(--muted); max-width: 64ch; }
+  .rule { height: 1px; background: var(--line); margin: 36px 0; border: 0; }
+  .card {
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: 8px; padding: 24px; margin: 0 0 24px;
+  }
+  .question { font-size: 20px; font-weight: 600; margin: 0 0 14px; }
+  .mql {
+    font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+    font-size: 13px; background: var(--code-bg); color: #2b2b2b;
+    border-radius: 6px; padding: 12px 14px; overflow-x: auto;
+    white-space: pre-wrap; margin: 0 0 12px;
+  }
+  .count { font-size: 14px; color: var(--muted); margin: 0 0 14px; }
+  .count b { color: var(--ink); }
+  table.samples { width: 100%; border-collapse: collapse; font-size: 15px; }
+  table.samples td {
+    padding: 7px 10px; border-top: 1px solid var(--line); vertical-align: middle;
+  }
+  td.heb {
+    direction: rtl; text-align: right; font-size: 22px;
+    font-family: "Times New Roman", "SBL Hebrew", serif; white-space: nowrap;
+  }
+  td.ref { color: var(--muted); font-size: 13px; white-space: nowrap; width: 1%; }
+  td.gloss { color: var(--ink); }
+  .verify { margin: 14px 0 0; font-size: 14px; }
+  .verify a { color: var(--accent); text-decoration: none; }
+  .verify a:hover { text-decoration: underline; }
+  footer { margin-top: 28px; font-size: 13px; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Ask the Hebrew Bible in plain language</h1>
+    <p class="lede">A natural-language question becomes a citable MQL query — and real results.</p>
+    <p>Each example below was produced by translating an English question into an
+       Emdros MQL query and running it against the BHSA database (the same data
+       behind SHEBANQ). The query is always shown, so it can be verified,
+       reproduced, and cited.</p>
+  </header>
+  <hr class="rule">
+  <main id="cards"></main>
+  <footer id="footer"></footer>
+</div>
+<script>window.SHOWCASE = {"version": "bhsa-2021", "searches": [{"id": "niphal-verbs", "question": "Find all Niphal verbs in the Hebrew Bible.", "mql": "SELECT ALL OBJECTS WHERE [word sp=verb AND vs=nif GET g_word_utf8, gloss] GO", "count": 4145, "samples": [{"hebrew": "יִקָּו֨וּ", "gloss": "collect", "reference": null}, {"hebrew": "תֵרָאֶ֖ה", "gloss": "see", "reference": null}, {"hebrew": "הִבָּֽרְאָ֑ם", "gloss": "create", "reference": null}, {"hebrew": "נֶחְמָ֥ד", "gloss": "desire", "reference": null}, {"hebrew": "יִפָּרֵ֔ד", "gloss": "divide", "reference": null}]}, {"id": "bara-create", "question": "Where does the verb בָּרָא (bara, 'to create') occur?", "mql": "SELECT ALL OBJECTS WHERE [word lex='BR>[' GET g_word_utf8, gloss] GO", "count": 48, "samples": [{"hebrew": "בָּרָ֣א", "gloss": "create", "reference": null}, {"hebrew": "יִּבְרָ֣א", "gloss": "create", "reference": null}, {"hebrew": "יִּבְרָ֨א", "gloss": "create", "reference": null}, {"hebrew": "בָּרָ֣א", "gloss": "create", "reference": null}, {"hebrew": "בָּרָ֥א", "gloss": "create", "reference": null}]}, {"id": "feminine-plural-nouns", "question": "Find feminine plural nouns.", "mql": "SELECT ALL OBJECTS WHERE [word sp=subs AND gn=f AND nu=pl GET g_word_utf8, gloss] GO", "count": 5992, "samples": [{"hebrew": "אֹתֹת֙", "gloss": "sign", "reference": null}, {"hebrew": "שָׁנִֽים", "gloss": "year", "reference": null}, {"hebrew": "תֹולְדֹ֧ות", "gloss": "generations", "reference": null}, {"hebrew": "צַּלְעֹתָ֔יו", "gloss": "side", "reference": null}, {"hebrew": "עֲצָמַ֔י", "gloss": "bone", "reference": null}]}, {"id": "imperative-verbs", "question": "Find all imperative verbs.", "mql": "SELECT ALL OBJECTS WHERE [word vt=impv GET g_word_utf8, gloss] GO", "count": 4306, "samples": [{"hebrew": "פְּר֣וּ", "gloss": "be fertile", "reference": null}, {"hebrew": "רְב֗וּ", "gloss": "be many", "reference": null}, {"hebrew": "מִלְא֤וּ", "gloss": "be full", "reference": null}, {"hebrew": "פְּר֥וּ", "gloss": "be fertile", "reference": null}, {"hebrew": "רְב֛וּ", "gloss": "be many", "reference": null}]}, {"id": "proper-nouns", "question": "Find all proper nouns (names).", "mql": "SELECT ALL OBJECTS WHERE [word sp=nmpr GET g_word_utf8, gloss] GO", "count": 33002, "samples": [{"hebrew": "יְהוָ֥ה", "gloss": "YHWH", "reference": null}, {"hebrew": "יְהוָ֤ה", "gloss": "YHWH", "reference": null}, {"hebrew": "יְהוָ֨ה", "gloss": "YHWH", "reference": null}, {"hebrew": "יְהוָ֧ה", "gloss": "YHWH", "reference": null}, {"hebrew": "עֵ֖דֶן", "gloss": "Eden", "reference": null}]}]};</script>
+<script>
+  var SHEBANQ_URL = "https://shebanq.ancient-data.org/hebrew/queries";
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+  function card(s) {
+    var c = el("section", "card");
+    c.appendChild(el("h2", "question", s.question));
+    c.appendChild(el("pre", "mql", s.mql));
+    var count = el("p", "count");
+    count.innerHTML = "<b>" + s.count.toLocaleString() + "</b> result" + (s.count === 1 ? "" : "s");
+    c.appendChild(count);
+    var table = el("table", "samples");
+    s.samples.forEach(function (row) {
+      var tr = el("tr");
+      tr.appendChild(el("td", "heb", row.hebrew));
+      tr.appendChild(el("td", "gloss", row.gloss));
+      tr.appendChild(el("td", "ref", row.reference || ""));
+      table.appendChild(tr);
+    });
+    c.appendChild(table);
+    var v = el("p", "verify");
+    var a = el("a", null, "verify in SHEBANQ →");
+    a.href = SHEBANQ_URL; a.target = "_blank"; a.rel = "noopener";
+    v.appendChild(a);
+    c.appendChild(v);
+    return c;
+  }
+  var data = window.SHOWCASE || { searches: [], version: "" };
+  var cards = document.getElementById("cards");
+  data.searches.forEach(function (s) { cards.appendChild(card(s)); });
+  document.getElementById("footer").textContent =
+    "Data: BHSA " + (data.version || "") +
+    ". Queries run on the Emdros engine that powers SHEBANQ.";
+</script>
+</body>
+</html>
