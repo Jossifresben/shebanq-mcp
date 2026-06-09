@@ -64,3 +64,31 @@ def test_get_clause_features_not_treated_as_constraints():
     mql = "SELECT ALL OBJECTS WHERE [word vs=nif GET sp, gloss] GO"
     result = validate_mql(mql, _ref())
     assert result.ok is True
+
+
+def test_rejects_drop_database():
+    result = validate_mql("DROP DATABASE 'shebanq_etcbc2021' GO", _ref())
+    assert not result.ok
+    assert any("read-only" in e or "mutating" in e for e in result.errors)
+
+
+def test_rejects_update_delete_create_pragma():
+    for mql in [
+        "UPDATE OBJECTS BY MONADS = 1 [word sp:=noun] GO",
+        "DELETE OBJECTS BY MONADS = 1 [word] GO",
+        "CREATE OBJECT FROM MONADS = 1 [word] GO",
+        "PRAGMA journal_mode = WAL",
+    ]:
+        result = validate_mql(mql, _ref())
+        assert not result.ok, mql
+
+
+def test_accepts_plain_select():
+    result = validate_mql("SELECT ALL OBJECTS WHERE [word sp=verb] GO", _ref())
+    assert result.ok, result.errors
+
+
+def test_mutating_keyword_inside_string_value_is_ok():
+    # 'DELETE' as a string-feature value must not trip the read-only guard.
+    result = validate_mql("SELECT ALL OBJECTS WHERE [word lex='DELETE'] GO", _ref())
+    assert result.ok, result.errors

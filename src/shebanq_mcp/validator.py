@@ -14,6 +14,34 @@ _CONSTRAINT = re.compile(
 )
 
 
+# Read-only enforcement. Strip string literals first so a keyword inside a
+# quoted feature value (e.g. lex='DELETE') cannot trip the guard.
+_STRING_LITERAL = re.compile(r"""(['\"]).*?\1""", re.DOTALL)
+_MUTATING = re.compile(
+    r"\b(CREATE|DROP|UPDATE|DELETE|INSERT|ALTER|REPLACE|VACUUM|ATTACH|DETACH"
+    r"|PRAGMA|BEGIN|COMMIT|ROLLBACK)\b",
+    re.IGNORECASE,
+)
+_READ_VERB = re.compile(r"^\s*(SELECT|GET)\b", re.IGNORECASE)
+
+
+def _read_only_errors(mql: str) -> list[str]:
+    stripped = _STRING_LITERAL.sub("''", mql)
+    errors: list[str] = []
+    if not _READ_VERB.match(stripped):
+        errors.append(
+            "only read-only queries are allowed; the query must begin with "
+            "SELECT or GET"
+        )
+    m = _MUTATING.search(stripped)
+    if m:
+        errors.append(
+            "mutating MQL is not permitted on this read-only endpoint "
+            f"(found '{m.group(1).upper()}')"
+        )
+    return errors
+
+
 @dataclass
 class ValidationResult:
     ok: bool
@@ -21,7 +49,7 @@ class ValidationResult:
 
 
 def validate_mql(mql: str, ref: FeatureReference) -> ValidationResult:
-    errors: list[str] = []
+    errors: list[str] = _read_only_errors(mql)
     for match in _CONSTRAINT.finditer(mql):
         feature = match.group(1)
         quoted = match.group(2) is not None
