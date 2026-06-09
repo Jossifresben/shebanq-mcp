@@ -103,6 +103,23 @@ checks whether a representative MCP client tolerates it, then this section is
 updated with the numbers and the lifecycle choice. `render.yaml` is written to
 make the choice a one-line flip.
 
+### Measured (docker-smoke CI, 2026-06-09)
+
+- **Cold start:** ~2.2s, container start to first `200` from `/health` (which
+  includes the real self-test query). Small enough that an MCP client's
+  `initialize` will not time out, so scale-to-zero is technically viable.
+- **Peak memory:** ~154 MiB under 2 concurrent queries (≈75 MiB per live Emdros
+  env over a small base). The `standard` (2 GB) plan was wildly oversized.
+
+**Decision:** `render.yaml` set to `starter` (512 MB, ~3x headroom at
+`MAX_CONCURRENT_QUERIES=2`), **always-on** for an instant first impression. The
+fixed cost at this size is small, and always-on removes the only UX risk of the
+cost-first path. Scale-to-zero stays a one-line option if cost ever matters more
+than the ~2s first-call latency. (Whether Render offers true paid scale-to-zero
+is still unverified; the always-on choice sidesteps that question.) The final
+deploy + plan selection is the owner's call, since it involves a Render account
+and billing.
+
 ## Behavior of the three tools on the deploy
 
 - `lookup_feature` — unchanged; works.

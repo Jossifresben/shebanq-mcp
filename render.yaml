@@ -1,12 +1,13 @@
-# Instance size and lifecycle are PROVISIONAL. After CI measures peak memory
-# and cold-start time, either keep this always-on `standard` size or switch to
-# a scale-to-zero option (see docs/specs/2026-06-09-mcp-deploy-design.md,
+# Sized from the CI measurement (docker-smoke, 2026-06-09): peak ~154 MiB under
+# 2 concurrent queries, cold start ~2.2s. `starter` (512 MB) has ~3x headroom.
+# Cold start is small enough that scale-to-zero is viable; left always-on here
+# for an instant first impression (see docs/specs/2026-06-09-mcp-deploy-design.md,
 # "Instance lifecycle"). The smoke counts depend on the pinned BHSA_REF.
 services:
   - type: web
     name: shebanq-mcp
     runtime: docker
-    plan: standard            # ~2GB; confirm vs the CI memory measurement
+    plan: starter             # 512 MB; measured peak ~154 MiB at 2 concurrent
     dockerfilePath: ./Dockerfile
     dockerContext: .
     healthCheckPath: /health
@@ -22,4 +23,4 @@ services:
       - key: QUERY_TIMEOUT_SECONDS
         value: "15"
       - key: MAX_CONCURRENT_QUERIES
-        value: "2"            # conservative until memory is measured
+        value: "2"            # ~75 MiB/query; 2 fits starter with headroom
