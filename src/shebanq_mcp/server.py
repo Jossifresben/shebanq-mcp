@@ -36,12 +36,21 @@ def _get_features(mql: str) -> list[str]:
     return [f.strip() for f in m.group(1).split(",") if f.strip()]
 
 
+def _default_executor(mql: str, features: list[str]):
+    """Default execution path: run directly in-process (stdio/local/tests)."""
+    return run_query(mql, DB_PATH, features)
+
+
+# Swappable execution backend. HTTP mode replaces this with the QueryGuard.
+_executor = _default_executor
+
+
 def _run_pipeline(mql: str) -> dict:
     validation = validate_mql(mql, _ref)
     if not validation.ok:
         return {"mql": mql, "error": "MQL failed validation",
                 "validation_errors": validation.errors}
-    result = run_query(mql, DB_PATH, features=_get_features(mql))
+    result = _executor(mql, _get_features(mql))
     return {"mql": mql, "result_count": result.count,
             "results": format_results(result.matches)}
 
