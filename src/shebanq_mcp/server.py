@@ -4,6 +4,7 @@ import re
 from mcp.server.fastmcp import FastMCP
 
 from .feature_reference import FeatureReference
+from .guard import QueryGuard
 from .validator import validate_mql
 from .runner import run_query
 from .formatter import format_results
@@ -55,6 +56,10 @@ def _default_executor(mql: str, features: list[str]):
 # Swappable execution backend. HTTP mode replaces this with the QueryGuard.
 _executor = _default_executor
 
+# Startup self-test result; /health reports this. False until proven.
+_ready = False
+SELFTEST_MQL = "SELECT ALL OBJECTS WHERE [word lex='BR>['] GO"  # bara; expect > 0
+
 
 def _run_pipeline(mql: str) -> dict:
     validation = validate_mql(mql, _ref)
@@ -64,6 +69,30 @@ def _run_pipeline(mql: str) -> dict:
     result = _executor(mql, _get_features(mql))
     return {"mql": mql, "result_count": result.count,
             "results": format_results(result.matches)}
+
+
+def _install_guard(max_concurrent: int, timeout_seconds: int) -> None:
+    """Swap the executor to a process-isolated, timeout-bounded guard."""
+    global _executor
+    guard = QueryGuard(DB_PATH, max_concurrent=max_concurrent,
+                       timeout_seconds=timeout_seconds)
+    _executor = lambda mql, features: guard.run(mql, features)  # noqa: E731
+
+
+def _run_startup_selftest(query_fn=None) -> bool:
+    """Run one real read-only query to prove the engine works. Sets _ready."""
+    global _ready
+    fn = query_fn or (lambda: run_query(SELFTEST_MQL, DB_PATH, []))
+    try:
+        _ready = fn().count > 0
+    except Exception:
+        _ready = False
+    return _ready
+
+
+def _health_payload() -> dict:
+    return {"status": "ok" if _ready else "unavailable",
+            "service": "shebanq", "ready": _ready}
 
 
 def handle_run_mql(mql: str) -> dict:
@@ -97,8 +126,28 @@ def search_bhsa(question: str) -> dict:
     return handle_search_bhsa(question)
 
 
+@mcp.custom_route("/health", methods=["GET"])
+async def health(request):  # noqa: ANN001 - Starlette Request
+    from starlette.responses import JSONResponse
+    return JSONResponse(_health_payload(), status_code=200 if _ready else 503)
+
+
 def main() -> None:
-    mcp.run()
+    transport = _resolve_transport()
+    if transport == "streamable-http":
+        max_concurrent = int(os.environ.get("MAX_CONCURRENT_QUERIES", "4"))
+        timeout_seconds = int(os.environ.get("QUERY_TIMEOUT_SECONDS", "15"))
+        _install_guard(max_concurrent, timeout_seconds)
+        if not _run_startup_selftest():
+            # Do not crash: boot and serve /health as 503 so the platform's
+            # health check marks the deploy unhealthy with a clear signal.
+            print("WARNING: startup self-test failed; /health will report 503",
+                  flush=True)
+        mcp.settings.host = os.environ.get("MCP_HOST", "0.0.0.0")
+        mcp.settings.port = int(os.environ.get("PORT", "8000"))
+        mcp.run(transport="streamable-http")
+    else:
+        mcp.run()
 
 
 if __name__ == "__main__":
