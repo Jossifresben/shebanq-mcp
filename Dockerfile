@@ -9,7 +9,7 @@ ENV MQL_URL=https://github.com/ETCBC/bhsa/raw/${BHSA_REF}/shebanq/2021/shebanq_e
 RUN apt-get update && apt-get install -y --no-install-recommends \
         build-essential python3-dev swig \
         autoconf automake libtool gettext pkg-config \
-        re2c bison flex libpcre3-dev libsqlite3-dev bzip2 wget ca-certificates \
+        re2c bison flex libpcre3-dev libsqlite3-dev bzip2 zip unzip wget ca-certificates \
         imagemagick graphviz \
     && rm -rf /var/lib/apt/lists/*
 
