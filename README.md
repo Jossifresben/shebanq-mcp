@@ -15,6 +15,51 @@ like Claude as a set of tools.
 > is present (those tests skip otherwise). The demo web app and deployment are
 > not done yet. Feedback welcome, especially from people who teach or use MQL.
 
+## Use it in Claude Desktop
+
+The server is hosted as a remote MCP endpoint. You do not install Emdros or the
+BHSA database. Point your client at the URL and ask questions in plain language.
+It is a **read-only** query engine: you can search the data, you cannot modify
+it.
+
+> **Note:** the deployment URL is a placeholder until the first deploy lands.
+> Replace `<DEPLOYED_URL>` with the real hostname once it is available.
+
+Endpoint: `https://<DEPLOYED_URL>/mcp`
+
+**Option A: Custom Connector** (Claude.ai and supported clients)
+
+Settings → Connectors → Add custom connector → name it `shebanq` → paste the
+`/mcp` URL. This requires a Claude plan that supports custom connectors. Some
+clients expect OAuth, which this open server does not implement. If yours refuses
+to connect, use Option B.
+
+**Option B: `mcp-remote` bridge** (any client that loads local servers)
+
+Requires Node so that `npx` is available. Edit `claude_desktop_config.json`
+(Settings → Developer → Edit Config):
+
+```json
+{
+  "mcpServers": {
+    "shebanq": {
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "https://<DEPLOYED_URL>/mcp"]
+    }
+  }
+}
+```
+
+Then restart Claude Desktop.
+
+**What you get**
+
+Ask in plain language. Your client's own model writes a read-only MQL query and
+calls `run_mql`; you see the query and the real results. The server guides the
+model: tool descriptions carry the quoting rules, `search_bhsa` returns a
+concise primer, and a `write-mql` prompt provides the full feature reference on
+demand.
+
 ## Why
 
 Querying BHSA today means knowing MQL, the BHSA feature vocabulary, and the
@@ -155,6 +200,44 @@ required locally to view the demo).
 - [ ] Demo web app (static front-end with curated, validated searches)
 - [ ] Deploy: Render Pro Web Service (Docker, Emdros-on-SQLite, data baked in)
 - [ ] Full feature-catalogue generation from the ETCBC feature docs
+
+## Deploy
+
+A Render web service runs the server in HTTP mode, built from `Dockerfile` and
+declared in `render.yaml`.
+
+**What the image does**
+
+The build stage compiles Emdros (`rel-3-9-0`) from source and builds the BHSA
+SQLite database from a pinned ETCBC commit. The runtime stage is slim and
+non-root, with the database mounted read-only. Nothing else ships.
+
+**No LLM key required**
+
+The server runs with `LLM_PROVIDER=none`. The client model drafts MQL; the
+server only validates and executes. The validator rejects any non-read-only MQL
+before it reaches Emdros.
+
+**Health check**
+
+A startup self-test backs the `/health` endpoint. If the database is missing or
+broken, the deploy fails loudly rather than serving errors silently.
+
+**Guardrails**
+
+`QUERY_TIMEOUT_SECONDS` and `MAX_CONCURRENT_QUERIES` hard-kill runaway queries
+and bound memory. Set them in the Render environment panel.
+
+**CI smoke test**
+
+The `docker-smoke` workflow builds the image and verifies multiple queries plus
+mutation rejection on every push.
+
+**Instance lifecycle**
+
+Whether to run always-on or scale-to-zero is decided from the measured cold-start
+time. A cold start that exceeds a few seconds makes always-on the right call for
+a scholarly research tool.
 
 ## Credits
 
