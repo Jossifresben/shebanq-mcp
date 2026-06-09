@@ -152,3 +152,34 @@ jobs:
               except Exception as e:
                   print(f"COUNT {c['id']}: ERROR {e!r}")
           PY
+
+      - name: Introspect section object features (diagnostic, for refs)
+        if: always()
+        env:
+          BHSA_SQLITE: data/bhsa.sqlite3
+        run: |
+          python3 - <<'PY'
+          from shebanq_mcp.runner import _import_emdros
+          e = _import_emdros()
+          env = e.EmdrosEnv(e.kOKConsole, e.kCSUTF8, "", "", "", "data/bhsa.sqlite3", e.kSQLite3)
+          for ot in ("verse", "chapter", "book"):
+              print(f"===== FEATURES OF {ot} =====")
+              env.executeString(f"SELECT FEATURES FROM OBJECT TYPE [{ot}] GO", True, True, True)
+          PY
+
+      - name: Extract showcase data
+        if: always()
+        env:
+          BHSA_SQLITE: data/bhsa.sqlite3
+        run: |
+          mkdir -p demo
+          python3 scripts/extract_showcase.py data/bhsa.sqlite3 > demo/showcase.json
+          echo "=== showcase.json head ==="
+          head -40 demo/showcase.json
+
+      - name: Upload showcase data
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: showcase
+          path: demo/showcase.json
