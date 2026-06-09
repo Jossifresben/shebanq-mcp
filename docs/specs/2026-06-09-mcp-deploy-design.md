@@ -41,9 +41,33 @@ Both, equally:
 
 - `lookup_feature` — unchanged; works.
 - `run_mql` — unchanged: validate → run on Emdros → glossed results. The workhorse.
-- `search_bhsa` — returns its existing "no translator configured, use run_mql"
-  guidance (because `LLM_PROVIDER=none`). The connecting client's own model does
-  NL→MQL and then calls `run_mql`.
+- `search_bhsa` — with no translator configured (`LLM_PROVIDER=none`), returns
+  an **MQL-writing primer** (the feature reference + quoting rules from
+  `translate.build_prompt`) plus the echoed question and a pointer to `run_mql`,
+  not a bare error. The connecting client's own model uses the primer to compose
+  correct MQL and calls `run_mql`.
+
+## MQL-writing guidance for client models
+
+On the deploy the client's own model writes the MQL. It will not know the BHSA
+features or the critical quoting rule (enums UNQUOTED `vs=nif`; strings QUOTED
+`lex='BR>['`; verb lexemes carry a trailing `[`) unless we hand it that
+knowledge through the MCP surface. README prose only helps the human; the model
+needs it through the protocol. The server already assembles exactly this in
+`translate.build_prompt(ref)` (unused when `LLM_PROVIDER=none`), so we reuse it.
+
+Three delivery mechanisms, all reusing `build_prompt`:
+
+1. **Enriched tool descriptions** — `run_mql` and `search_bhsa` docstrings state
+   the quoting rule and tell the model to call `lookup_feature` to check a
+   feature's kind/values. Models read tool descriptions automatically.
+2. **`search_bhsa` primer response** — described above; the no-translator path
+   returns the authoring primer instead of a dead-end error.
+3. **`write-mql` MCP Prompt** — a Prompts-primitive template the scholar can
+   invoke explicitly in their client. Takes the question, returns the primer +
+   the question + "write the MQL, then call run_mql."
+
+These are server-wide (they apply in stdio and HTTP modes), not deploy-only.
 
 ## Architecture
 
@@ -147,6 +171,9 @@ guidance on the deploy).
 - The image builds reproducibly from source.
 - The README has verified copy-paste steps for connecting in Claude Desktop,
   using the real deployed URL.
+- A client model with no prior BHSA knowledge can write correct MQL: tool
+  descriptions carry the quoting rule, `search_bhsa` returns the authoring
+  primer, and a `write-mql` Prompt is available.
 
 ## Out of scope (deliberately)
 

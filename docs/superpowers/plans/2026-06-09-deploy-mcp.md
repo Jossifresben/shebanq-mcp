@@ -511,6 +511,175 @@ git commit -m "feat: HTTP mode installs QueryGuard, binds 0.0.0.0:PORT, serves /
 
 ---
 
+## Task 5b: MQL-writing guidance for client models
+
+Deliver BHSA/MQL knowledge to the connecting model through the MCP surface:
+enriched tool descriptions, an authoring primer from `search_bhsa`, and a
+`write-mql` Prompt. All reuse `translate.build_prompt`. These apply in both
+stdio and HTTP modes.
+
+**Files:**
+- Modify: `src/shebanq_mcp/server.py`
+- Modify: `tests/test_server.py`
+- Test: `tests/test_server_transport.py`
+
+- [ ] **Step 1: Replace the search_bhsa no-translator test with a primer test**
+
+In `tests/test_server.py`, replace `test_search_bhsa_without_translator_returns_error`
+(the last test in the file) with:
+
+```python
+def test_search_bhsa_without_translator_returns_primer(monkeypatch):
+    # The translation-free deploy: search_bhsa hands back an MQL-writing primer
+    # (feature reference + quoting rules) instead of a dead-end error.
+    monkeypatch.setattr(server, "_translator", None)
+    out = server.handle_search_bhsa("all niphal verbs")
+    assert out["question"] == "all niphal verbs"
+    assert "UNQUOTED" in out["guidance"]   # the quoting rule from build_prompt
+    assert "run_mql" in out["next"]
+    assert "error" not in out
+```
+
+- [ ] **Step 2: Add the prompt-text test**
+
+Append to `tests/test_server_transport.py`:
+
+```python
+def test_mql_prompt_text_includes_rules_and_question():
+    text = server._mql_prompt_text("all niphal verbs")
+    assert "UNQUOTED" in text
+    assert "all niphal verbs" in text
+    assert "run_mql" in text
+```
+
+- [ ] **Step 3: Run to verify failure**
+
+Run: `pytest tests/test_server.py::test_search_bhsa_without_translator_returns_primer tests/test_server_transport.py::test_mql_prompt_text_includes_rules_and_question -v`
+Expected: FAIL — `KeyError: 'question'` / `AttributeError: ... '_mql_prompt_text'`.
+
+- [ ] **Step 4: Implement primer response, prompt text, enriched docstrings, and the prompt**
+
+In `src/shebanq_mcp/server.py`:
+
+(a) Change the translate import:
+
+```python
+from .translate import build_translator, build_prompt
+```
+
+(b) Replace `handle_search_bhsa`:
+
+```python
+def handle_search_bhsa(question: str) -> dict:
+    if _translator is None:
+        return {
+            "question": question,
+            "guidance": build_prompt(_ref),
+            "next": "Use the rules above to write an MQL query for this "
+                    "question, then call run_mql with it.",
+        }
+    mql = _translator.translate(question, _ref)
+    return _run_pipeline(mql)
+```
+
+(c) Add the prompt-text helper (place it near the other helpers, after
+`_run_pipeline`):
+
+```python
+def _mql_prompt_text(question: str) -> str:
+    return (
+        build_prompt(_ref)
+        + f"\n\nQuestion: {question}\n\n"
+        "Write the MQL query for this question, then call run_mql with it."
+    )
+```
+
+(d) Enrich the `run_mql` and `search_bhsa` tool docstrings (replace the existing
+two decorated functions' docstrings):
+
+```python
+@mcp.tool()
+def run_mql(mql: str) -> dict:
+    """Validate and run an MQL query; return the query and glossed results.
+
+    MQL quoting rule (getting it wrong fails typechecking): enumeration features
+    compare UNQUOTED (e.g. sp=verb, vs=nif); string features compare QUOTED
+    (e.g. lex='BR>['). Verb lexemes carry a trailing '['. Call
+    lookup_feature(name) to check a feature's kind and valid values.
+    """
+    return handle_run_mql(mql)
+
+
+@mcp.tool()
+def search_bhsa(question: str) -> dict:
+    """Answer a plain-language question about the Hebrew Bible.
+
+    With server-side translation enabled, returns generated MQL + results. On
+    the public deploy (no server-side LLM) it returns an MQL-writing primer
+    (feature reference + quoting rules) so you compose the query yourself and
+    call run_mql.
+    """
+    return handle_search_bhsa(question)
+```
+
+(e) Register the `write-mql` Prompt (place after the tool definitions):
+
+```python
+@mcp.prompt()
+def write_mql(question: str) -> str:
+    """Compose a BHSA MQL query for a plain-language question."""
+    return _mql_prompt_text(question)
+```
+
+- [ ] **Step 5: Run to verify pass**
+
+Run: `pytest tests/test_server.py tests/test_server_transport.py -v`
+Expected: all PASS, including the two new tests.
+
+- [ ] **Step 6: Verify tools and the prompt are exposed over HTTP**
+
+Run (lists only; no Emdros needed):
+
+```bash
+MCP_TRANSPORT=http PORT=8766 LLM_PROVIDER=none python3 -m shebanq_mcp.server &
+sleep 3
+python3 - <<'PY'
+import anyio
+from mcp import ClientSession
+from mcp.client.streamable_http import streamablehttp_client
+
+async def main():
+    async with streamablehttp_client("http://localhost:8766/mcp") as (r, w, _):
+        async with ClientSession(r, w) as s:
+            await s.initialize()
+            tools = {t.name for t in (await s.list_tools()).tools}
+            prompts = {p.name for p in (await s.list_prompts()).prompts}
+            print("tools:", tools)
+            print("prompts:", prompts)
+            assert {"run_mql", "lookup_feature", "search_bhsa"} <= tools
+            assert "write_mql" in prompts
+            print("OK")
+anyio.run(main)
+PY
+kill %1
+```
+
+Expected: prints the tool set, `prompts: {'write_mql'}`, and `OK`. (Prompt name may render as `write_mql`; if your FastMCP version slugifies it differently, note the actual name for the README.)
+
+- [ ] **Step 7: Confirm full suite green**
+
+Run: `pytest -q`
+Expected: PASS.
+
+- [ ] **Step 8: Commit**
+
+```bash
+git add src/shebanq_mcp/server.py tests/test_server.py tests/test_server_transport.py
+git commit -m "feat: expose MQL-writing guidance via tool docs, search_bhsa primer, write-mql prompt"
+```
+
+---
+
 ## Task 6: Multi-stage Dockerfile
 
 **Files:**
@@ -870,9 +1039,11 @@ Restart Claude Desktop. Requires Node (for `npx`); nothing Emdros-related.
 
 ### What you get
 Ask in plain language. Your client's own model writes the MQL and calls
-`run_mql`; you see the query and the real results. (`search_bhsa` returns a
-pointer to `run_mql` on this deployment, because translation lives in the
-client, not the server.)
+`run_mql`; you see the query and the real results. The server hands the model
+what it needs to get MQL right: the `run_mql`/`search_bhsa` tool descriptions
+carry the quoting rules, `search_bhsa` returns an MQL-writing primer (feature
+reference + rules), and a `write-mql` prompt is available in your client for
+composing a query from a question.
 ```
 
 - [ ] **Step 3: Add a short "Deploy" subsection**
@@ -892,7 +1063,7 @@ a pure query engine: `LLM_PROVIDER=none`, no API key. Guardrails
 
 - [ ] **Step 4: Verify the README renders sanely**
 
-Run: `python3 -c "p=open('README.md').read(); assert 'Use it in Claude Desktop' in p and 'mcp-remote' in p; print('readme ok')"`
+Run: `python3 -c "p=open('README.md').read(); assert 'Use it in Claude Desktop' in p and 'mcp-remote' in p and 'write-mql' in p; print('readme ok')"`
 Expected: prints `readme ok`.
 
 - [ ] **Step 5: Commit**
@@ -944,6 +1115,6 @@ and push (solo repo, no PR per project norms).
 
 ## Self-review notes
 
-- **Spec coverage:** transport switch (Tasks 3, 5) · pure engine `LLM_PROVIDER=none` (Dockerfile/render env, Tasks 6–7) · both stdio + HTTP (Task 3/5) · multi-stage build-in-image (Task 6) · guardrails timeout + concurrency (Tasks 4–5) · `/health` (Task 5) · CI Docker smoke asserting bara=48 (Task 8) · README Claude Desktop section (Task 9) · success criteria verified in Task 10. All spec sections map to a task.
+- **Spec coverage:** transport switch (Tasks 3, 5) · pure engine `LLM_PROVIDER=none` (Dockerfile/render env, Tasks 6–7) · both stdio + HTTP (Task 3/5) · multi-stage build-in-image (Task 6) · guardrails timeout + concurrency (Tasks 4–5) · `/health` (Task 5) · MQL-writing guidance: tool descriptions + `search_bhsa` primer + `write-mql` prompt (Task 5b) · CI Docker smoke asserting bara=48 (Task 8) · README Claude Desktop section (Task 9) · success criteria verified in Task 10. All spec sections map to a task.
 - **Known verification risks (flagged inline with fallbacks):** exact FastMCP `settings.host/port` attribute names and `custom_route` signature (Task 5 Step 5 has a fallback probe); `mcp` version providing `streamablehttp_client` (Task 1 Step 2 raises the pin if missing); the Emdros runtime-lib closure via `ldd` (Task 6 build-time `import EmdrosPy3` fails loudly if incomplete); spawn-importability of test targets (solved by `tests/__init__.py` + `tests/guard_targets.py`).
-- **Type consistency:** `QueryGuard(db_path, max_concurrent, timeout_seconds, target)`, `.run(mql, features) -> RunResult`, `QueryTimeout`, `_executor(mql, features)`, `_resolve_transport() -> str`, `_install_guard(max_concurrent, timeout_seconds)`, `_health_payload() -> dict` are used consistently across tasks.
+- **Type consistency:** `QueryGuard(db_path, max_concurrent, timeout_seconds, target)`, `.run(mql, features) -> RunResult`, `QueryTimeout`, `_executor(mql, features)`, `_resolve_transport() -> str`, `_install_guard(max_concurrent, timeout_seconds)`, `_health_payload() -> dict`, `_mql_prompt_text(question) -> str`, and the `search_bhsa` no-translator response keys (`question`/`guidance`/`next`) are used consistently across tasks.
