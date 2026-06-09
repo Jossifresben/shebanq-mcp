@@ -92,3 +92,11 @@ def test_mutating_keyword_inside_string_value_is_ok():
     # 'DELETE' as a string-feature value must not trip the read-only guard.
     result = validate_mql("SELECT ALL OBJECTS WHERE [word lex='DELETE'] GO", _ref())
     assert result.ok, result.errors
+
+
+def test_rejects_mutation_smuggled_after_select():
+    # The denylist must scan the whole query, not just the first statement.
+    res = validate_mql(
+        "SELECT ALL OBJECTS WHERE [word sp=verb] GO DROP DATABASE 'x' GO", _ref()
+    )
+    assert not res.ok
