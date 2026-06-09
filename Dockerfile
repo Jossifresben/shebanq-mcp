@@ -45,11 +45,16 @@ RUN wget -q -O bhsa.mql.bz2 "$MQL_URL" \
     && test -s bhsa.sqlite3
 
 # Stage exactly the runtime libs the Python binding needs (closure via ldd).
+# Copy the emdros shared libs by glob so each soname symlink AND its real
+# target file both come across (a bare `cp -a` of an ldd-resolved soname copies
+# only the dangling symlink). The ldd closure then sweeps up any remaining
+# /usr/local deps, dereferencing with -L so no link is left pointing at nothing.
 RUN mkdir -p /stage/lib/emdros \
     && cp -a /usr/local/lib/emdros/. /stage/lib/emdros/ \
+    && cp -a /usr/local/lib/libemdros*.so* /stage/lib/ \
     && ldd /usr/local/lib/emdros/_EmdrosPy3.so \
         | awk '/=> \/usr\/local/ {print $3}' \
-        | xargs -r -I{} cp -a {} /stage/lib/
+        | xargs -r -I{} cp -aL {} /stage/lib/
 
 # ---- Runtime stage: slim, non-root, read-only DB ----
 FROM python:3.11-slim-bookworm AS runtime
