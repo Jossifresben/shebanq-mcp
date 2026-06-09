@@ -17,7 +17,7 @@ SAMPLE_N = 5
 SEARCHES = [
     {
         "id": "niphal-verbs",
-        "question": "Find all Niphal verbs.",
+        "question": "Find all Niphal verbs",
         "mql": "SELECT ALL OBJECTS WHERE [word sp=verb AND vs=nif GET g_word_utf8, gloss] GO",
         "where": "sp=verb AND vs=nif",
     },
@@ -29,19 +29,19 @@ SEARCHES = [
     },
     {
         "id": "feminine-plural-nouns",
-        "question": "Find feminine plural nouns.",
+        "question": "Find feminine plural nouns",
         "mql": "SELECT ALL OBJECTS WHERE [word sp=subs AND gn=f AND nu=pl GET g_word_utf8, gloss] GO",
         "where": "sp=subs AND gn=f AND nu=pl",
     },
     {
         "id": "imperative-verbs",
-        "question": "Find all imperative verbs.",
+        "question": "Find all imperative verbs",
         "mql": "SELECT ALL OBJECTS WHERE [word vt=impv GET g_word_utf8, gloss] GO",
         "where": "vt=impv",
     },
     {
         "id": "proper-nouns",
-        "question": "Find all proper nouns (names).",
+        "question": "Find all proper nouns (names)",
         "mql": "SELECT ALL OBJECTS WHERE [word sp=nmpr GET g_word_utf8, gloss] GO",
         "where": "sp=nmpr",
     },
