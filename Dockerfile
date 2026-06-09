@@ -10,6 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         build-essential python3-dev swig \
         autoconf automake libtool gettext pkg-config \
         re2c bison flex libpcre3-dev libsqlite3-dev bzip2 wget ca-certificates \
+        imagemagick graphviz \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /build
