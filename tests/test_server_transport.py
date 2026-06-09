@@ -20,6 +20,16 @@ def test_run_pipeline_uses_executor_seam(monkeypatch):
     assert seen["features"] == ["sp", "gloss"]
 
 
+def test_run_pipeline_wraps_executor_errors(monkeypatch):
+    def boom(mql, features):
+        raise RuntimeError("Emdros error: typecheck failed")
+    monkeypatch.setattr(server, "_executor", boom)
+    out = server.handle_run_mql("SELECT ALL OBJECTS WHERE [word sp=verb] GO")
+    assert "error" in out
+    assert "typecheck failed" in out["error"]
+    assert out["mql"].startswith("SELECT")
+
+
 def test_resolve_transport_defaults_to_stdio(monkeypatch):
     monkeypatch.delenv("MCP_TRANSPORT", raising=False)
     assert server._resolve_transport() == "stdio"

@@ -4,7 +4,7 @@ import re
 from mcp.server.fastmcp import FastMCP
 
 from .feature_reference import FeatureReference
-from .guard import QueryGuard
+from .guard import QueryGuard, QueryTimeout, ServerBusy, WorkerCrashed
 from .validator import validate_mql
 from .runner import run_query
 from .formatter import format_results
@@ -72,7 +72,10 @@ def _run_pipeline(mql: str) -> dict:
     if not validation.ok:
         return {"mql": mql, "error": "MQL failed validation",
                 "validation_errors": validation.errors}
-    result = _executor(mql, _get_features(mql))
+    try:
+        result = _executor(mql, _get_features(mql))
+    except (RuntimeError, QueryTimeout, ServerBusy, WorkerCrashed) as exc:
+        return {"mql": mql, "error": str(exc)}
     return {"mql": mql, "result_count": result.count,
             "results": format_results(result.matches)}
 
@@ -173,7 +176,7 @@ async def health(request):  # noqa: ANN001 - Starlette Request
 def main() -> None:
     transport = _resolve_transport()
     if transport == "streamable-http":
-        max_concurrent = int(os.environ.get("MAX_CONCURRENT_QUERIES", "4"))
+        max_concurrent = int(os.environ.get("MAX_CONCURRENT_QUERIES", "2"))
         timeout_seconds = int(os.environ.get("QUERY_TIMEOUT_SECONDS", "15"))
         if max_concurrent < 1:
             raise SystemExit("MAX_CONCURRENT_QUERIES must be >= 1")

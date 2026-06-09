@@ -12,8 +12,12 @@ like Claude as a set of tools.
 
 > **Status: early.** The core server is built and unit-tested. The Emdros
 > execution path is implemented but exercised only where a built BHSA database
-> is present (those tests skip otherwise). The demo web app and deployment are
-> not done yet. Feedback welcome, especially from people who teach or use MQL.
+> is present (those tests skip otherwise). The deploy path is built and proven
+> in CI: a Docker image bakes Emdros plus the BHSA database, and a smoke
+> workflow runs `run_mql` over MCP on every push. It is not yet live at a public
+> URL, so the connect URL below stays a placeholder until the first deploy
+> lands. The demo web app is still future work. Feedback welcome, especially
+> from people who teach or use MQL.
 
 ## Use it in Claude Desktop
 
