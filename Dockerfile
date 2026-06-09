@@ -1,5 +1,5 @@
 # ---- Build stage: Emdros from source + BHSA SQLite DB ----
-FROM python:3.11-slim AS builder
+FROM python:3.11-slim-bookworm AS builder
 
 ENV EMDROS_TAG=rel-3-9-0
 # Pinned ETCBC commit, NOT master — makes the DB build reproducible.
@@ -51,7 +51,7 @@ RUN mkdir -p /stage/lib/emdros \
         | xargs -r -I{} cp -a {} /stage/lib/
 
 # ---- Runtime stage: slim, non-root, read-only DB ----
-FROM python:3.11-slim AS runtime
+FROM python:3.11-slim-bookworm AS runtime
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
         libsqlite3-0 libpcre3 \
