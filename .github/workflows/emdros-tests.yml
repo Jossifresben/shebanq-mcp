@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       EMDROS_TAG: "rel-3-9-0"
-      MQL_URL: "https://github.com/ETCBC/bhsa/raw/master/shebanq/2021/shebanq_etcbc2021.mql.bz2"
+      MQL_URL: "https://github.com/ETCBC/bhsa/raw/4db00e2157915495e1a4d3d57e41223df24775da/shebanq/2021/shebanq_etcbc2021.mql.bz2"
     steps:
       - uses: actions/checkout@v4
 
