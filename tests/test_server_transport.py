@@ -1,3 +1,5 @@
+import pytest
+
 from shebanq_mcp import server
 from shebanq_mcp.runner import RunResult
 
@@ -46,16 +48,15 @@ def test_install_guard_swaps_executor():
         server._executor = server._default_executor
 
 
-def test_startup_selftest_sets_ready_on_success():
-    from shebanq_mcp.runner import RunResult
-    server._ready = False
+def test_startup_selftest_sets_ready_on_success(monkeypatch):
+    monkeypatch.setattr(server, "_ready", False)
     ok = server._run_startup_selftest(query_fn=lambda: RunResult(count=48, matches=[]))
     assert ok is True and server._ready is True
     assert server._health_payload()["status"] == "ok"
 
 
-def test_startup_selftest_marks_unready_on_failure():
-    server._ready = True
+def test_startup_selftest_marks_unready_on_failure(monkeypatch):
+    monkeypatch.setattr(server, "_ready", True)
 
     def boom():
         raise RuntimeError("no db")
@@ -63,3 +64,10 @@ def test_startup_selftest_marks_unready_on_failure():
     ok = server._run_startup_selftest(query_fn=boom)
     assert ok is False and server._ready is False
     assert server._health_payload()["status"] != "ok"
+
+
+def test_main_rejects_nonpositive_guard_config(monkeypatch):
+    monkeypatch.setenv("MCP_TRANSPORT", "http")
+    monkeypatch.setenv("MAX_CONCURRENT_QUERIES", "0")
+    with pytest.raises(SystemExit):
+        server.main()

@@ -76,7 +76,7 @@ def _install_guard(max_concurrent: int, timeout_seconds: int) -> None:
     global _executor
     guard = QueryGuard(DB_PATH, max_concurrent=max_concurrent,
                        timeout_seconds=timeout_seconds)
-    _executor = lambda mql, features: guard.run(mql, features)  # noqa: E731
+    _executor = guard.run
 
 
 def _run_startup_selftest(query_fn=None) -> bool:
@@ -128,6 +128,7 @@ def search_bhsa(question: str) -> dict:
 
 @mcp.custom_route("/health", methods=["GET"])
 async def health(request):  # noqa: ANN001 - Starlette Request
+    # Local import: keep stdio mode free of HTTP-stack imports.
     from starlette.responses import JSONResponse
     return JSONResponse(_health_payload(), status_code=200 if _ready else 503)
 
@@ -137,8 +138,16 @@ def main() -> None:
     if transport == "streamable-http":
         max_concurrent = int(os.environ.get("MAX_CONCURRENT_QUERIES", "4"))
         timeout_seconds = int(os.environ.get("QUERY_TIMEOUT_SECONDS", "15"))
+        if max_concurrent < 1:
+            raise SystemExit("MAX_CONCURRENT_QUERIES must be >= 1")
+        if timeout_seconds < 1:
+            raise SystemExit("QUERY_TIMEOUT_SECONDS must be >= 1")
         _install_guard(max_concurrent, timeout_seconds)
-        if not _run_startup_selftest():
+        # Self-test through the guard: bounds a hung engine at timeout_seconds
+        # and exercises the real production execution path.
+        if not _run_startup_selftest(
+            query_fn=lambda: _executor(SELFTEST_MQL, [])
+        ):
             # Do not crash: boot and serve /health as 503 so the platform's
             # health check marks the deploy unhealthy with a clear signal.
             print("WARNING: startup self-test failed; /health will report 503",
