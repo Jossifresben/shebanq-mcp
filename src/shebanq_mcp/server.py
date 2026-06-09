@@ -11,6 +11,17 @@ from .translate import build_translator
 
 DB_PATH = os.environ.get("BHSA_SQLITE", "data/bhsa.sqlite3")
 
+
+def _resolve_transport() -> str:
+    """Map the MCP_TRANSPORT env var to a FastMCP transport name."""
+    raw = os.environ.get("MCP_TRANSPORT", "stdio").strip().lower()
+    if raw in ("", "stdio"):
+        return "stdio"
+    if raw in ("http", "streamable-http"):
+        return "streamable-http"
+    raise ValueError(f"unknown MCP_TRANSPORT '{raw}' (supported: stdio, http)")
+
+
 # Matches the feature list inside an MQL `GET a, b, c` clause.
 _GET_CLAUSE = re.compile(r"\bGET\s+([A-Za-z0-9_,\s]+?)\s*\]")
 
