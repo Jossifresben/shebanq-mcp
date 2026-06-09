@@ -3,7 +3,7 @@ import time
 
 import pytest
 
-from shebanq_mcp.guard import QueryGuard, QueryTimeout
+from shebanq_mcp.guard import QueryGuard, QueryTimeout, ServerBusy, WorkerCrashed
 from shebanq_mcp.runner import RunResult
 from tests import guard_targets
 
@@ -54,3 +54,24 @@ def test_guard_caps_concurrency():
         t.join()
     # Two 3s queries serialized by a cap of 1 => >= ~6s.
     assert time.monotonic() - start >= 5.0
+
+
+def test_guard_detects_crashed_worker_promptly():
+    guard = QueryGuard("unused.db", max_concurrent=2,
+                       timeout_seconds=10, target=guard_targets.crash)
+    start = time.monotonic()
+    with pytest.raises(WorkerCrashed):
+        guard.run("SELECT ... GO")
+    # Must detect the crash quickly, not wait out the 10s budget.
+    assert time.monotonic() - start < 5.0
+
+
+def test_guard_raises_busy_when_saturated():
+    guard = QueryGuard("unused.db", max_concurrent=1, timeout_seconds=10,
+                       busy_timeout_seconds=0.2, target=guard_targets.slow)
+    t = threading.Thread(target=guard.run, args=("SELECT ... GO",))
+    t.start()
+    time.sleep(0.5)  # let the slow worker occupy the only slot
+    with pytest.raises(ServerBusy):
+        guard.run("SELECT ... GO")
+    t.join()

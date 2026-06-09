@@ -19,6 +19,11 @@ def boom(mql, db_path, features, q):
     q.put(("err", "deliberate failure"))
 
 
+def crash(mql, db_path, features, q):
+    import os
+    os._exit(1)  # die without reporting, like a segfault would
+
+
 def stubborn(mql, db_path, features, q):
     # Ignore SIGTERM, then sleep long. Only SIGKILL can stop this — it proves
     # the guard escalates terminate() -> kill().
