@@ -86,3 +86,30 @@ def test_search_bhsa_without_translator_returns_concise_primer(monkeypatch):
     assert "error" not in out
     # Concise: it must NOT dump the full 237-constant reference.
     assert len(out["guidance"]) < 600
+
+
+def test_run_pipeline_caps_results_but_reports_true_total(monkeypatch):
+    # A broad query must not dump every match into the client's context.
+    # result_count stays the honest total; results is capped + flagged.
+    from shebanq_mcp.runner import RunResult
+    monkeypatch.setattr(server, "_RESULT_LIMIT", 3)
+    matches = [{"id_d": i} for i in range(10)]
+    monkeypatch.setattr(server, "_executor",
+                        lambda mql, features: RunResult(count=10, matches=matches))
+    out = server.handle_run_mql("SELECT ALL OBJECTS WHERE [word sp=verb] GO")
+    assert out["result_count"] == 10          # honest total
+    assert len(out["results"]) == 3           # capped
+    assert out["results_truncated"] is True
+    assert out["results_shown"] == 3
+
+
+def test_run_pipeline_no_truncation_flag_under_cap(monkeypatch):
+    from shebanq_mcp.runner import RunResult
+    monkeypatch.setattr(server, "_RESULT_LIMIT", 100)
+    matches = [{"id_d": i} for i in range(2)]
+    monkeypatch.setattr(server, "_executor",
+                        lambda mql, features: RunResult(count=2, matches=matches))
+    out = server.handle_run_mql("SELECT ALL OBJECTS WHERE [word vs=nif] GO")
+    assert out["result_count"] == 2
+    assert len(out["results"]) == 2
+    assert "results_truncated" not in out

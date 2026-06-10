@@ -66,6 +66,11 @@ _executor = _default_executor
 _ready = False
 SELFTEST_MQL = "SELECT ALL OBJECTS WHERE [word lex='BR>['] GO"  # bara; expect > 0
 
+# Cap on the number of formatted results returned in a single response. A broad
+# query can match thousands of objects; returning them all floods a client's
+# context. result_count still reports the true total, so counts stay honest.
+_RESULT_LIMIT = int(os.environ.get("MAX_RESULTS", "100"))
+
 
 def _run_pipeline(mql: str) -> dict:
     validation = validate_mql(mql, _ref)
@@ -76,8 +81,13 @@ def _run_pipeline(mql: str) -> dict:
         result = _executor(mql, _get_features(mql))
     except (RuntimeError, QueryTimeout, ServerBusy, WorkerCrashed) as exc:
         return {"mql": mql, "error": str(exc)}
-    return {"mql": mql, "result_count": result.count,
-            "results": format_results(result.matches)}
+    shown = result.matches[:_RESULT_LIMIT]
+    out = {"mql": mql, "result_count": result.count,
+           "results": format_results(shown)}
+    if result.count > len(shown):
+        out["results_truncated"] = True
+        out["results_shown"] = len(shown)
+    return out
 
 
 def _install_guard(max_concurrent: int, timeout_seconds: int) -> None:
