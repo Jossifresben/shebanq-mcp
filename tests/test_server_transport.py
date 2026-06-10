@@ -90,3 +90,22 @@ def test_mql_prompt_text_includes_full_reference_and_question():
     assert "run_mql" in text
     # The prompt carries the full reference (much larger than the primer).
     assert len(text) > 600
+
+
+def test_http_security_disabled_by_default(monkeypatch):
+    # Public deploy behind a proxy host: FastMCP's default DNS-rebinding guard
+    # only trusts localhost and 421s everything else. Default to disabled.
+    monkeypatch.delenv("MCP_ALLOWED_HOSTS", raising=False)
+    server._configure_http_security()
+    ts = server.mcp.settings.transport_security
+    assert ts.enable_dns_rebinding_protection is False
+
+
+def test_http_security_strict_allowlist_from_env(monkeypatch):
+    monkeypatch.setenv("MCP_ALLOWED_HOSTS",
+                       "shebanq-mcp.onrender.com, example.com")
+    server._configure_http_security()
+    ts = server.mcp.settings.transport_security
+    assert ts.enable_dns_rebinding_protection is True
+    assert "shebanq-mcp.onrender.com" in ts.allowed_hosts
+    assert "example.com" in ts.allowed_hosts

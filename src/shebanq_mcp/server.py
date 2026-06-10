@@ -173,6 +173,32 @@ async def health(request):  # noqa: ANN001 - Starlette Request
     return JSONResponse(_health_payload(), status_code=200 if _ready else 503)
 
 
+def _configure_http_security() -> None:
+    """Set transport security for the public HTTP deploy.
+
+    FastMCP defaults to DNS-rebinding/Host protection that only trusts
+    localhost, so behind a proxy host (e.g. Render) every MCP request gets a
+    421. That protection exists to shield LOCAL servers from browser-driven
+    attacks; this server is public, holds no credentials/cookies, and makes no
+    localhost-trust assumption, so it does not apply. Disable it by default; set
+    MCP_ALLOWED_HOSTS (comma-separated) to re-enable a strict host allowlist.
+    """
+    from mcp.server.transport_security import TransportSecuritySettings
+
+    allowed = os.environ.get("MCP_ALLOWED_HOSTS", "").strip()
+    if allowed:
+        hosts = [h.strip() for h in allowed.split(",") if h.strip()]
+        mcp.settings.transport_security = TransportSecuritySettings(
+            enable_dns_rebinding_protection=True,
+            allowed_hosts=hosts,
+            allowed_origins=["*"],
+        )
+    else:
+        mcp.settings.transport_security = TransportSecuritySettings(
+            enable_dns_rebinding_protection=False,
+        )
+
+
 def main() -> None:
     transport = _resolve_transport()
     if transport == "streamable-http":
@@ -192,6 +218,7 @@ def main() -> None:
             # health check marks the deploy unhealthy with a clear signal.
             print("WARNING: startup self-test failed; /health will report 503",
                   flush=True)
+        _configure_http_security()
         mcp.settings.host = os.environ.get("MCP_HOST", "0.0.0.0")
         mcp.settings.port = int(os.environ.get("PORT", "8000"))
         mcp.run(transport="streamable-http")
