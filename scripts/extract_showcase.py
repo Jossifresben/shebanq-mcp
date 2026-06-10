@@ -10,6 +10,7 @@ import json
 import sys
 
 from shebanq_mcp.runner import run_query, _import_emdros
+from shebanq_mcp.server import _wrap_in_verse
 
 DB = sys.argv[1] if len(sys.argv) > 1 else "data/bhsa.sqlite3"
 SAMPLE_N = 5
@@ -114,7 +115,7 @@ def extract(db: str) -> dict:
         searches.append({
             "id": s["id"],
             "question": s["question"],
-            "mql": s["mql"],
+            "mql": _wrap_in_verse(s["mql"]),
             "count": res.count,
             "samples": samples,
         })
