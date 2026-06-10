@@ -271,7 +271,7 @@ for an always-on instance with an instant first response.
 ## Credits
 
 Built on the work of the [Eep Talstra Centre for Bible and Computer
-(ETCBC)](https://www.etcbc.nl/): the BHSA dataset, SHEBANQ, and the Emdros query
+(ETCBC)](https://etcbc.nl/): the BHSA dataset, SHEBANQ, and the Emdros query
 engine. This project wraps that work; it does not replace it.
 
 ## Citation
