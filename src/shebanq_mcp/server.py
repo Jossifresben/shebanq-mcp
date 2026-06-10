@@ -133,6 +133,39 @@ def handle_search_bhsa(question: str) -> dict:
     return _run_pipeline(mql)
 
 
+def handle_ask(question: str) -> dict:
+    """Web /api/ask: translate + run, with graceful degrade. If translation is
+    unavailable (no LLM, Anthropic error, spend cap) the result has no 'mql';
+    return a degraded payload so the UI offers the manual edit-and-run path."""
+    try:
+        result = handle_search_bhsa(question)
+    except Exception:  # noqa: BLE001 - any LLM/translate failure degrades
+        result = None
+    if not result or "mql" not in result:
+        return {
+            "question": question,
+            "degraded": True,
+            "guidance": _QUOTING_RULE,
+            "hint": "Auto-translation is unavailable right now. Write or edit an "
+                    "MQL query below and run it.",
+        }
+    return result
+
+
+def _web_api_enabled() -> bool:
+    return os.environ.get("WEB_API", "").strip().lower() in ("1", "true", "on", "yes")
+
+
+def _load_web_page() -> str:
+    """Read the built demo page baked into the image (or repo, in dev)."""
+    from pathlib import Path
+    path = Path(os.environ.get("WEB_PAGE", "demo/index.html"))
+    try:
+        return path.read_text(encoding="utf-8")
+    except OSError:
+        return "<!doctype html><title>shebanq</title><p>Demo page not found.</p>"
+
+
 def _mql_prompt_text(question: str) -> str:
     return (
         build_prompt(_ref)
