@@ -73,6 +73,12 @@ jobs:
             -d '{"mql":"DROP DATABASE '"'"'x'"'"' GO"}' \
             | jq -e '(.validation_errors | length) > 0 and (.result_count == null)' >/dev/null
 
+          echo "POST /api/run nested -> first hit has a reference:"
+          curl -fsS -X POST http://localhost:8001/api/run \
+            -H 'content-type: application/json' \
+            -d '{"mql":"SELECT ALL OBJECTS WHERE [verse GET book, chapter, verse [word lex='"'"'BR>['"'"' GET g_word_utf8, gloss]] GO"}' \
+            | jq -e '.results[0].reference == "Genesis 1:1"' >/dev/null
+
           echo "POST /api/translate degrades without a key:"
           curl -fsS -X POST http://localhost:8001/api/translate \
             -H 'content-type: application/json' -d '{"question":"niphal verbs"}' \

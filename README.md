@@ -27,7 +27,7 @@ A hosted page where you ask in plain language and watch the query run:
 **https://shebanq-web.onrender.com**
 
 Type a question, see the generated MQL, edit it if you like, and run it against
-the live BHSA engine. The worked examples run live too. It is read-only. Hosted
+the live BHSA engine. Tick "Include the reference (book chapter:verse)" to get each hit's location. The worked examples run live too. It is read-only. Hosted
 on a free instance, so the first request after an idle spell can take up to a
 minute while the server wakes. The auto-translation (Anthropic's Claude) is
 capped by a monthly budget; if it pauses, you can still write and run MQL by hand.
