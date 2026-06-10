@@ -58,7 +58,7 @@ jobs:
         run: |
           set -e
           echo "GET / serves the page:"
-          curl -fsS http://localhost:8001/ | grep -q "Ask the Hebrew Bible"
+          curl -fsS http://localhost:8001/ | grep -q 'id="askForm"'
 
           echo "POST /api/run bara == 48:"
           curl -fsS -X POST http://localhost:8001/api/run \
