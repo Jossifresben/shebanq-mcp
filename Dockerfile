@@ -76,6 +76,9 @@ COPY pyproject.toml ./
 COPY src ./src
 RUN pip install --no-cache-dir .
 
+# The built demo page, served at / when WEB_API=on (unused on the MCP service).
+COPY demo/index.html /app/demo/index.html
+
 # Read-only database: file 444, directory 555 (not writable by appuser).
 COPY --from=builder /build/db/bhsa.sqlite3 /app/data/bhsa.sqlite3
 RUN chmod 0444 /app/data/bhsa.sqlite3 && chmod 0555 /app/data
