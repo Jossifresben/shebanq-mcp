@@ -57,6 +57,7 @@ jobs:
       - name: Web smoke (page, run, mutation rejected, degrade)
         run: |
           set -e
+          # Structural JSON assertions (jq) so a prose/format reword can't break them.
           echo "GET / serves the page:"
           curl -fsS http://localhost:8001/ | grep -q 'id="askForm"'
 
@@ -64,18 +65,18 @@ jobs:
           curl -fsS -X POST http://localhost:8001/api/run \
             -H 'content-type: application/json' \
             -d '{"mql":"SELECT ALL OBJECTS WHERE [word lex='"'"'BR>['"'"'] GO"}' \
-            | grep -Eq '"result_count":[[:space:]]*48'
+            | jq -e '.result_count == 48' >/dev/null
 
-          echo "POST /api/run DROP is rejected:"
+          echo "POST /api/run DROP is rejected (validation_errors present, query not run):"
           curl -fsS -X POST http://localhost:8001/api/run \
             -H 'content-type: application/json' \
             -d '{"mql":"DROP DATABASE '"'"'x'"'"' GO"}' \
-            | grep -Eq 'read-only|mutating'
+            | jq -e '(.validation_errors | length) > 0 and (.result_count == null)' >/dev/null
 
           echo "POST /api/ask degrades without a key:"
           curl -fsS -X POST http://localhost:8001/api/ask \
             -H 'content-type: application/json' -d '{"question":"niphal verbs"}' \
-            | grep -Eq '"degraded":[[:space:]]*true'
+            | jq -e '.degraded == true' >/dev/null
 
       - name: Container logs on failure
         if: failure()

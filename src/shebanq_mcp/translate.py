@@ -16,6 +16,11 @@ from .feature_reference import FeatureReference
 
 DEFAULT_MODEL = "claude-opus-4-8"
 
+# The worked examples below are authored to teach query STRUCTURE and to GET
+# display features (g_word_utf8, gloss) so generated queries match what the web
+# demo shows. They are deliberately NOT synced from
+# tests/fixtures/featured_searches.json (that fixture exists for count
+# regression, where the GET clause is irrelevant) — keep them display-oriented.
 _INSTRUCTIONS = """You translate questions about the Hebrew Bible into Emdros \
 MQL queries over the BHSA database. Output ONLY the MQL query, nothing else: no \
 explanation, no code fences. Use only the features and values listed below. \
