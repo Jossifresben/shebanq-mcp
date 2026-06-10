@@ -23,15 +23,14 @@ like Claude as a set of tools.
 
 ## Try it (live demo)
 
-A hosted page where you can ask in plain language and watch the query run:
-**https://shebanq-web.onrender.com** (the URL goes live once the `shebanq-web`
-service is deployed).
+A hosted page where you ask in plain language and watch the query run:
+**https://shebanq-web.onrender.com**
 
 Type a question, see the generated MQL, edit it if you like, and run it against
 the live BHSA engine. The worked examples run live too. It is read-only. Hosted
-on a free instance, so the first request after idle may take a few seconds. AI
-auto-translation is capped by a monthly budget; if it pauses, you can still write
-and run MQL by hand.
+on a free instance, so the first request after an idle spell can take up to a
+minute while the server wakes. The auto-translation (Anthropic's Claude) is
+capped by a monthly budget; if it pauses, you can still write and run MQL by hand.
 
 ## Use it in Claude Desktop
 
@@ -214,17 +213,24 @@ required locally to view the demo).
 
 - [x] Core MCP server: feature reference, validator, Emdros runner, formatter,
       three tools
-- [ ] Pin featured-search counts against a built BHSA database
-- [ ] Demo web app (static front-end with curated, validated searches)
+- [x] Pin featured-search counts against a built BHSA database
+- [x] Live web demo: free-form question to MQL to results, with the query shown
+      and editable
 - [x] Deploy tooling: Docker image, Render blueprint, CI smoke (Emdros-on-SQLite,
       data baked in)
-- [ ] Live deploy on Render and connect from Claude Desktop
+- [x] Live deploy on Render (MCP endpoint + web demo), connectable from Claude
+      Desktop and other MCP clients
+- [ ] Verse references in `run_mql` results
 - [ ] Full feature-catalogue generation from the ETCBC feature docs
 
 ## Deploy
 
-A Render web service runs the server in HTTP mode, built from `Dockerfile` and
-declared in `render.yaml`.
+Two Render services run from the same image (`Dockerfile`, declared in
+`render.yaml`), distinguished by environment:
+
+- **`shebanq-mcp`** — the public MCP endpoint. `LLM_PROVIDER=none`, no API key.
+- **`shebanq-web`** — the live demo. Same image with `WEB_API=on` and an
+  Anthropic key, serving the page plus `/api/ask` and `/api/run` same-origin.
 
 **What the image does**
 
@@ -273,7 +279,7 @@ engine. This project wraps that work; it does not replace it.
 If you use this software, please cite it via its DOI:
 
 > Fresco Benaim, Jose. (2026). *shebanq-mcp: a Model Context Protocol server for
-> querying the BHSA Hebrew Bible in plain language* (v0.1.0). Zenodo.
+> querying the BHSA Hebrew Bible in plain language* (v0.1.1). Zenodo.
 > https://doi.org/10.5281/zenodo.20625355
 
 A machine-readable `CITATION.cff` is in the repository, and GitHub's "Cite this
