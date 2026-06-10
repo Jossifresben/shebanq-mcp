@@ -24,6 +24,7 @@
     background:var(--accent);color:#fff;border-radius:8px;cursor:pointer}
   button.ghost{background:#fff;color:var(--accent)}
   button.icon{display:inline-flex;align-items:center;gap:6px}
+  button.icon span{display:inline-flex;align-items:center}
   button.icon svg{display:block}
   button.ok{color:#2e7d32;border-color:#2e7d32}
   button[disabled]{opacity:.5;cursor:default}
@@ -91,11 +92,16 @@
     if (text != null) e.textContent = text;
     return e;
   }
-  // Top progress bar: grows toward 90% while a request is in flight (the wait
+  // Top progress bar: grows toward 90% while requests are in flight (the wait
   // can be long on a cold free instance), then snaps to 100% and fades out.
+  // Requests can overlap (Ask + a gallery Run), so a flight counter decides
+  // when to start the animation and when to complete it.
   var bar = document.getElementById("progress");
   var barTimer;
+  var inflight = 0;
   function progStart() {
+    inflight++;
+    if (inflight > 1) return;                   // already animating
     clearTimeout(barTimer);
     bar.style.transition = "none"; bar.style.width = "0%"; bar.style.opacity = "1";
     void bar.offsetWidth;                       // force reflow so the reset applies
@@ -103,6 +109,8 @@
     bar.style.width = "90%";
   }
   function progDone() {
+    inflight = Math.max(0, inflight - 1);
+    if (inflight > 0) return;                   // another request still running
     bar.style.transition = "width .25s ease-out"; bar.style.width = "100%";
     barTimer = setTimeout(function () {
       bar.style.transition = "opacity .4s, width 0s .4s";
@@ -159,7 +167,10 @@
     var copyBtn = h("button", "ghost icon");
     copyBtn.type = "button";
     copyBtn.title = "Copy the query to the clipboard";
-    copyBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg><span>Copy</span>';
+    var copyIcon = h("span");
+    copyIcon.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
+    var copyLabel = h("span", null, "Copy");
+    copyBtn.appendChild(copyIcon); copyBtn.appendChild(copyLabel);
     var shebanq = h("a", null, "Open SHEBANQ");
     shebanq.href = "https://shebanq.ancient-data.org/hebrew/queries";
     shebanq.target = "_blank"; shebanq.rel = "noopener";
@@ -168,22 +179,35 @@
     card.appendChild(row);
     var results = h("div");
     card.appendChild(results);
+    var copyTimer;
+    function copyFeedback(text) {
+      copyLabel.textContent = text;
+      copyBtn.classList.toggle("ok", text === "Copied");
+      clearTimeout(copyTimer);
+      copyTimer = setTimeout(function () {
+        copyLabel.textContent = "Copy";
+        copyBtn.classList.remove("ok");
+      }, 1400);
+    }
     copyBtn.onclick = function () {
-      if (navigator.clipboard) navigator.clipboard.writeText(ta.value);
-      var span = copyBtn.querySelector("span");
-      if (span) {
-        var prev = span.textContent;
-        span.textContent = "Copied";
-        copyBtn.classList.add("ok");
-        setTimeout(function () { span.textContent = prev; copyBtn.classList.remove("ok"); }, 1400);
-      }
+      if (!navigator.clipboard) { copyFeedback("Copy failed"); return; }
+      navigator.clipboard.writeText(ta.value).then(
+        function () { copyFeedback("Copied"); },
+        function () { copyFeedback("Copy failed"); }
+      );
     };
     runBtn.onclick = async function () {
       runBtn.disabled = true; runBtn.textContent = "Running…";
-      var res = await postJSON("/api/run", {mql: ta.value});
-      if (res.status === 429) { results.innerHTML = ""; results.appendChild(h("div","err","Too many requests — wait a moment.")); }
-      else renderResults(results, res.data);
-      runBtn.disabled = false; runBtn.textContent = "Run query";
+      try {
+        var res = await postJSON("/api/run", {mql: ta.value});
+        if (res.status === 429) { results.innerHTML = ""; results.appendChild(h("div","err","Too many requests — wait a moment.")); }
+        else renderResults(results, res.data);
+      } catch (e) {
+        results.innerHTML = "";
+        results.appendChild(h("div", "err", "Could not reach the server. Check your connection and try again."));
+      } finally {
+        runBtn.disabled = false; runBtn.textContent = "Run query";
+      }
     };
     return {card: card, results: results, run: runBtn};
   }
@@ -198,16 +222,22 @@
     btn.disabled = true; btn.textContent = "Asking…";
     answer.innerHTML = "";
     answer.appendChild(h("div", "count", "Translating, then running…"));
-    var res = await postJSON("/api/ask", {question: q});
-    answer.innerHTML = "";
-    if (res.status === 429) { answer.appendChild(h("div","err","Too many requests — wait a moment.")); }
-    else {
-      var d = res.data;
-      var built = resultCard(q, d.degraded ? "" : d.mql, !!d.degraded, d.hint);
-      answer.appendChild(built.card);
-      if (!d.degraded) renderResults(built.results, d);   // already-run result
+    try {
+      var res = await postJSON("/api/ask", {question: q});
+      answer.innerHTML = "";
+      if (res.status === 429) { answer.appendChild(h("div","err","Too many requests — wait a moment.")); }
+      else {
+        var d = res.data;
+        var built = resultCard(q, d.degraded ? "" : d.mql, !!d.degraded, d.hint);
+        answer.appendChild(built.card);
+        if (!d.degraded) renderResults(built.results, d);   // already-run result
+      }
+    } catch (e) {
+      answer.innerHTML = "";
+      answer.appendChild(h("div", "err", "Could not reach the server. Check your connection and try again."));
+    } finally {
+      btn.disabled = false; btn.textContent = "Ask";
     }
-    btn.disabled = false; btn.textContent = "Ask";
   });
 
   // Live curated gallery.
