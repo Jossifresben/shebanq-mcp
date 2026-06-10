@@ -17,9 +17,10 @@ def _parse_get_lists(mql: str) -> list[list[str]]:
             for clause in _GET_CLAUSE.findall(mql)]
 
 
-def _harvest_nested(sheaf, get_lists, depth, ctx, matches, total, limit):
+def _harvest_nested(sheaf, get_lists, depth, ctx, matches, limit):
     names = get_lists[depth] if depth < len(get_lists) else []
     is_leaf = depth >= len(get_lists) - 1          # deepest level = the result rows
+    total = 0
     it = sheaf.const_iterator()
     while it.hasNext():
         sit = it.next().const_iterator()
@@ -31,10 +32,10 @@ def _harvest_nested(sheaf, get_lists, depth, ctx, matches, total, limit):
                 for k in _REF_KEYS:
                     if k in feats:
                         child[k] = feats[k]
-                _harvest_nested(mo.getSheaf(), get_lists, depth + 1,
-                                child, matches, total, limit)
+                total += _harvest_nested(mo.getSheaf(), get_lists, depth + 1,
+                                         child, matches, limit)
             else:
-                total[0] += 1
+                total += 1
                 if limit is not None and len(matches) >= limit:
                     continue
                 row = {"id_d": mo.getID_D(), **feats}
@@ -42,6 +43,7 @@ def _harvest_nested(sheaf, get_lists, depth, ctx, matches, total, limit):
                     if k in ctx:
                         row[k] = ctx[k]
                 matches.append(row)
+    return total
 
 
 @dataclass
@@ -93,9 +95,8 @@ def run_query(mql: str, db_path: str, features: list[str] | None = None,
 
     if len(get_lists) > 1:                          # nested: harvest leaf rows
         matches: list[dict] = []
-        total = [0]
-        _harvest_nested(sheaf, get_lists, 0, {}, matches, total, limit)
-        return RunResult(count=total[0], matches=matches)
+        total = _harvest_nested(sheaf, get_lists, 0, {}, matches, limit)
+        return RunResult(count=total, matches=matches)
 
     matches = []                                    # flat: existing behaviour
     total = 0

@@ -1,5 +1,5 @@
 import pytest
-from shebanq_mcp.runner import run_query, RunResult
+from shebanq_mcp.runner import run_query, RunResult, _parse_get_lists
 
 
 @pytest.mark.emdros
@@ -107,8 +107,6 @@ def test_run_query_no_limit_harvests_all(monkeypatch):
 
 # --- Nested verse-reference tests (no Emdros needed) ---
 
-from shebanq_mcp.runner import _parse_get_lists
-
 
 def test_parse_get_lists_flat():
     mql = "SELECT ALL OBJECTS WHERE [word sp=verb GET sp, gloss] GO"
@@ -184,3 +182,29 @@ def test_run_query_nested_respects_limit(monkeypatch):
            "[word GET g_word_utf8, gloss]] GO")
     res = run_query(mql, "x.db", limit=2)
     assert res.count == 5 and len(res.matches) == 2   # all counted, 2 harvested
+    assert [m["id_d"] for m in res.matches] == [200, 201]
+
+
+def test_run_query_nested_isolates_reference_per_verse(monkeypatch):
+    import shebanq_mcp.runner as runner
+    v1_words = _FakeSheaf([_FakeStraw([_NMo(11, ["w1", "g1"])])])
+    v2_words = _FakeSheaf([_FakeStraw([_NMo(22, ["w2", "g2"])])])
+    v1 = _NMo(1, ["Genesis", "1", "1"], v1_words)
+    v2 = _NMo(2, ["Exodus", "2", "2"], v2_words)
+    verse_sheaf = _FakeSheaf([_FakeStraw([v1, v2])])
+
+    class _Env:
+        def executeString(self, *a):
+            return True
+
+        def getSheaf(self):
+            return verse_sheaf
+
+    monkeypatch.setattr(runner, "_make_env", lambda db: _Env())
+    mql = ("SELECT ALL OBJECTS WHERE [verse GET book, chapter, verse "
+           "[word GET g_word_utf8, gloss]] GO")
+    res = run_query(mql, "x.db")
+    assert res.count == 2
+    by_id = {r["id_d"]: r for r in res.matches}
+    assert by_id[11]["book"] == "Genesis" and by_id[11]["verse"] == "1"
+    assert by_id[22]["book"] == "Exodus" and by_id[22]["verse"] == "2"
