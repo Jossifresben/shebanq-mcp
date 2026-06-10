@@ -12,6 +12,8 @@ abstract: >-
   reported honestly. AI as a way in, not a way around.
 type: software
 version: 0.1.0
+doi: "10.5281/zenodo.20625355"
+date-released: "2026-06-10"
 license: MIT
 repository-code: "https://github.com/Jossifresben/shebanq-mcp"
 keywords:

@@ -1,5 +1,7 @@
 # shebanq-mcp
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20625355.svg)](https://doi.org/10.5281/zenodo.20625355)
+
 Ask the Hebrew Bible a linguistic question in plain language and get back two
 things together: the **MQL query** and the **results**. An LLM drafts the query,
 a local [Emdros](https://emdros.org/) engine runs it against the
@@ -265,6 +267,18 @@ for an always-on instance with an instant first response.
 Built on the work of the [Eep Talstra Centre for Bible and Computer
 (ETCBC)](https://www.etcbc.nl/): the BHSA dataset, SHEBANQ, and the Emdros query
 engine. This project wraps that work; it does not replace it.
+
+## Citation
+
+If you use this software, please cite it via its DOI:
+
+> Fresco Benaim, Jose. (2026). *shebanq-mcp: a Model Context Protocol server for
+> querying the BHSA Hebrew Bible in plain language* (v0.1.0). Zenodo.
+> https://doi.org/10.5281/zenodo.20625355
+
+A machine-readable `CITATION.cff` is in the repository, and GitHub's "Cite this
+repository" button reads it. Please also cite the underlying work: the BHSA
+dataset (ETCBC), the Emdros engine (Petersen 2004), and SHEBANQ.
 
 ## License
 
