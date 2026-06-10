@@ -170,8 +170,7 @@ question
 
 Four small, independently testable units: a static feature reference, a
 validator, an Emdros runner, and a formatter, wired together behind the MCP
-tools. See [`docs/specs`](docs/specs) for the design and
-[`docs/superpowers/plans`](docs/superpowers/plans) for the implementation plan.
+tools.
 
 ## Setup
 

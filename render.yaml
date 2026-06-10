@@ -2,8 +2,7 @@
 # 2 concurrent queries, cold start ~2.2s. Running on the `free` tier for a
 # zero-cost pre-feedback test: it spins down when idle and cold-starts on the
 # next request (Render scheduling adds to the measured ~2.2s container boot).
-# Flip to `starter` (512 MB, always-on) for an instant first response. See
-# docs/specs/2026-06-09-mcp-deploy-design.md, "Instance lifecycle". The smoke
+# Flip to `starter` (512 MB, always-on) for an instant first response. The smoke
 # counts depend on the pinned BHSA_REF.
 services:
   - type: web
