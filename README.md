@@ -4,7 +4,7 @@
 
 Ask the Hebrew Bible a linguistic question in plain language and get back two
 things together: the **MQL query** and the **results**. An LLM drafts the query,
-a local [Emdros](https://emdros.org/) engine runs it against the
+a local [Emdros](https://github.com/emdros/emdros) engine runs it against the
 [BHSA](https://github.com/ETCBC/bhsa) database (the same data behind
 [SHEBANQ](https://shebanq.ancient-data.org/)), and the server returns both. The
 query is always shown, so it stays the thing you read, verify, and cite.
@@ -148,7 +148,7 @@ tools. See [`docs/specs`](docs/specs) for the design and
 
 ## Setup
 
-1. Install [Emdros](https://emdros.org/) (provides the `mql` CLI and the
+1. Install [Emdros](https://github.com/emdros/emdros) (provides the `mql` CLI and the
    `emdros` Python binding).
 2. Build the database (see [Data](#data)).
 3. `pip install -e ".[dev]"` (Python 3.10+).
