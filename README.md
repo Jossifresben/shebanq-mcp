@@ -14,10 +14,10 @@ like Claude as a set of tools.
 > execution path is implemented but exercised only where a built BHSA database
 > is present (those tests skip otherwise). The deploy path is built and proven
 > in CI: a Docker image bakes Emdros plus the BHSA database, and a smoke
-> workflow runs `run_mql` over MCP on every push. It is not yet live at a public
-> URL, so the connect URL below stays a placeholder until the first deploy
-> lands. The demo web app is still future work. Feedback welcome, especially
-> from people who teach or use MQL.
+> workflow runs `run_mql` over MCP on every push. A live read-only instance runs
+> on Render (see [Use it in Claude Desktop](#use-it-in-claude-desktop)). The demo
+> web app is still future work. Feedback welcome, especially from people who
+> teach or use MQL.
 
 ## Use it in Claude Desktop
 
@@ -26,10 +26,10 @@ BHSA database. Point your client at the URL and ask questions in plain language.
 It is a **read-only** query engine: you can search the data, you cannot modify
 it.
 
-> **Note:** the deployment URL is a placeholder until the first deploy lands.
-> Replace `<DEPLOYED_URL>` with the real hostname once it is available.
+Endpoint: `https://shebanq-mcp.onrender.com/mcp`
 
-Endpoint: `https://<DEPLOYED_URL>/mcp`
+> Runs on a free Render instance, so it spins down when idle. The first request
+> after a quiet spell may take a few seconds to wake.
 
 **Option A: Custom Connector** (Claude.ai and supported clients)
 
@@ -48,7 +48,7 @@ Requires Node so that `npx` is available. Edit `claude_desktop_config.json`
   "mcpServers": {
     "shebanq": {
       "command": "npx",
-      "args": ["-y", "mcp-remote", "https://<DEPLOYED_URL>/mcp"]
+      "args": ["-y", "mcp-remote", "https://shebanq-mcp.onrender.com/mcp"]
     }
   }
 }
