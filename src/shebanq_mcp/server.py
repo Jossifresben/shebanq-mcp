@@ -170,16 +170,18 @@ def handle_ask(question: str) -> dict:
     return result
 
 
-def handle_translate(question: str) -> dict:
-    """Web /api/translate: translate a question to MQL only, without running it,
-    so the user reviews the query before spending an engine run. Degrades like
-    handle_ask when translation is unavailable."""
+def handle_translate(question: str, references: bool = False) -> dict:
+    """Web /api/translate: translate a question to MQL only, without running it.
+    When `references`, wrap the (flat) query in a verse nest so the run will carry
+    book/chapter/verse. Degrades like handle_ask when translation is unavailable."""
     if _translator is None:
         return _degraded_payload(question)
     try:
         mql = _translator.translate(question, _ref)
     except Exception:  # noqa: BLE001 - any LLM/translate failure degrades
         return _degraded_payload(question)
+    if references:
+        mql = _wrap_in_verse(mql)
     return {"question": question, "mql": mql}
 
 

@@ -191,3 +191,30 @@ def test_wrap_in_verse_wraps_a_flat_word_query():
 def test_wrap_in_verse_leaves_unmatched_query_unchanged():
     weird = "GET OBJECTS HAVING MONADS IN {1-3} GO"
     assert server._wrap_in_verse(weird) == weird
+
+
+def test_handle_translate_with_references_wraps(monkeypatch):
+    class _T:
+        def translate(self, q, ref):
+            return "SELECT ALL OBJECTS WHERE [word lex='BR>[' GET g_word_utf8, gloss] GO"
+    monkeypatch.setattr(server, "_translator", _T())
+    out = server.handle_translate("bara", references=True)
+    assert out["mql"].startswith("SELECT ALL OBJECTS WHERE [verse GET book, chapter, verse")
+    assert "degraded" not in out
+
+
+def test_handle_translate_without_references_stays_flat(monkeypatch):
+    class _T:
+        def translate(self, q, ref):
+            return "SELECT ALL OBJECTS WHERE [word lex='BR>[' GET g_word_utf8, gloss] GO"
+    monkeypatch.setattr(server, "_translator", _T())
+    out = server.handle_translate("bara", references=False)
+    assert "[verse" not in out["mql"]
+
+
+def test_handle_translate_references_default_false(monkeypatch):
+    class _T:
+        def translate(self, q, ref):
+            return "SELECT ALL OBJECTS WHERE [word sp=verb GET g_word_utf8, gloss] GO"
+    monkeypatch.setattr(server, "_translator", _T())
+    assert "[verse" not in server.handle_translate("verbs")["mql"]
