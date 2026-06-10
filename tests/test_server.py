@@ -38,7 +38,7 @@ def test_run_mql_rejects_invalid_before_running(monkeypatch):
 def test_run_mql_valid_runs_and_formats(monkeypatch):
     from shebanq_mcp.runner import RunResult
 
-    def _fake_run(mql, db_path, features=None):
+    def _fake_run(mql, db_path, features=None, limit=None):
         return RunResult(count=1, matches=[
             {"id_d": 1, "monad": 5, "gloss": "create",
              "book": "Genesis", "chapter": 1, "verse": 1}
@@ -68,7 +68,7 @@ def test_search_bhsa_translates_then_runs(monkeypatch):
     )
     monkeypatch.setattr(
         server, "run_query",
-        lambda mql, db_path, features=None: RunResult(count=0, matches=[]),
+        lambda mql, db_path, features=None, limit=None: RunResult(count=0, matches=[]),
     )
     out = server.handle_search_bhsa("all niphal verbs")
     assert out["mql"].startswith("SELECT")
@@ -88,19 +88,33 @@ def test_search_bhsa_without_translator_returns_concise_primer(monkeypatch):
     assert len(out["guidance"]) < 600
 
 
-def test_run_pipeline_caps_results_but_reports_true_total(monkeypatch):
-    # A broad query must not dump every match into the client's context.
-    # result_count stays the honest total; results is capped + flagged.
+def test_run_pipeline_flags_truncation_from_capped_result(monkeypatch):
+    # The cap lives in the executor/runner (harvest stops at the limit).
+    # _run_pipeline reports the true total and flags that fewer rows came back.
     from shebanq_mcp.runner import RunResult
-    monkeypatch.setattr(server, "_RESULT_LIMIT", 3)
-    matches = [{"id_d": i} for i in range(10)]
+    capped = [{"id_d": i} for i in range(3)]   # executor already capped to 3
     monkeypatch.setattr(server, "_executor",
-                        lambda mql, features: RunResult(count=10, matches=matches))
+                        lambda mql, features: RunResult(count=10, matches=capped))
     out = server.handle_run_mql("SELECT ALL OBJECTS WHERE [word sp=verb] GO")
     assert out["result_count"] == 10          # honest total
-    assert len(out["results"]) == 3           # capped
+    assert len(out["results"]) == 3           # only the harvested rows
     assert out["results_truncated"] is True
     assert out["results_shown"] == 3
+
+
+def test_default_executor_passes_result_limit(monkeypatch):
+    # The deploy path must hand the cap down to run_query, not slice afterward.
+    from shebanq_mcp.runner import RunResult
+    captured = {}
+
+    def fake_run_query(mql, db_path, features, limit=None):
+        captured["limit"] = limit
+        return RunResult(count=0, matches=[])
+
+    monkeypatch.setattr(server, "run_query", fake_run_query)
+    monkeypatch.setattr(server, "_RESULT_LIMIT", 42)
+    server._default_executor("SELECT ALL OBJECTS WHERE [word] GO", [])
+    assert captured["limit"] == 42
 
 
 def test_run_pipeline_no_truncation_flag_under_cap(monkeypatch):

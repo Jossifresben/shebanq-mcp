@@ -34,7 +34,13 @@ def _make_env(db_path: str):
     )
 
 
-def run_query(mql: str, db_path: str, features: list[str] | None = None) -> RunResult:
+def run_query(mql: str, db_path: str, features: list[str] | None = None,
+              limit: int | None = None) -> RunResult:
+    """Run an MQL query. `count` is the true total of matched objects; `matches`
+    holds the harvested rows. When `limit` is set, only the first `limit` rows
+    are harvested (the rest are counted but not materialized), so a query that
+    matches hundreds of thousands of objects does not build a giant list. With
+    `limit=None` every match is harvested (count == len(matches))."""
     features = features or []
     env = _make_env(db_path)
     ok = env.executeString(mql, True, False, True)
@@ -43,14 +49,18 @@ def run_query(mql: str, db_path: str, features: list[str] | None = None) -> RunR
 
     sheaf = env.getSheaf()
     matches: list[dict] = []
+    total = 0
     it = sheaf.const_iterator()
     while it.hasNext():
         straw = it.next()
         sit = straw.const_iterator()
         while sit.hasNext():
             mo = sit.next()
+            total += 1
+            if limit is not None and len(matches) >= limit:
+                continue  # count it, but skip the expensive feature harvest
             row = {"id_d": mo.getID_D()}
             for i, feat in enumerate(features):
                 row[feat] = mo.getFeatureAsString(i)
             matches.append(row)
-    return RunResult(count=len(matches), matches=matches)
+    return RunResult(count=total, matches=matches)

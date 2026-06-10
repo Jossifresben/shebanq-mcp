@@ -56,7 +56,7 @@ def _get_features(mql: str) -> list[str]:
 
 def _default_executor(mql: str, features: list[str]):
     """Default execution path: run directly in-process (stdio/local/tests)."""
-    return run_query(mql, DB_PATH, features)
+    return run_query(mql, DB_PATH, features, limit=_RESULT_LIMIT)
 
 
 # Swappable execution backend. HTTP mode replaces this with the QueryGuard.
@@ -81,12 +81,13 @@ def _run_pipeline(mql: str) -> dict:
         result = _executor(mql, _get_features(mql))
     except (RuntimeError, QueryTimeout, ServerBusy, WorkerCrashed) as exc:
         return {"mql": mql, "error": str(exc)}
-    shown = result.matches[:_RESULT_LIMIT]
+    # The cap is applied in the executor/runner (harvest stops at the limit),
+    # so result.matches is already bounded; result.count is the true total.
     out = {"mql": mql, "result_count": result.count,
-           "results": format_results(shown)}
-    if result.count > len(shown):
+           "results": format_results(result.matches)}
+    if result.count > len(result.matches):
         out["results_truncated"] = True
-        out["results_shown"] = len(shown)
+        out["results_shown"] = len(result.matches)
     return out
 
 

@@ -10,6 +10,7 @@ saturated past a bounded wait the caller gets ServerBusy instead of queueing
 forever.
 """
 import multiprocessing
+import os
 import queue as _queue
 import threading
 import time
@@ -32,9 +33,14 @@ class ServerBusy(Exception):
 
 
 def _default_target(mql, db_path, features, q):
-    """Run a query in the worker process; ship the result over the queue."""
+    """Run a query in the worker process; ship the result over the queue.
+
+    The result cap is read from MAX_RESULTS (inherited by the spawned worker)
+    so the harvest stops at the limit even for a query matching huge sets."""
     try:
-        res = run_query(mql, db_path, features)
+        raw = os.environ.get("MAX_RESULTS", "100")
+        limit = int(raw) if raw else None
+        res = run_query(mql, db_path, features, limit=limit)
         q.put(("ok", res))
     except Exception as exc:  # noqa: BLE001 - report any failure to the parent
         q.put(("err", repr(exc)))
