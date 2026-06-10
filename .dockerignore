@@ -3,7 +3,8 @@
 __pycache__
 *.pyc
 .pytest_cache
-demo
+demo/template.html
+demo/showcase.json
 docs
 data
 *.sqlite3

@@ -19,6 +19,18 @@ like Claude as a set of tools.
 > web app is still future work. Feedback welcome, especially from people who
 > teach or use MQL.
 
+## Try it (live demo)
+
+A hosted page where you can ask in plain language and watch the query run:
+**https://shebanq-web.onrender.com** (the URL goes live once the `shebanq-web`
+service is deployed).
+
+Type a question, see the generated MQL, edit it if you like, and run it against
+the live BHSA engine. The worked examples run live too. It is read-only. Hosted
+on a free instance, so the first request after idle may take a few seconds. AI
+auto-translation is capped by a monthly budget; if it pauses, you can still write
+and run MQL by hand.
+
 ## Use it in Claude Desktop
 
 The server is hosted as a remote MCP endpoint. You do not install Emdros or the

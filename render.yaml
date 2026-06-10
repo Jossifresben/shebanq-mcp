@@ -36,3 +36,36 @@ services:
       # host here if a custom domain is added later.
       - key: MCP_ALLOWED_HOSTS
         value: shebanq-mcp.onrender.com
+
+  # The live demo: same image, LLM enabled, serves the page + /api/* same-origin.
+  - type: web
+    name: shebanq-web
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    autoDeploy: true
+    branch: main
+    envVars:
+      - key: WEB_API
+        value: "on"
+      - key: LLM_PROVIDER
+        value: anthropic
+      - key: ANTHROPIC_API_KEY
+        sync: false            # set in the Render dashboard; scoped to the $10-capped workspace
+      - key: MCP_TRANSPORT
+        value: http
+      - key: BHSA_SQLITE
+        value: /app/data/bhsa.sqlite3
+      - key: QUERY_TIMEOUT_SECONDS
+        value: "15"
+      - key: MAX_CONCURRENT_QUERIES
+        value: "2"
+      - key: MAX_RESULTS
+        value: "100"
+      - key: WEB_RATE_PER_MIN
+        value: "10"
+      # The web host (its /mcp is unused; spend is bounded by the Anthropic cap).
+      - key: MCP_ALLOWED_HOSTS
+        value: shebanq-web.onrender.com

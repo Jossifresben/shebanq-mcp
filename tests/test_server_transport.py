@@ -109,3 +109,43 @@ def test_http_security_strict_allowlist_from_env(monkeypatch):
     assert ts.enable_dns_rebinding_protection is True
     assert "shebanq-mcp.onrender.com" in ts.allowed_hosts
     assert "example.com" in ts.allowed_hosts
+
+
+def test_web_api_enabled_parses_truthy(monkeypatch):
+    for v in ("on", "1", "true", "YES"):
+        monkeypatch.setenv("WEB_API", v)
+        assert server._web_api_enabled() is True
+    for v in ("", "off", "0", "false"):
+        monkeypatch.setenv("WEB_API", v)
+        assert server._web_api_enabled() is False
+
+
+def test_handle_ask_passes_through_a_real_result(monkeypatch):
+    from shebanq_mcp.runner import RunResult
+    monkeypatch.setattr(server, "_translator", object())  # non-None
+    monkeypatch.setattr(
+        server, "handle_search_bhsa",
+        lambda q: {"question": q, "mql": "SELECT ... GO",
+                   "result_count": 2, "results": []},
+    )
+    out = server.handle_ask("niphal verbs")
+    assert out["mql"].startswith("SELECT")
+    assert "degraded" not in out
+
+
+def test_handle_ask_degrades_when_translation_raises(monkeypatch):
+    def boom(q):
+        raise RuntimeError("anthropic: spend limit reached")
+    monkeypatch.setattr(server, "handle_search_bhsa", boom)
+    out = server.handle_ask("niphal verbs")
+    assert out["degraded"] is True
+    assert "UNQUOTED" in out["guidance"]
+    assert "mql" not in out
+
+
+def test_handle_ask_degrades_when_no_mql(monkeypatch):
+    # translator-free path returns a primer (no 'mql') -> treat as degraded
+    monkeypatch.setattr(server, "handle_search_bhsa",
+                        lambda q: {"question": q, "guidance": "x"})
+    out = server.handle_ask("niphal verbs")
+    assert out["degraded"] is True
