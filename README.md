@@ -287,7 +287,7 @@ engine. This project wraps that work; it does not replace it.
 If you use this software, please cite it via its DOI:
 
 > Fresco Benaim, Jose. (2026). *shebanq-mcp: a Model Context Protocol server for
-> querying the BHSA Hebrew Bible in plain language* (v0.1.1). Zenodo.
+> querying the BHSA Hebrew Bible in plain language* (v0.1.2). Zenodo.
 > https://doi.org/10.5281/zenodo.20625355
 
 A machine-readable `CITATION.cff` is in the repository, and GitHub's "Cite this
