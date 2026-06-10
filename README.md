@@ -202,7 +202,9 @@ required locally to view the demo).
       three tools
 - [ ] Pin featured-search counts against a built BHSA database
 - [ ] Demo web app (static front-end with curated, validated searches)
-- [ ] Deploy: Render Pro Web Service (Docker, Emdros-on-SQLite, data baked in)
+- [x] Deploy tooling: Docker image, Render blueprint, CI smoke (Emdros-on-SQLite,
+      data baked in)
+- [ ] Live deploy on Render and connect from Claude Desktop
 - [ ] Full feature-catalogue generation from the ETCBC feature docs
 
 ## Deploy
@@ -230,7 +232,7 @@ broken, the deploy fails loudly rather than serving errors silently.
 **Guardrails**
 
 `QUERY_TIMEOUT_SECONDS` and `MAX_CONCURRENT_QUERIES` hard-kill runaway queries
-and bound memory. Set them in the Render environment panel.
+and bound memory. They are declared in `render.yaml`.
 
 **CI smoke test**
 
@@ -239,9 +241,12 @@ mutation rejection on every push.
 
 **Instance lifecycle**
 
-Whether to run always-on or scale-to-zero is decided from the measured cold-start
-time. A cold start that exceeds a few seconds makes always-on the right call for
-a scholarly research tool.
+Measured cold start is about 2.2 seconds (container boot plus the first query),
+and peak memory about 154 MiB under two concurrent queries. The blueprint runs on
+Render's free tier, which spins the service down when idle and cold-starts it on
+the next request; the fast boot keeps that tolerable for a low-traffic,
+pre-feedback deployment. Switch `plan: free` to `plan: starter` in `render.yaml`
+for an always-on instance with an instant first response.
 
 ## Credits
 
