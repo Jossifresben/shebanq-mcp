@@ -19,9 +19,22 @@ DEFAULT_MODEL = "claude-opus-4-8"
 _INSTRUCTIONS = """You translate questions about the Hebrew Bible into Emdros \
 MQL queries over the BHSA database. Output ONLY the MQL query, nothing else: no \
 explanation, no code fences. Use only the features and values listed below. \
-Prefer querying the appropriate object type (word, phrase, clause, sentence). \
-Always end the query with GO. Add a GET clause listing the features needed to \
-display results (e.g. GET sp, gloss).
+Prefer querying the appropriate object type (word, phrase, clause, sentence).
+
+QUERY STRUCTURE (required). Write exactly one complete query of this form:
+  SELECT ALL OBJECTS WHERE [<object_type> <conditions> GET <features>] GO
+- The query MUST begin with `SELECT ALL OBJECTS WHERE` and end with `GO`.
+- The `GET` clause goes INSIDE the object's square brackets, after the \
+conditions, and lists the features to return (use g_word_utf8 and gloss to show \
+the word and its meaning).
+- Combine multiple conditions with AND inside the brackets.
+
+Worked examples:
+  Q: Find all Niphal verbs
+  SELECT ALL OBJECTS WHERE [word sp=verb AND vs=nif GET g_word_utf8, gloss] GO
+
+  Q: Where does the verb bara (to create) occur?
+  SELECT ALL OBJECTS WHERE [word lex='BR>[' GET g_word_utf8, gloss, vs] GO
 
 CRITICAL quoting rule:
 - Enumeration features are compared UNQUOTED: write sp=verb, vs=nif (NOT \
