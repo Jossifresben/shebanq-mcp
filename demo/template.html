@@ -29,6 +29,8 @@
   button.ok{color:#2e7d32;border-color:#2e7d32}
   button[disabled]{opacity:.5;cursor:default}
   .hint{font-size:13px;color:var(--muted);margin:0 0 24px}
+  .refs{display:flex;align-items:center;gap:7px;font-size:14px;color:var(--muted);margin:0 0 16px;cursor:pointer}
+  .refs input{width:15px;height:15px;accent-color:var(--accent)}
   .card{background:var(--card);border:1px solid var(--line);border-radius:8px;
     padding:20px;margin:0 0 20px}
   .label{font-size:12px;text-transform:uppercase;letter-spacing:.06em;
@@ -67,6 +69,7 @@
     <input id="q" placeholder="e.g. all feminine plural nouns" aria-label="question">
     <button type="submit" id="askBtn">Translate to MQL</button>
   </form>
+  <label class="refs"><input type="checkbox" id="refs" checked> Include the reference (book chapter:verse)</label>
   <p class="hint">This demo runs the shebanq MCP server on Render's free tier, so the first request after an idle spell can take up to a minute while the server wakes; later queries are fast. The AI translation runs on a small monthly budget, so it may occasionally pause.</p>
 
   <div id="answer"></div>
@@ -225,7 +228,8 @@
     answer.innerHTML = "";
     answer.appendChild(h("div", "count", "Translating…"));
     try {
-      var res = await postJSON("/api/translate", {question: q});
+      var withRefs = document.getElementById("refs").checked;
+      var res = await postJSON("/api/translate", {question: q, references: withRefs});
       answer.innerHTML = "";
       if (res.status === 429) { answer.appendChild(h("div","err","Too many requests — wait a moment.")); }
       else {
