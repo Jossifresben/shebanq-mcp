@@ -43,6 +43,8 @@
   .err{color:#9a2a2a;font-size:14px}
   .examples h2{font-size:20px;margin:0 0 12px}
   a{color:var(--accent)}
+  .foot{font-size:13px;color:var(--muted)}
+  .foot p{margin:4px 0}
 </style>
 </head>
 <body>
@@ -66,6 +68,12 @@
     <h2>Worked examples</h2>
     <div id="gallery"></div>
   </div>
+
+  <hr class="rule">
+  <footer class="foot">
+    <p>Built by <a href="https://orcid.org/0009-0000-2026-0836" target="_blank" rel="noopener">Jose Fresco Benaim</a> (ORCID <a href="https://orcid.org/0009-0000-2026-0836" target="_blank" rel="noopener">0009-0000-2026-0836</a>). Source code on <a href="https://github.com/Jossifresben/shebanq-mcp" target="_blank" rel="noopener">GitHub</a>.</p>
+    <p>Built on the BHSA dataset (ETCBC), the Emdros text database engine, and SHEBANQ.</p>
+  </footer>
 </div>
 
 <script>window.SHOWCASE = {"version": "bhsa-2021", "searches": [{"id": "niphal-verbs", "question": "Find all Niphal verbs", "mql": "SELECT ALL OBJECTS WHERE [word sp=verb AND vs=nif GET g_word_utf8, gloss] GO", "count": 4145, "samples": [{"hebrew": "יִקָּו֨וּ", "gloss": "collect", "reference": "Genesis 1:9"}, {"hebrew": "תֵרָאֶ֖ה", "gloss": "see", "reference": "Genesis 1:9"}, {"hebrew": "הִבָּֽרְאָ֑ם", "gloss": "create", "reference": "Genesis 2:4"}, {"hebrew": "נֶחְמָ֥ד", "gloss": "desire", "reference": "Genesis 2:9"}, {"hebrew": "יִפָּרֵ֔ד", "gloss": "divide", "reference": "Genesis 2:10"}]}, {"id": "bara-create", "question": "Where does the verb בָּרָא (bara, 'to create') occur?", "mql": "SELECT ALL OBJECTS WHERE [word lex='BR>[' GET g_word_utf8, gloss] GO", "count": 48, "samples": [{"hebrew": "בָּרָ֣א", "gloss": "create", "reference": "Genesis 1:1"}, {"hebrew": "יִּבְרָ֣א", "gloss": "create", "reference": "Genesis 1:21"}, {"hebrew": "יִּבְרָ֨א", "gloss": "create", "reference": "Genesis 1:27"}, {"hebrew": "בָּרָ֣א", "gloss": "create", "reference": "Genesis 1:27"}, {"hebrew": "בָּרָ֥א", "gloss": "create", "reference": "Genesis 1:27"}]}, {"id": "feminine-plural-nouns", "question": "Find feminine plural nouns", "mql": "SELECT ALL OBJECTS WHERE [word sp=subs AND gn=f AND nu=pl GET g_word_utf8, gloss] GO", "count": 5992, "samples": [{"hebrew": "אֹתֹת֙", "gloss": "sign", "reference": "Genesis 1:14"}, {"hebrew": "שָׁנִֽים", "gloss": "year", "reference": "Genesis 1:14"}, {"hebrew": "תֹולְדֹ֧ות", "gloss": "generations", "reference": "Genesis 2:4"}, {"hebrew": "צַּלְעֹתָ֔יו", "gloss": "side", "reference": "Genesis 2:21"}, {"hebrew": "עֲצָמַ֔י", "gloss": "bone", "reference": "Genesis 2:23"}]}, {"id": "imperative-verbs", "question": "Find all imperative verbs", "mql": "SELECT ALL OBJECTS WHERE [word vt=impv GET g_word_utf8, gloss] GO", "count": 4306, "samples": [{"hebrew": "פְּר֣וּ", "gloss": "be fertile", "reference": "Genesis 1:22"}, {"hebrew": "רְב֗וּ", "gloss": "be many", "reference": "Genesis 1:22"}, {"hebrew": "מִלְא֤וּ", "gloss": "be full", "reference": "Genesis 1:22"}, {"hebrew": "פְּר֥וּ", "gloss": "be fertile", "reference": "Genesis 1:28"}, {"hebrew": "רְב֛וּ", "gloss": "be many", "reference": "Genesis 1:28"}]}, {"id": "proper-nouns", "question": "Find all proper nouns (names)", "mql": "SELECT ALL OBJECTS WHERE [word sp=nmpr GET g_word_utf8, gloss] GO", "count": 33002, "samples": [{"hebrew": "יְהוָ֥ה", "gloss": "YHWH", "reference": "Genesis 2:4"}, {"hebrew": "יְהוָ֤ה", "gloss": "YHWH", "reference": "Genesis 2:5"}, {"hebrew": "יְהוָ֨ה", "gloss": "YHWH", "reference": "Genesis 2:7"}, {"hebrew": "יְהוָ֧ה", "gloss": "YHWH", "reference": "Genesis 2:8"}, {"hebrew": "עֵ֖דֶן", "gloss": "Eden", "reference": "Genesis 2:8"}]}]};</script>
