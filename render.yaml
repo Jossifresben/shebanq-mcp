@@ -1,0 +1,28 @@
+# Sized from the CI measurement (docker-smoke, 2026-06-09): peak ~154 MiB under
+# 2 concurrent queries, cold start ~2.2s. Running on the `free` tier for a
+# zero-cost pre-feedback test: it spins down when idle and cold-starts on the
+# next request (Render scheduling adds to the measured ~2.2s container boot).
+# Flip to `starter` (512 MB, always-on) for an instant first response. See
+# docs/specs/2026-06-09-mcp-deploy-design.md, "Instance lifecycle". The smoke
+# counts depend on the pinned BHSA_REF.
+services:
+  - type: web
+    name: shebanq-mcp
+    runtime: docker
+    plan: free                # 512 MB; measured peak ~154 MiB at 2 concurrent
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    autoDeploy: true
+    branch: main
+    envVars:
+      - key: MCP_TRANSPORT
+        value: http
+      - key: LLM_PROVIDER
+        value: none
+      - key: BHSA_SQLITE
+        value: /app/data/bhsa.sqlite3
+      - key: QUERY_TIMEOUT_SECONDS
+        value: "15"
+      - key: MAX_CONCURRENT_QUERIES
+        value: "2"            # ~75 MiB/query; 2 fits the 512 MB tier with headroom
