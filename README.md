@@ -26,11 +26,13 @@ like Claude as a set of tools.
 A hosted page where you ask in plain language and watch the query run:
 **https://shebanq-web.onrender.com**
 
-Type a question, see the generated MQL, edit it if you like, and run it against
-the live BHSA engine. Tick "Include the reference (book chapter:verse)" to get each hit's location. The worked examples run live too. It is read-only. Hosted
-on a free instance, so the first request after an idle spell can take up to a
-minute while the server wakes. The auto-translation (Anthropic's Claude) is
-capped by a monthly budget; if it pauses, you can still write and run MQL by hand.
+Type a question and click **Translate to MQL** to see the generated query.
+Review or edit it, then **Run query** against the live BHSA engine. References
+are on by default, so each hit shows its `book chapter:verse`; untick "Include
+the reference (book chapter:verse)" for a plainer query. The worked examples run
+live too. It is read-only. Hosted on a free instance, so the first request after
+an idle spell can take up to a minute while the server wakes. The
+auto-translation (Anthropic's Claude) is capped by a monthly budget.
 
 ## Use it in Claude Desktop
 
@@ -220,7 +222,8 @@ required locally to view the demo).
       data baked in)
 - [x] Live deploy on Render (MCP endpoint + web demo), connectable from Claude
       Desktop and other MCP clients
-- [ ] Verse references in `run_mql` results
+- [x] Verse references in results: each hit shows `book chapter:verse` (opt-in,
+      default on; the server nests the word query inside its verse)
 - [ ] Full feature-catalogue generation from the ETCBC feature docs
 
 ## Deploy
