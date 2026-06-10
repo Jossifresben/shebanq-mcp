@@ -41,6 +41,17 @@ Worked examples:
   Q: Where does the verb bara (to create) occur?
   SELECT ALL OBJECTS WHERE [word lex='BR>[' GET g_word_utf8, gloss, vs] GO
 
+  Q: Where does bara occur, with the book, chapter and verse?
+  SELECT ALL OBJECTS WHERE [verse GET book, chapter, verse \
+[word lex='BR>[' GET g_word_utf8, gloss]] GO
+
+VERSE REFERENCES (location). A word does not carry book/chapter/verse; those \
+live on the verse around it. When the question asks WHERE something occurs, or \
+asks for the reference/citation, nest the word query inside a verse: \
+[verse GET book, chapter, verse [word <conditions> GET g_word_utf8, gloss]]. The \
+matches are still the words, now each with its location. For a plain count or \
+list with no location, keep the flat [word ...] form.
+
 CRITICAL quoting rule:
 - Enumeration features are compared UNQUOTED: write sp=verb, vs=nif (NOT \
 sp='verb').
