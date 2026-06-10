@@ -12,7 +12,7 @@
       "orcid": "0009-0000-2026-0836"
     }
   ],
-  "description": "shebanq-mcp is a Model Context Protocol (MCP) server that lets biblical-studies scholars query the BHSA Hebrew Bible, the ETCBC linguistic database behind SHEBANQ, in plain language. A question is translated into an Emdros MQL query, validated against the BHSA feature catalogue, and run on a local Emdros engine; the server returns both the query and the real results. The design keeps the query visible and checkable rather than hidden. Every result carries the exact MQL that produced it, queries are validated before they run, and empty results are reported honestly. The goal is to lower the barrier to MQL for teaching and research without removing the scholarly act of reading and judging a query: AI as a way in, not a way around. The server exposes three tools (search_bhsa, run_mql, lookup_feature), runs read-only, and can be used from any MCP client or through a hosted web demo. It builds on the BHSA dataset (ETCBC), the Emdros text database engine, and SHEBANQ.",
+  "description": "shebanq-mcp is a Model Context Protocol (MCP) server that lets biblical-studies scholars query the BHSA Hebrew Bible, the ETCBC linguistic database behind SHEBANQ, in plain language. A question is translated into an Emdros MQL query, validated against the BHSA feature catalogue, and run on a local Emdros engine; the server returns both the query and the real results. The design keeps the query visible and checkable rather than hidden. Every result carries the exact MQL that produced it, queries are validated before they run, and empty results are reported honestly. The goal is to lower the barrier to MQL for teaching and research without removing the scholarly act of reading and judging a query: AI as a way in, not a way around. The server exposes three tools (search_bhsa, run_mql, lookup_feature), runs read-only, and can be used from any MCP client or through a hosted web demo. It builds on the BHSA dataset (ETCBC), the Emdros text database engine, and SHEBANQ.\n\n<p>Live demo: <a href=\"https://shebanq-web.onrender.com\">https://shebanq-web.onrender.com</a></p>",
   "keywords": [
     "Hebrew Bible",
     "Biblical Hebrew",
@@ -51,6 +51,12 @@
     {
       "relation": "isSupplementTo",
       "identifier": "https://github.com/Jossifresben/shebanq-mcp",
+      "resource_type": "software",
+      "scheme": "url"
+    },
+    {
+      "relation": "isVariantFormOf",
+      "identifier": "https://shebanq-web.onrender.com",
       "resource_type": "software",
       "scheme": "url"
     }
