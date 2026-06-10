@@ -179,3 +179,15 @@ def test_handle_translate_degrades_when_translate_raises(monkeypatch):
     monkeypatch.setattr(server, "_translator", _Boom())
     out = server.handle_translate("x")
     assert out["degraded"] is True
+
+
+def test_wrap_in_verse_wraps_a_flat_word_query():
+    mql = "SELECT ALL OBJECTS WHERE [word lex='BR>[' GET g_word_utf8, gloss] GO"
+    wrapped = server._wrap_in_verse(mql)
+    assert wrapped == ("SELECT ALL OBJECTS WHERE [verse GET book, chapter, verse "
+                       "[word lex='BR>[' GET g_word_utf8, gloss]] GO")
+
+
+def test_wrap_in_verse_leaves_unmatched_query_unchanged():
+    weird = "GET OBJECTS HAVING MONADS IN {1-3} GO"
+    assert server._wrap_in_verse(weird) == weird

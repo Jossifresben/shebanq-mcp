@@ -26,6 +26,20 @@ def _resolve_transport() -> str:
 # Matches the feature list inside an MQL `GET a, b, c` clause.
 _GET_CLAUSE = re.compile(r"\bGET\s+([A-Za-z0-9_,\s]+?)\s*\]")
 
+# Matches `SELECT ALL OBJECTS WHERE <block> GO` so a flat word query can be
+# nested inside a verse to fetch book/chapter/verse. If the query is not this
+# single-block shape, it is returned unchanged (no references, never broken MQL).
+_SELECT_BLOCK = re.compile(
+    r"(?is)^(\s*SELECT\s+ALL\s+OBJECTS\s+WHERE\s+)(\[.*\])(\s+GO\s*)$")
+
+
+def _wrap_in_verse(mql: str) -> str:
+    m = _SELECT_BLOCK.match(mql.strip())
+    if not m:
+        return mql
+    head, block, tail = m.group(1), m.group(2), m.group(3)
+    return f"{head}[verse GET book, chapter, verse {block}]{tail}".strip()
+
 _QUOTING_RULE = (
     "MQL quoting rule: enumeration features compare UNQUOTED (sp=verb, vs=nif); "
     "string features compare QUOTED (lex='BR>[', gloss='create'). BHSA verb "
