@@ -53,14 +53,14 @@ def _client(per_minute=100, ask=None, run=None, translate=None, page="<h1>PAGE</
     ask = ask or (lambda q: {"question": q, "mql": "SELECT x GO",
                              "result_count": 0, "results": []})
     run = run or (lambda mql: {"mql": mql, "result_count": 1, "results": []})
-    translate = translate or (lambda q: {"question": q, "mql": "SELECT t GO"})
+    translate = translate or (lambda q, refs=False: {"question": q, "mql": "SELECT t GO"})
     routes = make_routes(ask=ask, run=run, translate=translate, page_html=page,
                          limiter=RateLimiter(per_minute))
     return TestClient(Starlette(routes=routes))
 
 
 def test_api_translate_returns_mql_only():
-    r = _client(translate=lambda q: {"question": q, "mql": "SELECT z GO"}
+    r = _client(translate=lambda q, refs=False: {"question": q, "mql": "SELECT z GO"}
                 ).post("/api/translate", json={"question": "niphal verbs"})
     assert r.status_code == 200
     assert r.json()["mql"] == "SELECT z GO"
@@ -109,7 +109,7 @@ def test_rate_cap_returns_429():
 def test_api_run_returns_500_json_on_unexpected_error():
     def boom(mql):
         raise ValueError("kaboom")
-    routes = make_routes(ask=lambda q: {}, run=boom, translate=lambda q: {},
+    routes = make_routes(ask=lambda q: {}, run=boom, translate=lambda q, refs=False: {},
                          page_html="x", limiter=RateLimiter(100))
     c = TestClient(Starlette(routes=routes), raise_server_exceptions=False)
     r = c.post("/api/run", json={"mql": "Q GO"})
@@ -120,9 +120,23 @@ def test_api_run_returns_500_json_on_unexpected_error():
 def test_api_ask_returns_500_json_on_unexpected_error():
     def boom(q):
         raise ValueError("kaboom")
-    routes = make_routes(ask=boom, run=lambda m: {}, translate=lambda q: {},
+    routes = make_routes(ask=boom, run=lambda m: {}, translate=lambda q, refs=False: {},
                          page_html="x", limiter=RateLimiter(100))
     c = TestClient(Starlette(routes=routes), raise_server_exceptions=False)
     r = c.post("/api/ask", json={"question": "x"})
     assert r.status_code == 500
     assert "error" in r.json()
+
+
+def test_api_translate_passes_references_flag():
+    seen = {}
+
+    def tr(q, refs=False):
+        seen["refs"] = refs
+        return {"question": q, "mql": "SELECT z GO"}
+
+    c = _client(translate=tr)
+    c.post("/api/translate", json={"question": "x", "references": True})
+    assert seen["refs"] is True
+    c.post("/api/translate", json={"question": "x"})
+    assert seen["refs"] is False

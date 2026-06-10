@@ -73,10 +73,23 @@ def make_routes(ask, run, translate, page_html: str, limiter: "RateLimiter") -> 
     async def page(request):
         return HTMLResponse(page_html)
 
+    async def translate_route(request):
+        if not limiter.allow(client_ip(request), monotonic()):
+            return JSONResponse({"error": "rate limit exceeded; wait a moment"},
+                                status_code=429)
+        body = await _read_json(request)
+        question = (body.get("question") or "").strip()
+        if not question:
+            return JSONResponse({"error": "missing 'question'"}, status_code=400)
+        try:
+            return JSONResponse(translate(question, bool(body.get("references"))))
+        except Exception:  # noqa: BLE001 - never leak a traceback as 500 HTML
+            return JSONResponse({"error": "internal error translating the question"},
+                                status_code=500)
+
     return [
         Route("/", page, methods=["GET"]),
-        Route("/api/translate", _post_route(translate, "question",
-              "translating the question"), methods=["POST"]),
+        Route("/api/translate", translate_route, methods=["POST"]),
         Route("/api/ask", _post_route(ask, "question",
               "answering the question"), methods=["POST"]),
         Route("/api/run", _post_route(run, "mql",
