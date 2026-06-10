@@ -23,6 +23,9 @@
   button{font:inherit;font-size:15px;padding:11px 16px;border:1px solid var(--accent);
     background:var(--accent);color:#fff;border-radius:8px;cursor:pointer}
   button.ghost{background:#fff;color:var(--accent)}
+  button.icon{display:inline-flex;align-items:center;gap:6px}
+  button.icon svg{display:block}
+  button.ok{color:#2e7d32;border-color:#2e7d32}
   button[disabled]{opacity:.5;cursor:default}
   .hint{font-size:13px;color:var(--muted);margin:0 0 24px}
   .card{background:var(--card);border:1px solid var(--line);border-radius:8px;
@@ -153,15 +156,28 @@
     card.appendChild(ta);
     var row = h("div", "row");
     var runBtn = h("button", null, "Run query");
-    var copyBtn = h("button", "ghost", "Copy MQL");
+    var copyBtn = h("button", "ghost icon");
+    copyBtn.type = "button";
+    copyBtn.title = "Copy the query to the clipboard";
+    copyBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg><span>Copy</span>';
     var shebanq = h("a", null, "Open SHEBANQ");
     shebanq.href = "https://shebanq.ancient-data.org/hebrew/queries";
     shebanq.target = "_blank"; shebanq.rel = "noopener";
+    shebanq.title = "Opens SHEBANQ. Paste the copied query into its query box (login required to run new queries).";
     row.appendChild(runBtn); row.appendChild(copyBtn); row.appendChild(shebanq);
     card.appendChild(row);
     var results = h("div");
     card.appendChild(results);
-    copyBtn.onclick = function () { navigator.clipboard && navigator.clipboard.writeText(ta.value); };
+    copyBtn.onclick = function () {
+      if (navigator.clipboard) navigator.clipboard.writeText(ta.value);
+      var span = copyBtn.querySelector("span");
+      if (span) {
+        var prev = span.textContent;
+        span.textContent = "Copied";
+        copyBtn.classList.add("ok");
+        setTimeout(function () { span.textContent = prev; copyBtn.classList.remove("ok"); }, 1400);
+      }
+    };
     runBtn.onclick = async function () {
       runBtn.disabled = true; runBtn.textContent = "Running…";
       var res = await postJSON("/api/run", {mql: ta.value});
