@@ -26,3 +26,8 @@ services:
         value: "15"
       - key: MAX_CONCURRENT_QUERIES
         value: "2"            # ~75 MiB/query; 2 fits the 512 MB tier with headroom
+      # Keep FastMCP's DNS-rebinding/Host protection ON, admitting only this
+      # public host (anything else is rejected with 421). Add a comma-separated
+      # host here if a custom domain is added later.
+      - key: MCP_ALLOWED_HOSTS
+        value: shebanq-mcp.onrender.com
