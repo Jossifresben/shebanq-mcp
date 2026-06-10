@@ -91,3 +91,25 @@ def test_rate_cap_returns_429():
     assert c.post("/api/run", json={"mql": "Q GO"}).status_code == 200
     assert c.post("/api/run", json={"mql": "Q GO"}).status_code == 200
     assert c.post("/api/run", json={"mql": "Q GO"}).status_code == 429
+
+
+def test_api_run_returns_500_json_on_unexpected_error():
+    def boom(mql):
+        raise ValueError("kaboom")
+    routes = make_routes(ask=lambda q: {}, run=boom, page_html="x",
+                         limiter=RateLimiter(100))
+    c = TestClient(Starlette(routes=routes), raise_server_exceptions=False)
+    r = c.post("/api/run", json={"mql": "Q GO"})
+    assert r.status_code == 500
+    assert "error" in r.json()
+
+
+def test_api_ask_returns_500_json_on_unexpected_error():
+    def boom(q):
+        raise ValueError("kaboom")
+    routes = make_routes(ask=boom, run=lambda m: {}, page_html="x",
+                         limiter=RateLimiter(100))
+    c = TestClient(Starlette(routes=routes), raise_server_exceptions=False)
+    r = c.post("/api/ask", json={"question": "x"})
+    assert r.status_code == 500
+    assert "error" in r.json()

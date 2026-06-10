@@ -65,7 +65,11 @@ def make_routes(ask, run, page_html: str, limiter: "RateLimiter") -> list:
         question = (await _read_json(request)).get("question", "").strip()
         if not question:
             return JSONResponse({"error": "missing 'question'"}, status_code=400)
-        return JSONResponse(ask(question))
+        try:
+            return JSONResponse(ask(question))
+        except Exception:  # noqa: BLE001 - always answer in JSON, never a 500 HTML page
+            return JSONResponse({"error": "internal error answering the question"},
+                                status_code=500)
 
     async def run_route(request):
         if _capped(request):
@@ -74,7 +78,11 @@ def make_routes(ask, run, page_html: str, limiter: "RateLimiter") -> list:
         mql = (await _read_json(request)).get("mql", "").strip()
         if not mql:
             return JSONResponse({"error": "missing 'mql'"}, status_code=400)
-        return JSONResponse(run(mql))
+        try:
+            return JSONResponse(run(mql))
+        except Exception:  # noqa: BLE001 - always answer in JSON, never a 500 HTML page
+            return JSONResponse({"error": "internal error running the query"},
+                                status_code=500)
 
     return [
         Route("/", page, methods=["GET"]),
