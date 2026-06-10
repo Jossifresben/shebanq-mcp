@@ -45,9 +45,12 @@
   a{color:var(--accent)}
   .foot{font-size:13px;color:var(--muted)}
   .foot p{margin:4px 0}
+  #progress{position:fixed;top:0;left:0;height:3px;width:0;background:var(--accent);
+    opacity:0;z-index:1000;box-shadow:0 0 6px var(--accent);pointer-events:none}
 </style>
 </head>
 <body>
+<div id="progress"></div>
 <div class="wrap">
   <h1>Ask the Hebrew Bible</h1>
   <p class="lede">A plain-language question becomes a real MQL query: shown, editable, and run live.</p>
@@ -85,10 +88,33 @@
     if (text != null) e.textContent = text;
     return e;
   }
+  // Top progress bar: grows toward 90% while a request is in flight (the wait
+  // can be long on a cold free instance), then snaps to 100% and fades out.
+  var bar = document.getElementById("progress");
+  var barTimer;
+  function progStart() {
+    clearTimeout(barTimer);
+    bar.style.transition = "none"; bar.style.width = "0%"; bar.style.opacity = "1";
+    void bar.offsetWidth;                       // force reflow so the reset applies
+    bar.style.transition = "width 12s cubic-bezier(.1,.7,.3,1)";
+    bar.style.width = "90%";
+  }
+  function progDone() {
+    bar.style.transition = "width .25s ease-out"; bar.style.width = "100%";
+    barTimer = setTimeout(function () {
+      bar.style.transition = "opacity .4s, width 0s .4s";
+      bar.style.opacity = "0"; bar.style.width = "0%";
+    }, 250);
+  }
   async function postJSON(path, body) {
-    var r = await fetch(path, {method:"POST", headers:{"content-type":"application/json"},
-      body: JSON.stringify(body)});
-    return {status: r.status, data: await r.json().catch(function(){return {};})};
+    progStart();
+    try {
+      var r = await fetch(path, {method:"POST", headers:{"content-type":"application/json"},
+        body: JSON.stringify(body)});
+      return {status: r.status, data: await r.json().catch(function(){return {};})};
+    } finally {
+      progDone();
+    }
   }
   // Render the results portion (count + truncation + table) into `host`.
   function renderResults(host, data) {
