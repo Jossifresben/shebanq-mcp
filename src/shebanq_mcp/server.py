@@ -38,6 +38,8 @@ def _wrap_in_verse(mql: str) -> str:
     if not m:
         return mql
     head, block, tail = m.group(1), m.group(2), m.group(3)
+    if re.match(r"\[\s*verse\b", block, re.IGNORECASE):
+        return mql                      # already verse-nested; don't double-wrap
     return f"{head}[verse GET book, chapter, verse {block}]{tail}".strip()
 
 _QUOTING_RULE = (

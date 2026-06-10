@@ -218,3 +218,9 @@ def test_handle_translate_references_default_false(monkeypatch):
             return "SELECT ALL OBJECTS WHERE [word sp=verb GET g_word_utf8, gloss] GO"
     monkeypatch.setattr(server, "_translator", _T())
     assert "[verse" not in server.handle_translate("verbs")["mql"]
+
+
+def test_wrap_in_verse_is_idempotent():
+    nested = ("SELECT ALL OBJECTS WHERE [verse GET book, chapter, verse "
+              "[word lex='BR>[' GET g_word_utf8, gloss]] GO")
+    assert server._wrap_in_verse(nested) == nested

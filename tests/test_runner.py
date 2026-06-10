@@ -230,3 +230,40 @@ def test_flat_bara_unchanged(require_emdros, db_path):
     mql = "SELECT ALL OBJECTS WHERE [word lex='BR>['] GO"
     result = run_query(mql, db_path)
     assert result.count == 48 and result.matches[0].get("book") is None
+
+
+# --- Structural nesting depth tests ---
+
+
+def test_nesting_depth_flat_with_bracket_in_literal():
+    from shebanq_mcp.runner import _nesting_depth
+    # the '[' inside the lexeme 'BR>[' must NOT count as nesting
+    assert _nesting_depth("SELECT ALL OBJECTS WHERE [word lex='BR>['] GO") == 1
+
+
+def test_nesting_depth_nested():
+    from shebanq_mcp.runner import _nesting_depth
+    mql = ("SELECT ALL OBJECTS WHERE [verse GET book, chapter, verse "
+           "[word lex='BR>[' GET g_word_utf8, gloss]] GO")
+    assert _nesting_depth(mql) == 2
+
+
+def test_run_query_nested_without_inner_get_still_descends(monkeypatch):
+    import shebanq_mcp.runner as runner
+    words = [_NMo(301, []), _NMo(302, [])]     # inner word block GETs nothing
+    verse = _NMo(1, ["Genesis", "1", "1"], _FakeSheaf([_FakeStraw(words)]))
+    verse_sheaf = _FakeSheaf([_FakeStraw([verse])])
+
+    class _Env:
+        def executeString(self, *a):
+            return True
+
+        def getSheaf(self):
+            return verse_sheaf
+
+    monkeypatch.setattr(runner, "_make_env", lambda db: _Env())
+    mql = "SELECT ALL OBJECTS WHERE [verse GET book, chapter, verse [word sp=verb]] GO"
+    res = run_query(mql, "x.db")
+    assert res.count == 2                       # the 2 words, NOT 1 verse
+    assert res.matches[0]["book"] == "Genesis" and res.matches[0]["verse"] == "1"
+    assert "id_d" in res.matches[0]

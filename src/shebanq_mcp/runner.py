@@ -17,9 +17,24 @@ def _parse_get_lists(mql: str) -> list[list[str]]:
             for clause in _GET_CLAUSE.findall(mql)]
 
 
-def _harvest_nested(sheaf, get_lists, depth, ctx, matches, limit):
+def _nesting_depth(mql: str) -> int:
+    """Structural object-block nesting depth, robust to '[' inside string
+    literals (e.g. the lexeme 'BR>['). 1 = a flat single-object query, 2 = a
+    verse-over-word nest."""
+    stripped = re.sub(r"'[^']*'", "", mql)
+    depth = top = 0
+    for ch in stripped:
+        if ch == "[":
+            depth += 1
+            top = max(top, depth)
+        elif ch == "]":
+            depth -= 1
+    return top
+
+
+def _harvest_nested(sheaf, get_lists, depth, ctx, matches, limit, leaf_depth):
     names = get_lists[depth] if depth < len(get_lists) else []
-    is_leaf = depth >= len(get_lists) - 1          # deepest level = the result rows
+    is_leaf = depth >= leaf_depth
     total = 0
     it = sheaf.const_iterator()
     while it.hasNext():
@@ -33,7 +48,7 @@ def _harvest_nested(sheaf, get_lists, depth, ctx, matches, limit):
                     if k in feats:
                         child[k] = feats[k]
                 total += _harvest_nested(mo.getSheaf(), get_lists, depth + 1,
-                                         child, matches, limit)
+                                         child, matches, limit, leaf_depth)
             else:
                 total += 1
                 if limit is not None and len(matches) >= limit:
@@ -93,9 +108,10 @@ def run_query(mql: str, db_path: str, features: list[str] | None = None,
         raise RuntimeError(f"Emdros error: {env.getCompilerError()}")
     sheaf = env.getSheaf()
 
-    if len(get_lists) > 1:                          # nested: harvest leaf rows
+    levels = _nesting_depth(mql)
+    if levels > 1:                                  # nested: harvest leaf rows
         matches: list[dict] = []
-        total = _harvest_nested(sheaf, get_lists, 0, {}, matches, limit)
+        total = _harvest_nested(sheaf, get_lists, 0, {}, matches, limit, levels - 1)
         return RunResult(count=total, matches=matches)
 
     matches = []                                    # flat: existing behaviour
