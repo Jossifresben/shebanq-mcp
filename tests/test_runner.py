@@ -208,3 +208,25 @@ def test_run_query_nested_isolates_reference_per_verse(monkeypatch):
     by_id = {r["id_d"]: r for r in res.matches}
     assert by_id[11]["book"] == "Genesis" and by_id[11]["verse"] == "1"
     assert by_id[22]["book"] == "Exodus" and by_id[22]["verse"] == "2"
+
+
+# --- Emdros-backed nested verse-reference tests (require live DB) ---
+
+
+@pytest.mark.emdros
+def test_nested_bara_has_reference(require_emdros, db_path):
+    # The first occurrence of the lexeme BR>[ ("bara") is Genesis 1:1.
+    mql = ("SELECT ALL OBJECTS WHERE [verse GET book, chapter, verse "
+           "[word lex='BR>[' GET g_word_utf8, gloss]] GO")
+    result = run_query(mql, db_path)
+    assert result.count == 48                       # leaf words, same as flat
+    first = result.matches[0]
+    assert first["book"] == "Genesis"
+    assert first["chapter"] == "1" and first["verse"] == "1"
+
+
+@pytest.mark.emdros
+def test_flat_bara_unchanged(require_emdros, db_path):
+    mql = "SELECT ALL OBJECTS WHERE [word lex='BR>['] GO"
+    result = run_query(mql, db_path)
+    assert result.count == 48 and result.matches[0].get("book") is None
