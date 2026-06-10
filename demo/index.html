@@ -38,7 +38,7 @@
   .q{font-size:18px;margin:0 0 12px}
   textarea.mql{width:100%;min-height:64px;font-family:"SF Mono",Menlo,Consolas,monospace;
     font-size:13px;padding:12px;border:1px solid var(--line);border-radius:6px;
-    background:var(--code-bg);color:var(--ink);white-space:pre;resize:vertical}
+    background:var(--code-bg);color:var(--ink);white-space:pre-wrap;overflow-wrap:anywhere;box-sizing:border-box;resize:vertical}
   .row{display:flex;gap:8px;align-items:center;margin:10px 0}
   .count{font-size:14px;color:var(--muted)}
   .warn{color:var(--warn);font-size:14px}
@@ -166,7 +166,11 @@
     card.appendChild(h("div", "label", "MQL query"));
     var ta = h("textarea", "mql");
     ta.value = mql || "";
+    // Grow to fit the query (capped, then it scrolls); the CSS min-height floors it.
+    function fitMql(){ ta.style.height = "auto"; ta.style.height = Math.min(ta.scrollHeight, 360) + "px"; }
+    ta.addEventListener("input", fitMql);
     card.appendChild(ta);
+    setTimeout(fitMql, 0);
     var row = h("div", "row");
     var runBtn = h("button", null, "Run query");
     var copyBtn = h("button", "ghost icon");
