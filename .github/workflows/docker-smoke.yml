@@ -64,7 +64,7 @@ jobs:
           curl -fsS -X POST http://localhost:8001/api/run \
             -H 'content-type: application/json' \
             -d '{"mql":"SELECT ALL OBJECTS WHERE [word lex='"'"'BR>['"'"'] GO"}' \
-            | grep -q '"result_count": 48'
+            | grep -Eq '"result_count":[[:space:]]*48'
 
           echo "POST /api/run DROP is rejected:"
           curl -fsS -X POST http://localhost:8001/api/run \
@@ -75,7 +75,7 @@ jobs:
           echo "POST /api/ask degrades without a key:"
           curl -fsS -X POST http://localhost:8001/api/ask \
             -H 'content-type: application/json' -d '{"question":"niphal verbs"}' \
-            | grep -q '"degraded": true'
+            | grep -Eq '"degraded":[[:space:]]*true'
 
       - name: Container logs on failure
         if: failure()
