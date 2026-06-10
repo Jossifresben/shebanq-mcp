@@ -263,6 +263,11 @@ def main() -> None:
             print("WARNING: startup self-test failed; /health will report 503",
                   flush=True)
         _configure_http_security()
+        if _web_api_enabled():
+            from .web import RateLimiter, register_web_routes
+            limiter = RateLimiter(int(os.environ.get("WEB_RATE_PER_MIN", "10")))
+            register_web_routes(mcp, ask=handle_ask, run=handle_run_mql,
+                                page_html=_load_web_page(), limiter=limiter)
         mcp.settings.host = os.environ.get("MCP_HOST", "0.0.0.0")
         mcp.settings.port = int(os.environ.get("PORT", "8000"))
         mcp.run(transport="streamable-http")

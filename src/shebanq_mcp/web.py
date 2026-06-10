@@ -33,3 +33,57 @@ def client_ip(request) -> str:
         return xff.split(",")[0].strip()
     client = getattr(request, "client", None)
     return getattr(client, "host", "unknown") if client else "unknown"
+
+
+from time import monotonic  # noqa: E402 - intentional mid-file import
+
+
+def make_routes(ask, run, page_html: str, limiter: "RateLimiter") -> list:
+    """Build the web demo's Starlette routes. `ask(question)->dict` and
+    `run(mql)->dict` are the domain handlers; kept as params so this module
+    has no dependency on server.py and the routes are testable in isolation."""
+    from starlette.responses import HTMLResponse, JSONResponse
+    from starlette.routing import Route
+
+    async def _read_json(request) -> dict:
+        try:
+            body = await request.json()
+        except Exception:  # noqa: BLE001 - bad/empty body -> treat as {}
+            return {}
+        return body if isinstance(body, dict) else {}
+
+    def _capped(request):
+        return not limiter.allow(client_ip(request), monotonic())
+
+    async def page(request):
+        return HTMLResponse(page_html)
+
+    async def ask_route(request):
+        if _capped(request):
+            return JSONResponse({"error": "rate limit exceeded; wait a moment"},
+                                status_code=429)
+        question = (await _read_json(request)).get("question", "").strip()
+        if not question:
+            return JSONResponse({"error": "missing 'question'"}, status_code=400)
+        return JSONResponse(ask(question))
+
+    async def run_route(request):
+        if _capped(request):
+            return JSONResponse({"error": "rate limit exceeded; wait a moment"},
+                                status_code=429)
+        mql = (await _read_json(request)).get("mql", "").strip()
+        if not mql:
+            return JSONResponse({"error": "missing 'mql'"}, status_code=400)
+        return JSONResponse(run(mql))
+
+    return [
+        Route("/", page, methods=["GET"]),
+        Route("/api/ask", ask_route, methods=["POST"]),
+        Route("/api/run", run_route, methods=["POST"]),
+    ]
+
+
+def register_web_routes(mcp, ask, run, page_html: str, limiter: "RateLimiter") -> None:
+    """Attach the web routes to a FastMCP instance via its custom_route hook."""
+    for route in make_routes(ask, run, page_html, limiter):
+        mcp.custom_route(route.path, methods=list(route.methods))(route.endpoint)
