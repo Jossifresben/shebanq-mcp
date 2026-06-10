@@ -149,3 +149,33 @@ def test_handle_ask_degrades_when_no_mql(monkeypatch):
                         lambda q: {"question": q, "guidance": "x"})
     out = server.handle_ask("niphal verbs")
     assert out["degraded"] is True
+
+
+def test_handle_translate_returns_mql_without_running(monkeypatch):
+    class _T:
+        def translate(self, q, ref):
+            return "SELECT ALL OBJECTS WHERE [word sp=verb] GO"
+    monkeypatch.setattr(server, "_translator", _T())
+    ran = {"x": False}
+    monkeypatch.setattr(server, "_executor",
+                        lambda *a, **k: ran.__setitem__("x", True))
+    out = server.handle_translate("all verbs")
+    assert out["mql"].startswith("SELECT")
+    assert "result_count" not in out and "results" not in out
+    assert "degraded" not in out
+    assert ran["x"] is False          # translate must NOT run the query
+
+
+def test_handle_translate_degrades_without_translator(monkeypatch):
+    monkeypatch.setattr(server, "_translator", None)
+    out = server.handle_translate("x")
+    assert out["degraded"] is True and "mql" not in out
+
+
+def test_handle_translate_degrades_when_translate_raises(monkeypatch):
+    class _Boom:
+        def translate(self, q, ref):
+            raise RuntimeError("spend cap reached")
+    monkeypatch.setattr(server, "_translator", _Boom())
+    out = server.handle_translate("x")
+    assert out["degraded"] is True

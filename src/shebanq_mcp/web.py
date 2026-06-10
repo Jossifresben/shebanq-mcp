@@ -38,10 +38,12 @@ def client_ip(request) -> str:
 from time import monotonic  # noqa: E402 - intentional mid-file import
 
 
-def make_routes(ask, run, page_html: str, limiter: "RateLimiter") -> list:
-    """Build the web demo's Starlette routes. `ask(question)->dict` and
-    `run(mql)->dict` are the domain handlers; kept as params so this module
-    has no dependency on server.py and the routes are testable in isolation."""
+def make_routes(ask, run, translate, page_html: str, limiter: "RateLimiter") -> list:
+    """Build the web demo's Starlette routes. `ask(question)`, `translate(question)`
+    and `run(mql)` are the domain handlers — kept as params so this module has no
+    dependency on server.py and the routes are testable in isolation. `ask`
+    translates+runs in one shot; `translate` only generates the MQL; `run`
+    executes a supplied MQL."""
     from starlette.responses import HTMLResponse, JSONResponse
     from starlette.routing import Route
 
@@ -52,46 +54,38 @@ def make_routes(ask, run, page_html: str, limiter: "RateLimiter") -> list:
             return {}
         return body if isinstance(body, dict) else {}
 
-    def _capped(request):
-        return not limiter.allow(client_ip(request), monotonic())
+    def _post_route(handler, key: str, op: str):
+        """A rate-capped POST route that reads `key` from the JSON body, calls
+        `handler(value)`, and always answers in JSON (never a 500 HTML page)."""
+        async def route(request):
+            if not limiter.allow(client_ip(request), monotonic()):
+                return JSONResponse({"error": "rate limit exceeded; wait a moment"},
+                                    status_code=429)
+            value = (await _read_json(request)).get(key, "").strip()
+            if not value:
+                return JSONResponse({"error": f"missing '{key}'"}, status_code=400)
+            try:
+                return JSONResponse(handler(value))
+            except Exception:  # noqa: BLE001 - never leak a traceback as 500 HTML
+                return JSONResponse({"error": f"internal error {op}"}, status_code=500)
+        return route
 
     async def page(request):
         return HTMLResponse(page_html)
 
-    async def ask_route(request):
-        if _capped(request):
-            return JSONResponse({"error": "rate limit exceeded; wait a moment"},
-                                status_code=429)
-        question = (await _read_json(request)).get("question", "").strip()
-        if not question:
-            return JSONResponse({"error": "missing 'question'"}, status_code=400)
-        try:
-            return JSONResponse(ask(question))
-        except Exception:  # noqa: BLE001 - always answer in JSON, never a 500 HTML page
-            return JSONResponse({"error": "internal error answering the question"},
-                                status_code=500)
-
-    async def run_route(request):
-        if _capped(request):
-            return JSONResponse({"error": "rate limit exceeded; wait a moment"},
-                                status_code=429)
-        mql = (await _read_json(request)).get("mql", "").strip()
-        if not mql:
-            return JSONResponse({"error": "missing 'mql'"}, status_code=400)
-        try:
-            return JSONResponse(run(mql))
-        except Exception:  # noqa: BLE001 - always answer in JSON, never a 500 HTML page
-            return JSONResponse({"error": "internal error running the query"},
-                                status_code=500)
-
     return [
         Route("/", page, methods=["GET"]),
-        Route("/api/ask", ask_route, methods=["POST"]),
-        Route("/api/run", run_route, methods=["POST"]),
+        Route("/api/translate", _post_route(translate, "question",
+              "translating the question"), methods=["POST"]),
+        Route("/api/ask", _post_route(ask, "question",
+              "answering the question"), methods=["POST"]),
+        Route("/api/run", _post_route(run, "mql",
+              "running the query"), methods=["POST"]),
     ]
 
 
-def register_web_routes(mcp, ask, run, page_html: str, limiter: "RateLimiter") -> None:
+def register_web_routes(mcp, ask, run, translate, page_html: str,
+                        limiter: "RateLimiter") -> None:
     """Attach the web routes to a FastMCP instance via its custom_route hook."""
-    for route in make_routes(ask, run, page_html, limiter):
+    for route in make_routes(ask, run, translate, page_html, limiter):
         mcp.custom_route(route.path, methods=list(route.methods))(route.endpoint)

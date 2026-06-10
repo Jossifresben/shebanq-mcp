@@ -73,8 +73,8 @@ jobs:
             -d '{"mql":"DROP DATABASE '"'"'x'"'"' GO"}' \
             | jq -e '(.validation_errors | length) > 0 and (.result_count == null)' >/dev/null
 
-          echo "POST /api/ask degrades without a key:"
-          curl -fsS -X POST http://localhost:8001/api/ask \
+          echo "POST /api/translate degrades without a key:"
+          curl -fsS -X POST http://localhost:8001/api/translate \
             -H 'content-type: application/json' -d '{"question":"niphal verbs"}' \
             | jq -e '.degraded == true' >/dev/null
 

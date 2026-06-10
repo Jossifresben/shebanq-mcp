@@ -49,13 +49,26 @@ from starlette.testclient import TestClient
 from shebanq_mcp.web import make_routes, RateLimiter
 
 
-def _client(per_minute=100, ask=None, run=None, page="<h1>PAGE</h1>"):
+def _client(per_minute=100, ask=None, run=None, translate=None, page="<h1>PAGE</h1>"):
     ask = ask or (lambda q: {"question": q, "mql": "SELECT x GO",
                              "result_count": 0, "results": []})
     run = run or (lambda mql: {"mql": mql, "result_count": 1, "results": []})
-    routes = make_routes(ask=ask, run=run, page_html=page,
+    translate = translate or (lambda q: {"question": q, "mql": "SELECT t GO"})
+    routes = make_routes(ask=ask, run=run, translate=translate, page_html=page,
                          limiter=RateLimiter(per_minute))
     return TestClient(Starlette(routes=routes))
+
+
+def test_api_translate_returns_mql_only():
+    r = _client(translate=lambda q: {"question": q, "mql": "SELECT z GO"}
+                ).post("/api/translate", json={"question": "niphal verbs"})
+    assert r.status_code == 200
+    assert r.json()["mql"] == "SELECT z GO"
+    assert "result_count" not in r.json()
+
+
+def test_api_translate_requires_question():
+    assert _client().post("/api/translate", json={}).status_code == 400
 
 
 def test_get_root_serves_page():
@@ -96,8 +109,8 @@ def test_rate_cap_returns_429():
 def test_api_run_returns_500_json_on_unexpected_error():
     def boom(mql):
         raise ValueError("kaboom")
-    routes = make_routes(ask=lambda q: {}, run=boom, page_html="x",
-                         limiter=RateLimiter(100))
+    routes = make_routes(ask=lambda q: {}, run=boom, translate=lambda q: {},
+                         page_html="x", limiter=RateLimiter(100))
     c = TestClient(Starlette(routes=routes), raise_server_exceptions=False)
     r = c.post("/api/run", json={"mql": "Q GO"})
     assert r.status_code == 500
@@ -107,8 +120,8 @@ def test_api_run_returns_500_json_on_unexpected_error():
 def test_api_ask_returns_500_json_on_unexpected_error():
     def boom(q):
         raise ValueError("kaboom")
-    routes = make_routes(ask=boom, run=lambda m: {}, page_html="x",
-                         limiter=RateLimiter(100))
+    routes = make_routes(ask=boom, run=lambda m: {}, translate=lambda q: {},
+                         page_html="x", limiter=RateLimiter(100))
     c = TestClient(Starlette(routes=routes), raise_server_exceptions=False)
     r = c.post("/api/ask", json={"question": "x"})
     assert r.status_code == 500

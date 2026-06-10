@@ -133,23 +133,40 @@ def handle_search_bhsa(question: str) -> dict:
     return _run_pipeline(mql)
 
 
+def _degraded_payload(question: str) -> dict:
+    """Returned when auto-translation is unavailable (no LLM, API error, spend
+    cap). Has no 'mql', so the UI offers the manual edit-and-run path."""
+    return {
+        "question": question,
+        "degraded": True,
+        "guidance": _QUOTING_RULE,
+        "hint": "Auto-translation is unavailable right now. Write or edit an "
+                "MQL query below and run it.",
+    }
+
+
 def handle_ask(question: str) -> dict:
-    """Web /api/ask: translate + run, with graceful degrade. If translation is
-    unavailable (no LLM, Anthropic error, spend cap) the result has no 'mql';
-    return a degraded payload so the UI offers the manual edit-and-run path."""
+    """Web /api/ask: translate + run in one shot, with graceful degrade."""
     try:
         result = handle_search_bhsa(question)
     except Exception:  # noqa: BLE001 - any LLM/translate failure degrades
         result = None
     if not result or "mql" not in result:
-        return {
-            "question": question,
-            "degraded": True,
-            "guidance": _QUOTING_RULE,
-            "hint": "Auto-translation is unavailable right now. Write or edit an "
-                    "MQL query below and run it.",
-        }
+        return _degraded_payload(question)
     return result
+
+
+def handle_translate(question: str) -> dict:
+    """Web /api/translate: translate a question to MQL only, without running it,
+    so the user reviews the query before spending an engine run. Degrades like
+    handle_ask when translation is unavailable."""
+    if _translator is None:
+        return _degraded_payload(question)
+    try:
+        mql = _translator.translate(question, _ref)
+    except Exception:  # noqa: BLE001 - any LLM/translate failure degrades
+        return _degraded_payload(question)
+    return {"question": question, "mql": mql}
 
 
 def _web_api_enabled() -> bool:
@@ -267,6 +284,7 @@ def main() -> None:
             from .web import RateLimiter, register_web_routes
             limiter = RateLimiter(int(os.environ.get("WEB_RATE_PER_MIN", "10")))
             register_web_routes(mcp, ask=handle_ask, run=handle_run_mql,
+                                translate=handle_translate,
                                 page_html=_load_web_page(), limiter=limiter)
         mcp.settings.host = os.environ.get("MCP_HOST", "0.0.0.0")
         mcp.settings.port = int(os.environ.get("PORT", "8000"))

@@ -230,7 +230,8 @@ Two Render services run from the same image (`Dockerfile`, declared in
 
 - **`shebanq-mcp`** — the public MCP endpoint. `LLM_PROVIDER=none`, no API key.
 - **`shebanq-web`** — the live demo. Same image with `WEB_API=on` and an
-  Anthropic key, serving the page plus `/api/ask` and `/api/run` same-origin.
+  Anthropic key, serving the page plus `/api/translate` (question to MQL),
+  `/api/run` (run an MQL), and `/api/ask` (one-shot translate+run) same-origin.
 
 **What the image does**
 

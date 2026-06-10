@@ -59,13 +59,13 @@
 <div class="wrap">
   <h1>Query the BHSA in plain language</h1>
   <p class="lede">A plain-language question becomes an MQL query: shown, editable, and run live.</p>
-  <p class="intro">Anthropic's Claude (Opus 4.8) drafts an Emdros MQL query over the BHSA, the <a href="https://vu.nl/en/about-vu/faculties/school-of-religion-and-theology/more-about/eep-talstra-centre-for-bible-and-computer" target="_blank" rel="noopener">ETCBC</a>'s linguistic database of the Hebrew Bible that powers SHEBANQ. The query is validated, then run on the <a href="https://github.com/Jossifresben/shebanq-mcp" target="_blank" rel="noopener">shebanq MCP server</a>.</p>
+  <p class="intro">Anthropic's Claude (Opus 4.8) drafts an Emdros MQL query over the BHSA, the <a href="https://vu.nl/en/about-vu/faculties/school-of-religion-and-theology/more-about/eep-talstra-centre-for-bible-and-computer" target="_blank" rel="noopener">ETCBC</a>'s linguistic database of the Hebrew Bible that powers SHEBANQ. The query is validated, then you can run the query through the <a href="https://github.com/Jossifresben/shebanq-mcp" target="_blank" rel="noopener">shebanq MCP server</a>.</p>
 
   <hr class="rule">
 
   <form class="ask" id="askForm" autocomplete="off">
     <input id="q" placeholder="e.g. all feminine plural nouns" aria-label="question">
-    <button type="submit" id="askBtn">Ask</button>
+    <button type="submit" id="askBtn">Translate to MQL</button>
   </form>
   <p class="hint">This demo runs the shebanq MCP server on Render's free tier, so the first request after an idle spell can take up to a minute while the server wakes; later queries are fast. The AI translation runs on a small monthly budget, so it may occasionally pause.</p>
 
@@ -221,24 +221,23 @@
     var q = document.getElementById("q").value.trim();
     if (!q) return;
     var btn = document.getElementById("askBtn");
-    btn.disabled = true; btn.textContent = "Asking…";
+    btn.disabled = true; btn.textContent = "Translating…";
     answer.innerHTML = "";
-    answer.appendChild(h("div", "count", "Translating, then running…"));
+    answer.appendChild(h("div", "count", "Translating…"));
     try {
-      var res = await postJSON("/api/ask", {question: q});
+      var res = await postJSON("/api/translate", {question: q});
       answer.innerHTML = "";
       if (res.status === 429) { answer.appendChild(h("div","err","Too many requests — wait a moment.")); }
       else {
         var d = res.data;
-        var built = resultCard(q, d.degraded ? "" : d.mql, !!d.degraded, d.hint);
-        answer.appendChild(built.card);
-        if (!d.degraded) renderResults(built.results, d);   // already-run result
+        // Show the generated MQL; the user reviews/edits, then clicks Run.
+        answer.appendChild(resultCard(q, d.degraded ? "" : d.mql, !!d.degraded, d.hint).card);
       }
     } catch (e) {
       answer.innerHTML = "";
       answer.appendChild(h("div", "err", "Could not reach the server. Check your connection and try again."));
     } finally {
-      btn.disabled = false; btn.textContent = "Ask";
+      btn.disabled = false; btn.textContent = "Translate to MQL";
     }
   });
 
