@@ -190,27 +190,6 @@ then fill in the `expected_count` values in
 from real runs. Those fixtures are the regression backbone and, later, the demo
 gallery content.
 
-## Demo showcase
-
-A static, self-contained showcase of example searches (question -> MQL -> real
-results) lives in `demo/index.html`. Open it directly in a browser:
-
-```bash
-open demo/index.html        # macOS
-```
-
-It needs no server and no install — the data is inlined from `demo/showcase.json`.
-
-To regenerate after changing the data or template:
-
-```bash
-python scripts/build_demo.py      # rebuilds demo/index.html
-```
-
-`demo/showcase.json` is produced from the real BHSA database by
-`scripts/extract_showcase.py`, which runs in CI (Emdros and the database are not
-required locally to view the demo).
-
 ## Roadmap
 
 - [x] Core MCP server: feature reference, validator, Emdros runner, formatter,
