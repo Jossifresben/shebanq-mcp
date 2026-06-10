@@ -1,0 +1,62 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "shebanq-mcp: a Model Context Protocol server for querying the BHSA Hebrew Bible in plain language"
+abstract: >-
+  shebanq-mcp is a Model Context Protocol (MCP) server that lets
+  biblical-studies scholars query the BHSA Hebrew Bible (the ETCBC linguistic
+  database behind SHEBANQ) in plain language. A question is translated into an
+  Emdros MQL query, validated against the BHSA feature catalogue, and run on a
+  local Emdros engine; the server returns both the query and the real results.
+  The query stays visible and checkable: every result carries the exact MQL that
+  produced it, queries are validated before they run, and empty results are
+  reported honestly. AI as a way in, not a way around.
+type: software
+version: 0.1.0
+license: MIT
+repository-code: "https://github.com/Jossifresben/shebanq-mcp"
+keywords:
+  - Hebrew Bible
+  - BHSA
+  - ETCBC
+  - SHEBANQ
+  - Emdros
+  - MQL
+  - Model Context Protocol
+  - computational linguistics
+  - digital humanities
+  - biblical studies
+authors:
+  - family-names: "Fresco Benaim"
+    given-names: Jose
+    orcid: "https://orcid.org/0009-0000-2026-0836"
+    affiliation: "Independent researcher"
+references:
+  - type: dataset
+    title: "ETCBC/bhsa: the Biblical Hebrew text database (BHSA), data version 2021"
+    authors:
+      - family-names: Roorda
+        given-names: Dirk
+      - family-names: Erwich
+        given-names: Christiaan
+      - family-names: Kingham
+        given-names: Cody
+      - family-names: Park
+        given-names: SeHoon
+    year: 2021
+    doi: "10.5281/zenodo.5266551"
+    repository-code: "https://github.com/ETCBC/bhsa"
+  - type: conference-paper
+    title: "Emdros: a text database engine for analyzed or annotated text"
+    authors:
+      - family-names: Petersen
+        given-names: Ulrik
+    year: 2004
+    doi: "10.3115/1220355.1220527"
+    collection-title: "COLING 2004: Proceedings of the 20th International Conference on Computational Linguistics"
+    start: 1190
+    end: 1193
+  - type: software
+    title: "ETCBC/shebanq: exposing the Hebrew Text Database of the ETCBC"
+    authors:
+      - name: "Eep Talstra Centre for Bible and Computer (ETCBC)"
+    repository-code: "https://github.com/ETCBC/shebanq"

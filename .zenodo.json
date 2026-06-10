@@ -1,0 +1,58 @@
+{
+  "title": "shebanq-mcp: a Model Context Protocol server for querying the BHSA Hebrew Bible in plain language",
+  "upload_type": "software",
+  "language": "eng",
+  "license": "MIT",
+  "access_right": "open",
+  "version": "0.1.0",
+  "creators": [
+    {
+      "name": "Fresco Benaim, Jose",
+      "affiliation": "Independent researcher",
+      "orcid": "0009-0000-2026-0836"
+    }
+  ],
+  "description": "shebanq-mcp is a Model Context Protocol (MCP) server that lets biblical-studies scholars query the BHSA Hebrew Bible, the ETCBC linguistic database behind SHEBANQ, in plain language. A question is translated into an Emdros MQL query, validated against the BHSA feature catalogue, and run on a local Emdros engine; the server returns both the query and the real results. The design keeps the query visible and checkable rather than hidden. Every result carries the exact MQL that produced it, queries are validated before they run, and empty results are reported honestly. The goal is to lower the barrier to MQL for teaching and research without removing the scholarly act of reading and judging a query: AI as a way in, not a way around. The server exposes three tools (search_bhsa, run_mql, lookup_feature), runs read-only, and can be used from any MCP client or through a hosted web demo. It builds on the BHSA dataset (ETCBC), the Emdros text database engine, and SHEBANQ.",
+  "keywords": [
+    "Hebrew Bible",
+    "Biblical Hebrew",
+    "BHSA",
+    "ETCBC",
+    "SHEBANQ",
+    "Emdros",
+    "MQL",
+    "Model Context Protocol",
+    "MCP",
+    "computational linguistics",
+    "digital humanities",
+    "biblical studies",
+    "corpus query",
+    "natural language interface"
+  ],
+  "related_identifiers": [
+    {
+      "relation": "isDerivedFrom",
+      "identifier": "10.5281/zenodo.5266551",
+      "resource_type": "dataset",
+      "scheme": "doi"
+    },
+    {
+      "relation": "references",
+      "identifier": "10.3115/1220355.1220527",
+      "resource_type": "publication-conferencepaper",
+      "scheme": "doi"
+    },
+    {
+      "relation": "references",
+      "identifier": "https://github.com/ETCBC/shebanq",
+      "resource_type": "software",
+      "scheme": "url"
+    },
+    {
+      "relation": "isSupplementTo",
+      "identifier": "https://github.com/Jossifresben/shebanq-mcp",
+      "resource_type": "software",
+      "scheme": "url"
+    }
+  ]
+}
