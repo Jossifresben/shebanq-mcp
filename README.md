@@ -79,6 +79,31 @@ model: tool descriptions carry the quoting rules, `search_bhsa` returns a
 concise primer, and a `write-mql` prompt provides the full feature reference on
 demand.
 
+**Example prompts**
+
+Ask the way you would ask a colleague:
+
+- "How many Niphal verbs are in the Hebrew Bible?"
+- "Where does the verb בָּרָא (bara, to create) occur? Show me the first few."
+- "Find feminine plural nouns and give me ten examples."
+- "Show me every imperative in Genesis 1."
+
+**Getting the verse for each hit.** A word does not carry its own location;
+that lives on the verse around it. So to see where each match occurs, ask for
+the book, chapter, and verse, and the model nests the word query inside its
+verse:
+
+```
+SELECT ALL OBJECTS WHERE [verse GET book, chapter, verse
+  [word lex='BR>[' GET g_word_utf8, gloss]] GO
+```
+
+The plain `[word lex='BR>[' GET g_word_utf8, gloss]` returns the words alone;
+wrapping it in `[verse GET book, chapter, verse ...]` attaches `Genesis 1:1` to
+each one. If results come back without locations, say "include the verse
+references" and the model will re-nest the query. (The web demo does this
+wrapping for you when the reference box is ticked.)
+
 ## Why
 
 Querying BHSA today means knowing MQL, the BHSA feature vocabulary, and the
