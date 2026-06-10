@@ -1,6 +1,6 @@
 # shebanq-mcp
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20625355.svg)](https://doi.org/10.5281/zenodo.20625355)
+[![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.20625355-1682D4.svg)](https://doi.org/10.5281/zenodo.20625355)
 
 Ask the Hebrew Bible a linguistic question in plain language and get back two
 things together: the **MQL query** and the **results**. An LLM drafts the query,
