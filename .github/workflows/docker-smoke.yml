@@ -45,6 +45,42 @@ jobs:
           echo "PEAK_MEM=$(docker stats --no-stream --format '{{.MemUsage}}' shebanq)"
           wait || true
 
+      - name: Run web-mode container
+        run: |
+          docker run -d --name shebanq-web -p 8001:8000 \
+            -e WEB_API=on -e LLM_PROVIDER=anthropic shebanq-mcp:ci
+          for i in $(seq 1 30); do
+            if curl -fsS http://localhost:8001/health >/dev/null 2>&1; then break; fi
+            sleep 1
+          done
+
+      - name: Web smoke (page, run, mutation rejected, degrade)
+        run: |
+          set -e
+          echo "GET / serves the page:"
+          curl -fsS http://localhost:8001/ | grep -q "Ask the Hebrew Bible"
+
+          echo "POST /api/run bara == 48:"
+          curl -fsS -X POST http://localhost:8001/api/run \
+            -H 'content-type: application/json' \
+            -d '{"mql":"SELECT ALL OBJECTS WHERE [word lex='"'"'BR>['"'"'] GO"}' \
+            | grep -q '"result_count": 48'
+
+          echo "POST /api/run DROP is rejected:"
+          curl -fsS -X POST http://localhost:8001/api/run \
+            -H 'content-type: application/json' \
+            -d '{"mql":"DROP DATABASE '"'"'x'"'"' GO"}' \
+            | grep -Eq 'read-only|mutating'
+
+          echo "POST /api/ask degrades without a key:"
+          curl -fsS -X POST http://localhost:8001/api/ask \
+            -H 'content-type: application/json' -d '{"question":"niphal verbs"}' \
+            | grep -q '"degraded": true'
+
       - name: Container logs on failure
         if: failure()
         run: docker logs shebanq || true
+
+      - name: Web container logs on failure
+        if: failure()
+        run: docker logs shebanq-web || true
