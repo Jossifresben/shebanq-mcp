@@ -1,4 +1,47 @@
+import re
 from dataclasses import dataclass, field
+
+# A GET clause lists the features to return; it is always terminated by the
+# opening bracket of an inner block ('[') or the closing bracket of its own
+# block (']'). Capturing them left-to-right yields the per-nesting-level lists
+# in outermost-first order.
+_GET_CLAUSE = re.compile(r"\bGET\s+([A-Za-z0-9_,\s]+?)\s*(?=[\[\]])", re.IGNORECASE)
+
+# Verse-level features that form a citation. The runner propagates these from a
+# containing object down onto each leaf row; formatter._reference renders them.
+_REF_KEYS = ("book", "chapter", "verse")
+
+
+def _parse_get_lists(mql: str) -> list[list[str]]:
+    return [[f.strip() for f in clause.split(",") if f.strip()]
+            for clause in _GET_CLAUSE.findall(mql)]
+
+
+def _harvest_nested(sheaf, get_lists, depth, ctx, matches, total, limit):
+    names = get_lists[depth] if depth < len(get_lists) else []
+    is_leaf = depth >= len(get_lists) - 1          # deepest level = the result rows
+    it = sheaf.const_iterator()
+    while it.hasNext():
+        sit = it.next().const_iterator()
+        while sit.hasNext():
+            mo = sit.next()
+            feats = {n: mo.getFeatureAsString(i) for i, n in enumerate(names)}
+            if not is_leaf:
+                child = dict(ctx)
+                for k in _REF_KEYS:
+                    if k in feats:
+                        child[k] = feats[k]
+                _harvest_nested(mo.getSheaf(), get_lists, depth + 1,
+                                child, matches, total, limit)
+            else:
+                total[0] += 1
+                if limit is not None and len(matches) >= limit:
+                    continue
+                row = {"id_d": mo.getID_D(), **feats}
+                for k in _REF_KEYS:
+                    if k in ctx:
+                        row[k] = ctx[k]
+                matches.append(row)
 
 
 @dataclass
@@ -36,19 +79,25 @@ def _make_env(db_path: str):
 
 def run_query(mql: str, db_path: str, features: list[str] | None = None,
               limit: int | None = None) -> RunResult:
-    """Run an MQL query. `count` is the true total of matched objects; `matches`
-    holds the harvested rows. When `limit` is set, only the first `limit` rows
-    are harvested (the rest are counted but not materialized), so a query that
-    matches hundreds of thousands of objects does not build a giant list. With
-    `limit=None` every match is harvested (count == len(matches))."""
+    """Run an MQL query. `count` is the true total of matched leaf objects;
+    `matches` holds the harvested rows (capped at `limit`). A nested
+    verse-over-word query attaches the containing verse's book/chapter/verse to
+    each word row; a flat query harvests `features` from each matched object as
+    before."""
     features = features or []
+    get_lists = _parse_get_lists(mql)
     env = _make_env(db_path)
-    ok = env.executeString(mql, True, False, True)
-    if not ok:
+    if not env.executeString(mql, True, False, True):
         raise RuntimeError(f"Emdros error: {env.getCompilerError()}")
-
     sheaf = env.getSheaf()
-    matches: list[dict] = []
+
+    if len(get_lists) > 1:                          # nested: harvest leaf rows
+        matches: list[dict] = []
+        total = [0]
+        _harvest_nested(sheaf, get_lists, 0, {}, matches, total, limit)
+        return RunResult(count=total[0], matches=matches)
+
+    matches = []                                    # flat: existing behaviour
     total = 0
     it = sheaf.const_iterator()
     while it.hasNext():

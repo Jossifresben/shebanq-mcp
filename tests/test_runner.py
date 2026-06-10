@@ -103,3 +103,84 @@ def test_run_query_no_limit_harvests_all(monkeypatch):
     monkeypatch.setattr(runner, "_make_env", lambda db: _FakeEnv(5, calls))
     res = run_query("Q GO", "x.db", features=["gloss"])   # limit=None
     assert res.count == 5 and len(res.matches) == 5 and calls[0] == 5
+
+
+# --- Nested verse-reference tests (no Emdros needed) ---
+
+from shebanq_mcp.runner import _parse_get_lists
+
+
+def test_parse_get_lists_flat():
+    mql = "SELECT ALL OBJECTS WHERE [word sp=verb GET sp, gloss] GO"
+    assert _parse_get_lists(mql) == [["sp", "gloss"]]
+
+
+def test_parse_get_lists_nested_in_order():
+    mql = ("SELECT ALL OBJECTS WHERE [verse GET book, chapter, verse "
+           "[word lex='BR>[' GET g_word_utf8, gloss]] GO")
+    assert _parse_get_lists(mql) == [["book", "chapter", "verse"],
+                                     ["g_word_utf8", "gloss"]]
+
+
+def test_parse_get_lists_none():
+    assert _parse_get_lists("SELECT ALL OBJECTS WHERE [word sp=verb] GO") == []
+
+
+class _NMo:
+    """A matched object with named-by-index features and an optional inner sheaf."""
+    def __init__(self, idx, feats, inner=None):
+        self.idx, self._feats, self._inner = idx, feats, inner
+
+    def getID_D(self):
+        return self.idx
+
+    def getFeatureAsString(self, i):
+        return self._feats[i]
+
+    def getSheaf(self):
+        return self._inner
+
+
+def test_run_query_nested_attaches_verse_reference(monkeypatch):
+    import shebanq_mcp.runner as runner
+    words = [_NMo(101, ["בָּרָא", "create"]), _NMo(102, ["יִּבְרָא", "create"])]
+    word_sheaf = _FakeSheaf([_FakeStraw(words)])
+    verse = _NMo(1, ["Genesis", "1", "1"], word_sheaf)
+    verse_sheaf = _FakeSheaf([_FakeStraw([verse])])
+
+    class _Env:
+        def executeString(self, *a):
+            return True
+
+        def getSheaf(self):
+            return verse_sheaf
+
+    monkeypatch.setattr(runner, "_make_env", lambda db: _Env())
+    mql = ("SELECT ALL OBJECTS WHERE [verse GET book, chapter, verse "
+           "[word lex='BR>[' GET g_word_utf8, gloss]] GO")
+    res = run_query(mql, "x.db")
+    assert res.count == 2                       # leaf words, NOT the 1 verse
+    r0 = res.matches[0]
+    assert r0["id_d"] == 101
+    assert r0["g_word_utf8"] == "בָּרָא" and r0["gloss"] == "create"
+    assert r0["book"] == "Genesis" and r0["chapter"] == "1" and r0["verse"] == "1"
+
+
+def test_run_query_nested_respects_limit(monkeypatch):
+    import shebanq_mcp.runner as runner
+    words = [_NMo(200 + i, ["w%d" % i, "g"]) for i in range(5)]
+    verse = _NMo(1, ["Exodus", "2", "3"], _FakeSheaf([_FakeStraw(words)]))
+    verse_sheaf = _FakeSheaf([_FakeStraw([verse])])
+
+    class _Env:
+        def executeString(self, *a):
+            return True
+
+        def getSheaf(self):
+            return verse_sheaf
+
+    monkeypatch.setattr(runner, "_make_env", lambda db: _Env())
+    mql = ("SELECT ALL OBJECTS WHERE [verse GET book, chapter, verse "
+           "[word GET g_word_utf8, gloss]] GO")
+    res = run_query(mql, "x.db", limit=2)
+    assert res.count == 5 and len(res.matches) == 2   # all counted, 2 harvested
