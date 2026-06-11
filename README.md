@@ -169,10 +169,20 @@ swappable. Select it with the `LLM_PROVIDER` environment variable:
   query itself and call `run_mql`), so the server makes no external calls and
   needs no key.
 
+The model is set with the `LLM_MODEL` env var (default `claude-sonnet-4-6`). We
+chose it with a benchmark (`scripts/eval_translator.py`): each candidate
+translated the scholar-question set, and each generated query's result count was
+checked against the engine-verified answer. Claude Sonnet 4.6 matched the
+strongest model, Claude Opus 4.8, at 11 of 11, for about 2.3 times less cost; the
+cheapest, Claude Haiku 4.5, got 8 of 11, missing the harder nested clause and
+phrase queries (it dropped a verse scope, mis-built a construct chain). So Sonnet
+4.6 is the default. A translation averages about **$0.022** (roughly two cents),
+so the $10/month spend cap covers about 450 translations; `run_mql` and
+`lookup_feature` make no model calls and cost nothing.
+
 Adding another provider (OpenAI, a local model) is a small adapter: a class with
-a `translate()` method plus a branch in `build_translator()`. Query quality
-varies by model, so use the featured-search regression set to measure any given
-model's reliability.
+a `translate()` method plus a branch in `build_translator()`. Re-run the
+benchmark to measure any model's count-match reliability before switching.
 
 ## How it works
 
