@@ -26,7 +26,9 @@ class TFUnavailable(RuntimeError):
 
 def warm(version: str | None = None):
     """Load the corpus once; subsequent calls are free. Raises TFUnavailable
-    with an actionable message if text-fabric or the data is missing."""
+    with an actionable message if text-fabric or the data is missing.
+    A `version` differing from the already-warm corpus is ignored; this server
+    loads one version per process."""
     global _A
     if _A is None:
         v = version or os.environ.get("BHSA_TF_VERSION", DEFAULT_TF_VERSION)
@@ -50,20 +52,25 @@ def warm(version: str | None = None):
 def _leaf_features(template: str) -> list[str]:
     """Feature names constrained on the last template line; these are echoed
     back per row (the TF analogue of the MQL GET clause)."""
-    lines = [l for l in template.splitlines() if l.strip()]
+    lines = [line for line in template.splitlines() if line.strip()]
     if not lines:
         return []
+    # '=' only, deliberately: tf_validator's v1 grammar admits only feature=value pairs.
+    # If the validator grows other comparators, extend this regex with it.
     return re.findall(r"([A-Za-z_][A-Za-z0-9_]*)=", lines[-1])
 
 
 def _gloss(api, n):
     """The lexeme gloss. In BHSA TF gloss lives on lex nodes; many versions
     also expose it on words. Try the node, then climb to its lex."""
-    g = api.Fs("gloss").v(n) if api.Fs("gloss") else None
+    gf = api.Fs("gloss")
+    if gf is None:
+        return None
+    g = gf.v(n)
     if g is None and api.F.otype.v(n) == "word":
         lexs = api.L.u(n, otype="lex")
         if lexs:
-            g = api.Fs("gloss").v(lexs[0])
+            g = gf.v(lexs[0])
     return g
 
 
@@ -81,12 +88,13 @@ def run_template(template: str, features: list[str] | None = None,
         if limit is not None and len(matches) >= limit:
             break                       # count is len(results); harvest is capped
         n = tup[-1]
-        book, chapter, verse = api.T.sectionFromNode(n)
+        section = tuple(api.T.sectionFromNode(n)) + (None, None, None)
+        book, chapter, verse = section[:3]
         row = {
             "id_d": n,
             "book": book,
-            "chapter": str(chapter),
-            "verse": str(verse),
+            "chapter": str(chapter) if chapter is not None else None,
+            "verse": str(verse) if verse is not None else None,
             "text": api.T.text(n),
             "gloss": _gloss(api, n),
         }

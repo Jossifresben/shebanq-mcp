@@ -116,3 +116,19 @@ def test_leaf_features_parsed_from_last_line():
         "clause\n  phrase function=Pred\n    word sp=verb vs=nif"
     ) == ["sp", "vs"]
     assert tf_runner._leaf_features("word") == []
+
+
+def test_above_verse_leaf_does_not_crash():
+    api = FakeApi(
+        features={},
+        otypes={5: "book"},
+        sections={5: ("Genesis",)},          # book nodes give a 1-tuple
+        texts={5: "..."},
+    )
+    tf_runner._A = FakeApp(api, results=[(5,)])
+    res = tf_runner.run_template("book")
+    row = res.matches[0]
+    assert row["book"] == "Genesis"
+    assert row["chapter"] is None and row["verse"] is None
+    formatted = format_results(res.matches)
+    assert formatted[0]["reference"] is None
