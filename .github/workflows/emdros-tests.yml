@@ -136,6 +136,11 @@ jobs:
         run: |
           python3 -m pytest -m emdros -v
 
+      - name: Print fixture counts (for pinning)
+        env:
+          BHSA_SQLITE: data/bhsa.sqlite3
+        run: python3 scripts/run_constructs.py
+
       - name: Print real featured-search counts (diagnostic)
         if: always()
         env:
