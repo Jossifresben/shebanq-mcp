@@ -3,11 +3,13 @@
 [![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.20625355-1682D4.svg)](https://doi.org/10.5281/zenodo.20625355)
 
 Ask the Hebrew Bible a linguistic question in plain language and get back two
-things together: the **MQL query** and the **results**. An LLM drafts the query,
-a local [Emdros](https://github.com/emdros/emdros) engine runs it against the
+things together: the **MQL query** and the **real results**. The server has a
+built-in NL→MQL translator: it takes your question, drafts a query using the
+BHSA feature catalogue, validates it, runs it against a local
+[Emdros](https://github.com/emdros/emdros) engine on the
 [BHSA](https://github.com/ETCBC/bhsa) database (the same data behind
-[SHEBANQ](https://shebanq.ancient-data.org/)), and the server returns both. The
-query is always shown, so it stays the thing you read, verify, and cite.
+[SHEBANQ](https://shebanq.ancient-data.org/)), and returns both. The query is
+always shown, validated before it runs, and empty results are honest.
 
 This is an [MCP](https://modelcontextprotocol.io/) server: it plugs into clients
 like Claude as a set of tools.
@@ -32,7 +34,7 @@ are on by default, so each hit shows its `book chapter:verse`; untick "Include
 the reference (book chapter:verse)" for a plainer query. The worked examples run
 live too. It is read-only. Hosted on a free instance, so the first request after
 an idle spell can take up to a minute while the server wakes. The
-auto-translation (Anthropic's Claude) is capped by a monthly budget.
+auto-translation is capped by a monthly budget.
 
 ## Use it in Claude Desktop
 
@@ -73,11 +75,25 @@ Then restart Claude Desktop.
 
 **What you get**
 
-Ask in plain language. Your client's own model writes a read-only MQL query and
-calls `run_mql`; you see the query and the real results. The server guides the
-model: tool descriptions carry the quoting rules, `search_bhsa` returns a
-concise primer, and a `write-mql` prompt provides the full feature reference on
-demand.
+Ask in plain language. `search_bhsa` translates server-side: the server prompts
+the configured model (`LLM_MODEL`) with an engine-verified MQL curriculum and the
+BHSA feature catalogue, validates the generated query for object-type correctness,
+runs it against the local BHSA database, and returns the MQL plus results. No
+dependency on your client's own model to write MQL. `run_mql` and `lookup_feature`
+are also available if you want to work with queries directly.
+
+### How translation works
+
+When you call `search_bhsa`, the server prompts the configured model (`LLM_MODEL`)
+with two things: an engine-verified MQL curriculum (the primer, covering nesting,
+sequence and adjacency, FOCUS, quoting rules, and verse references) and the BHSA
+feature catalogue scoped per object type. Before the query reaches Emdros, the
+validator checks object-type correctness: a wrong-level query fails loudly with
+a clear error rather than silently returning zero results. Honest counts come
+back every time: zero matches returns the query and a plain "0 results" so you
+can tell "the query is wrong" from "the phenomenon is not there." The model is
+configurable via the `LLM_MODEL` environment variable and bounded by a monthly
+spend cap.
 
 **Example prompts**
 
@@ -87,6 +103,9 @@ Ask the way you would ask a colleague:
 - "Where does the verb בָּרָא (bara, to create) occur? Show me the first few."
 - "Find feminine plural nouns and give me ten examples."
 - "Show me every imperative in Genesis 1."
+- "Find ellipsis clauses that start with a conjunction and an object." (Returns a
+  nested clause/phrase MQL query with real results; clause-level and phrase-level
+  questions work.)
 
 **Getting the verse for each hit.** A word does not carry its own location;
 that lives on the verse around it. So to see where each match occurs, ask for
@@ -227,6 +246,9 @@ gallery content.
       Desktop and other MCP clients
 - [x] Verse references in results: each hit shows `book chapter:verse` (opt-in,
       default on; the server nests the word query inside its verse)
+- [x] Clause-level and phrase-level querying: engine-verified MQL curriculum
+      (primer) in the translation prompt; object-type validation catches
+      wrong-level queries loudly
 - [ ] Full feature-catalogue generation from the ETCBC feature docs
 
 ## Deploy
@@ -234,9 +256,11 @@ gallery content.
 Two Render services run from the same image (`Dockerfile`, declared in
 `render.yaml`), distinguished by environment:
 
-- **`shebanq-mcp`** — the public MCP endpoint. `LLM_PROVIDER=none`, no API key.
+- **`shebanq-mcp`** — the public MCP endpoint. Server-side NL→MQL translation
+  via `LLM_MODEL`; needs an API key. The validator rejects any non-read-only MQL
+  before it reaches Emdros.
 - **`shebanq-web`** — the live demo. Same image with `WEB_API=on` and an
-  Anthropic key, serving the page plus `/api/translate` (question to MQL),
+  API key, serving the page plus `/api/translate` (question to MQL),
   `/api/run` (run an MQL), and `/api/ask` (one-shot translate+run) same-origin.
 
 **What the image does**
@@ -245,11 +269,12 @@ The build stage compiles Emdros (`rel-3-9-0`) from source and builds the BHSA
 SQLite database from a pinned ETCBC commit. The runtime stage is slim and
 non-root, with the database mounted read-only. Nothing else ships.
 
-**No LLM key required**
+**LLM key and model**
 
-The server runs with `LLM_PROVIDER=none`. The client model drafts MQL; the
-server only validates and executes. The validator rejects any non-read-only MQL
-before it reaches Emdros.
+Both services translate server-side. Set `LLM_MODEL` to select which model
+handles translation; set the matching API key environment variable. The validator
+rejects any non-read-only MQL before it reaches Emdros, regardless of what the
+model produces.
 
 **Health check**
 
