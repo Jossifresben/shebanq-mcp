@@ -30,9 +30,7 @@ Type a question and click **Translate to MQL** to see the generated query.
 Review or edit it, then **Run query** against the live BHSA engine. References
 are on by default, so each hit shows its `book chapter:verse`; untick "Include
 the reference (book chapter:verse)" for a plainer query. The worked examples run
-live too. It is read-only. Hosted on a free instance, so the first request after
-an idle spell can take up to a minute while the server wakes. The
-auto-translation is capped by a monthly budget.
+live too. It is read-only, and the auto-translation is capped by a monthly budget.
 
 ## Use it in Claude Desktop
 
@@ -42,9 +40,6 @@ It is a **read-only** query engine: you can search the data, you cannot modify
 it.
 
 Endpoint: `https://shebanq-mcp.onrender.com/mcp`
-
-> Runs on a free Render instance, so it spins down when idle. The first request
-> after a quiet spell may take a few seconds to wake.
 
 **Option A: Custom Connector** (Claude.ai and supported clients)
 
@@ -300,11 +295,9 @@ mutation rejection on every push.
 **Instance lifecycle**
 
 Measured cold start is about 2.2 seconds (container boot plus the first query),
-and peak memory about 154 MiB under two concurrent queries. The blueprint runs on
-Render's free tier, which spins the service down when idle and cold-starts it on
-the next request; the fast boot keeps that tolerable for a low-traffic,
-pre-feedback deployment. Switch `plan: free` to `plan: starter` in `render.yaml`
-for an always-on instance with an instant first response.
+and peak memory about 154 MiB under two concurrent queries. Both services run on
+Render's `starter` tier (512 MB, always-on), so there is no idle spin-down and the
+first request is instant.
 
 ## Credits
 
