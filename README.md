@@ -3,8 +3,8 @@
 [![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.20625355-1682D4.svg)](https://doi.org/10.5281/zenodo.20625355)
 
 Ask the Hebrew Bible a linguistic question in plain language and get back two
-things together: a citable query in two languages -- an Emdros MQL query and a
-[Text-Fabric](https://github.com/annotation/text-fabric) search template -- plus
+things together: a citable query in two languages (an Emdros MQL query and a
+[Text-Fabric](https://github.com/annotation/text-fabric) search template), plus
 the **real results**. The server has a built-in NL→MQL translator: it takes your
 question, drafts a query using the BHSA feature catalogue, validates it, runs it
 against one of the two engines on the [BHSA](https://github.com/ETCBC/bhsa)
