@@ -107,6 +107,30 @@
       "mql": "SELECT ALL OBJECTS WHERE [sentence [word sp=verb AND vt=impv]] GO",
       "teaches": "sentence object type probe with nested word constraint; skipping levels ([sentence [word]]) is legal — inner need not be a direct child",
       "expected_count": 4306
+    },
+    {
+      "name": "suffix_3ms",
+      "mql": "SELECT ALL OBJECTS WHERE [word prs_ps=p3 AND prs_gn=m AND prs_nu=sg] GO",
+      "teaches": "pronominal-suffix agreement: prs_ps/prs_gn/prs_nu describe the suffix's own person/gender/number",
+      "expected_count": 13754
+    },
+    {
+      "name": "noun_as_adverb",
+      "mql": "SELECT ALL OBJECTS WHERE [word sp=subs AND pdp=advb] GO",
+      "teaches": "pdp (phrase-dependent part of speech) can differ from sp (lexical part of speech)",
+      "expected_count": 1371
+    },
+    {
+      "name": "cardinal_numbers",
+      "mql": "SELECT ALL OBJECTS WHERE [word ls=card] GO",
+      "teaches": "ls (lexical set) subclassifies the part of speech",
+      "expected_count": 6287
+    },
+    {
+      "name": "topo_proper_nouns",
+      "mql": "SELECT ALL OBJECTS WHERE [word sp=nmpr AND nametype ~ 'topo'] GO",
+      "teaches": "nametype is a comma-separated multi-value string; match it with the ~ regex operator, not =",
+      "expected_count": 10916
     }
   ]
 }

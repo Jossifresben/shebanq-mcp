@@ -87,6 +87,22 @@
       "mql": "SELECT ALL OBJECTS WHERE\n[clause kind=VC\n   [phrase function=Pred]\n   ..\n   [phrase function=Objc]\n]\nGO",
       "expected_count": 32250,
       "notes": "kind=VC targets all verbal clause subtypes; .. separates Pred and Objc to allow intervening phrases; clause.kind is enum unquoted"
+    },
+    {
+      "name": "words_with_3ms_suffix",
+      "question": "Which words carry a third person masculine singular pronominal suffix?",
+      "family": "word-morphology",
+      "mql": "SELECT ALL OBJECTS WHERE [word prs_ps=p3 AND prs_gn=m AND prs_nu=sg] GO",
+      "expected_count": 13754,
+      "notes": "uses the pronominal-suffix agreement trio prs_ps/prs_gn/prs_nu"
+    },
+    {
+      "name": "place_name_nouns",
+      "question": "Find proper nouns that are place names.",
+      "family": "word-morphology",
+      "mql": "SELECT ALL OBJECTS WHERE [word sp=nmpr AND nametype ~ 'topo'] GO",
+      "expected_count": 10916,
+      "notes": "nametype is comma-separated multi-value; match with ~ rather than ="
     }
   ]
 }
