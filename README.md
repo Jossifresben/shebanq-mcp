@@ -234,6 +234,24 @@ then fill in the `expected_count` values in
 from real runs. Those fixtures are the regression backbone and, later, the demo
 gallery content.
 
+## Feature coverage
+
+The translation prompt and the validator are driven by a feature catalogue
+(`features.json`). It currently exposes the high-frequency core of the BHSA
+feature set: part of speech (`sp`), verbal stem and tense (`vs`, `vt`), gender,
+number, person and state (`gn`, `nu`, `ps`, `st`), phrase function (`function`),
+clause and phrase type (`typ`), relation (`rela`), clause kind (`kind`), lexeme
+(`lex`), and gloss. That is about a quarter of the queryable features in the
+ETCBC2021 database, weighted toward the ones that appear in most scholarly queries.
+
+What it does not yet expose is mainly the word-level morphology layer:
+pronominal-suffix agreement (`prs_ps`, `prs_gn`, `prs_nu`), phrase-dependent part
+of speech (`pdp`), lexical set (`ls`), and name type (`nametype`), alongside a set
+of morpheme-string and alternate-encoding features. Adding the agreement,
+lexical-set, and name-type features is the next step. It would let the tool answer
+questions it cannot express today, such as "verbs with a third-person feminine
+singular suffix" or "gentilic nouns."
+
 ## Roadmap
 
 - [x] Core MCP server: feature reference, validator, Emdros runner, formatter,
@@ -250,6 +268,9 @@ gallery content.
 - [x] Clause-level and phrase-level querying: engine-verified MQL curriculum
       (primer) in the translation prompt; object-type validation catches
       wrong-level queries loudly
+- [ ] Wider feature coverage: add the word-level morphology layer
+      (pronominal-suffix agreement `prs_ps`/`prs_gn`/`prs_nu`, phrase-dependent
+      part of speech `pdp`, lexical set `ls`, name type `nametype`)
 - [ ] Full feature-catalogue generation from the ETCBC feature docs
 
 ## Deploy
