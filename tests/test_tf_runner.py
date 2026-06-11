@@ -132,3 +132,35 @@ def test_above_verse_leaf_does_not_crash():
     assert row["chapter"] is None and row["verse"] is None
     formatted = format_results(res.matches)
     assert formatted[0]["reference"] is None
+
+
+# ---- data-backed pinned counts (CI only) -----------------------------------
+# The same six counts the Emdros tests pin, on the same 2021 data. A mismatch
+# here is a fork bug (template generation or version pin), never data drift.
+
+PINNED = [
+    ("word sp=verb", 73710),
+    ("word sp=verb vs=nif", 4145),
+    ("word lex=BR>[", 48),
+    ("word sp=subs gn=f nu=pl", 5992),
+    ("word vt=impv", 4306),
+    ("word sp=nmpr", 33002),
+]
+
+
+@pytest.mark.tf
+@pytest.mark.parametrize("template,expected", PINNED)
+def test_pinned_counts(require_tf, template, expected):
+    res = tf_runner.run_template(template, limit=5)
+    assert res.count == expected
+    assert len(res.matches) <= 5
+    assert res.matches[0]["book"]            # references resolve
+
+
+@pytest.mark.tf
+def test_nested_template_runs(require_tf):
+    res = tf_runner.run_template(
+        "clause\n  phrase function=Pred\n    word sp=verb vs=nif", limit=3)
+    assert res.count > 0
+    row = res.matches[0]
+    assert row["text"] and row["book"]
