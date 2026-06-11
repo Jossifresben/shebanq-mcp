@@ -226,6 +226,44 @@ def test_wrap_in_verse_is_idempotent():
     assert server._wrap_in_verse(nested) == nested
 
 
+def test_handle_translate_unwraps_llm_added_verse_wrapper(monkeypatch):
+    # The LLM sometimes verse-wraps on its own; with references=False the
+    # wrapper must come OFF, not merely not be added.
+    class _T:
+        def translate(self, q, ref):
+            return ("SELECT ALL OBJECTS WHERE\n"
+                    "  [verse GET book, chapter, verse\n"
+                    "    [clause\n"
+                    "      [phrase function=Pred\n"
+                    "        [word sp=verb AND vt=wayq AND lex='DBR[' GET g_word_utf8, gloss]\n"
+                    "      ]\n"
+                    "      ..\n"
+                    "      [phrase function=Cmpl\n"
+                    "        [word sp=prep AND lex='<M' GET g_word_utf8, gloss]\n"
+                    "      ]\n"
+                    "    ]\n"
+                    "  ]\n"
+                    "GO")
+    monkeypatch.setattr(server, "_translator", _T())
+    out = server.handle_translate("how often does 'it spoke with' occur",
+                                  references=False)
+    assert "[verse" not in out["mql"]
+    assert "[clause" in out["mql"] and "function=Cmpl" in out["mql"]
+    assert out["mql"].rstrip().endswith("GO")
+
+
+def test_unwrap_verse_leaves_conditioned_verse_block_alone():
+    # A verse block with its own conditions is query semantics, not a
+    # reference wrapper; references=False must not strip it.
+    mql = "SELECT ALL OBJECTS WHERE [verse book=Genesis [word sp=verb]] GO"
+    assert server._unwrap_verse(mql) == mql
+
+
+def test_wrap_then_unwrap_round_trips():
+    flat = "SELECT ALL OBJECTS WHERE [word lex='BR>[' GET g_word_utf8, gloss] GO"
+    assert server._unwrap_verse(server._wrap_in_verse(flat)) == flat
+
+
 def test_search_bhsa_throttles_translation(monkeypatch):
     import shebanq_mcp.server as server
     from shebanq_mcp.web import RateLimiter
