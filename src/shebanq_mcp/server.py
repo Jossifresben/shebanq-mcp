@@ -3,12 +3,15 @@ import re
 
 from mcp.server.fastmcp import FastMCP
 
+from time import monotonic
+
 from .feature_reference import FeatureReference
 from .guard import QueryGuard, QueryTimeout, ServerBusy, WorkerCrashed
 from .validator import validate_mql
 from .runner import run_query
 from .formatter import format_results
 from .translate import build_translator, build_prompt
+from .web import RateLimiter
 
 DB_PATH = os.environ.get("BHSA_SQLITE", "data/bhsa.sqlite3")
 
@@ -51,6 +54,9 @@ _QUOTING_RULE = (
 _ref = FeatureReference.load()
 # The configured LLM translator (None if LLM_PROVIDER=none -> translation-free).
 _translator = build_translator()
+# Global throttle on the paid translation path (the MCP transport has no per-IP
+# limit). LLM_RATE_PER_MIN bounds bursts; the Anthropic spend cap is the ceiling.
+_TRANSLATE_LIMITER = RateLimiter(int(os.environ.get("LLM_RATE_PER_MIN", "20")))
 mcp = FastMCP("shebanq")
 
 
@@ -152,6 +158,9 @@ def handle_search_bhsa(question: str) -> dict:
             "next": "Write a read-only MQL SELECT for this question, then call "
                     "run_mql with it.",
         }
+    if not _TRANSLATE_LIMITER.allow("global", monotonic()):
+        return {"question": question,
+                "error": "translation rate limit reached; try again shortly"}
     mql = _translator.translate(question, _ref)
     return _run_pipeline(mql)
 

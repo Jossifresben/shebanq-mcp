@@ -224,3 +224,24 @@ def test_wrap_in_verse_is_idempotent():
     nested = ("SELECT ALL OBJECTS WHERE [verse GET book, chapter, verse "
               "[word lex='BR>[' GET g_word_utf8, gloss]] GO")
     assert server._wrap_in_verse(nested) == nested
+
+
+def test_search_bhsa_throttles_translation(monkeypatch):
+    import shebanq_mcp.server as server
+    from shebanq_mcp.web import RateLimiter
+    calls = {"n": 0}
+
+    class _T:
+        def translate(self, q, ref):
+            calls["n"] += 1
+            return "SELECT ALL OBJECTS WHERE [word sp=verb] GO"
+
+    monkeypatch.setattr(server, "_translator", _T())
+    monkeypatch.setattr(server, "_executor",
+                        lambda *a, **k: type("R", (), {"count": 1, "matches": []})())
+    monkeypatch.setattr(server, "_TRANSLATE_LIMITER", RateLimiter(1))   # 1/min
+    a = server.handle_search_bhsa("verbs")     # allowed -> translates
+    b = server.handle_search_bhsa("verbs")     # throttled -> no translate
+    assert "mql" in a or "result_count" in a
+    assert b.get("error") and "rate" in b["error"].lower()
+    assert calls["n"] == 1
