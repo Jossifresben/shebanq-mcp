@@ -49,6 +49,24 @@ def test_translator_strips_code_fences():
     assert mql.startswith("SELECT") and "```" not in mql
 
 
+def test_translator_uses_temperature_zero_for_reproducibility():
+    # Same question must yield the same query. Greedy decoding (temperature 0)
+    # makes the translation reproducible instead of resampling a different (and
+    # sometimes wrong) query on every click.
+    client = _FakeClient("SELECT ALL OBJECTS WHERE [word vs='nif'] GO")
+    AnthropicTranslator(client=client).translate("x", FeatureReference.load())
+    assert client.messages.last_kwargs["temperature"] == 0
+
+
+def test_primer_documents_lexeme_pos_suffixes():
+    # The model must know lex carries a part-of-speech suffix: verbs '[', nouns
+    # '/', prepositions bare. Without it, it confuses <M (with) and <M/ (people).
+    from shebanq_mcp.translate import _load_primer
+    primer = _load_primer()
+    assert "<M/" in primer and "<M" in primer
+    assert "preposition" in primer.lower()
+
+
 def test_build_translator_default_is_anthropic():
     t = build_translator("anthropic")
     assert isinstance(t, AnthropicTranslator)

@@ -177,8 +177,27 @@ lex='BR>['
 ```
 
 Quoting an enumeration feature throws "Typechecking failed" and the query will
-not run. Note that BHSA verb lexemes carry a trailing `[` in transliteration
-(bara = `BR>[`).
+not run.
+
+**Lexeme part-of-speech suffix.** A BHSA `lex` value carries a suffix that marks
+its part of speech, and lexemes that share a consonantal spelling are told apart
+by it. Get the suffix wrong and you match a different word:
+
+- verbs end in `[` -- bara (to create) = `BR>[`
+- nouns end in `/` -- `<M/` is the noun "people" (am)
+- prepositions, conjunctions, and particles are bare (no suffix) -- `<M` is the
+  preposition "with" (im)
+
+So "with" is `lex='<M'`, not `lex='<M/'`. When the question names a function
+word (a preposition like "with", "to", "in"), use the bare lexeme and do not add
+a `/`. If unsure of a lexeme, constrain by `sp` (part of speech) as well, e.g.
+`[word sp=prep AND lex='<M']`.
+
+**Match a word by its block, not by a bare phrase.** To require a phrase to
+contain a particular word, the phrase block must hold an inner `[word ...]`
+block. `[phrase function=Cmpl]` with no inner word matches *any* complement
+phrase; `[phrase function=Cmpl [word lex='<M']]` matches a complement phrase
+containing "with".
 
 ---
 
@@ -219,6 +238,32 @@ GO
 ```
 SELECT ALL OBJECTS WHERE [verse GET book, chapter, verse [word lex='BR>[' GET g_word_utf8, gloss]] GO
 ```
+
+### Verb with a prepositional complement -- "spoke with" (42 hits)
+
+A question like "how often does it speak/say *with* someone" is a content verb
+plus a prepositional complement. Encode BOTH content words, each in its own
+`[word ...]` block: the predicate phrase holds the verb lexeme, and a complement
+phrase (reached anywhere in the clause via `..`) holds the preposition lexeme.
+
+Mind the lexeme suffixes: the verb "speak" is `DBR[` (verb suffix `[`), and
+"with" is the bare preposition `<M`, NOT the noun `<M/` ("people").
+
+```
+SELECT ALL OBJECTS WHERE
+  [clause
+    [phrase function=Pred [word lex='DBR[' GET g_word_utf8, gloss]]
+    ..
+    [phrase function=Cmpl [word sp=prep AND lex='<M' GET g_word_utf8, gloss]]
+  ]
+GO
+```
+
+This returns 42 word rows (the matched verb and preposition in each occurrence).
+Common mistakes this avoids: leaving the predicate as bare `sp=verb` (matches
+*any* verb, not "speak"), using `<M/` (the noun "people") for "with", and giving
+the complement phrase no inner `[word ...]` block (matches any complement). For
+the past-narrative "and he spoke with" only, add `vt=wayq` to the verb (6 hits).
 
 ### Phrase function -- object phrases (22668 hits)
 
