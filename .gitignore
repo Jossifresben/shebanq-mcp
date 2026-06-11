@@ -10,3 +10,9 @@ __pycache__/
 .env.*
 *.token
 .secrets/
+
+# Planning artifacts (brainstorming specs + implementation plans) and project
+# instructions — kept local, not in the public repo.
+docs/specs/
+docs/superpowers/
+CLAUDE.md
