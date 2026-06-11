@@ -17,3 +17,4 @@ __pycache__/
 docs/specs/
 docs/superpowers/
 CLAUDE.md
+uv.lock
