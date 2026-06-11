@@ -176,14 +176,12 @@ model's reliability.
 
 ## How it works
 
-```
-question
-  -> LLM drafts MQL (guided by the feature catalogue)
-  -> validator (reject unknown features/values; reject unparseable MQL)
-  -> Emdros runner (execute on the local BHSA SQLite database)
-  -> formatter (verse references, Hebrew, glosses)
-  -> { mql, result_count, results }
-```
+![From a plain-language question to a verified MQL query: shared guidance feeds a pluggable translator (the server's built-in model or the MCP host's own), which writes an MQL query; the query is always shown, then validated read-only and for object-type correctness, then run on the Emdros engine over BHSA, returning glossed results with references.](docs/assets/pipeline.png)
+
+*Who writes the query is a pluggable seam: the server's built-in model
+(`search_bhsa`) or the MCP host's own model (`run_mql`). Either way the query is
+shown, validated, and run read-only. The blue steps are where a model helps; the
+rest is deterministic and checkable.*
 
 Four small, independently testable units: a static feature reference, a
 validator, an Emdros runner, and a formatter, wired together behind the MCP

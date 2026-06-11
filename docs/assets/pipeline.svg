@@ -1,0 +1,100 @@
+<svg width="680" height="900" viewBox="0 0 680 900" role="img" xmlns="http://www.w3.org/2000/svg">
+<title>shebanq-mcp pipeline: plain language to a verified MQL query</title>
+<desc>A vertical flow that applies across deployment modes. A plain-language question, plus shared guidance (output contract, MQL primer, feature catalogue), reaches a pluggable translator: either the server's built-in model or the MCP host's own model. Either one produces an MQL query, which is always shown to the scholar, then checked by a two-pass validator (read-only guard and object-aware structure check). Failing queries are rejected and never run; passing queries run read-only on the Emdros engine over the BHSA database and return glossed results with references.</desc>
+<style>
+  text{font-family:-apple-system,'Helvetica Neue','Segoe UI',Arial,sans-serif}
+  .t{font-size:14px;font-weight:400;fill:#1a1a18}
+  .ts{font-size:12px;font-weight:400;fill:#6b6862}
+  .th{font-size:14px;font-weight:500;fill:#1a1a18}
+  .arr{stroke:#8a8780;stroke-width:1.5px;fill:none}
+  .c-blue{fill:#e6f1fb;stroke:#2f7fd1;stroke-width:.75px}
+  .c-teal{fill:#e1f3f0;stroke:#159e8e;stroke-width:.75px}
+  .c-gray{fill:#f2f1ee;stroke:#c9c7c0;stroke-width:.75px}
+  .c-red{fill:#fbe9e6;stroke:#d9533b;stroke-width:.75px}
+  .box{fill:#ffffff;stroke:#dad8d2;stroke-width:.75px}
+</style>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#8a8780" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+
+<rect x="0" y="0" width="680" height="900" fill="#ffffff"/>
+
+<!-- question -->
+<rect class="c-gray" x="180" y="24" width="320" height="46" rx="8"/>
+<text class="th" x="340" y="45" text-anchor="middle">plain-language question</text>
+<text class="ts" x="340" y="61" text-anchor="middle">asked by a scholar</text>
+<line class="arr" x1="340" y1="70" x2="340" y2="94" marker-end="url(#arrow)"/>
+
+<!-- GUIDANCE panel -->
+<rect class="c-blue" x="180" y="96" width="320" height="192" rx="8"/>
+<text class="th" x="200" y="118">guidance for the translator</text>
+<text class="ts" x="200" y="133">the same rules, whoever writes the query</text>
+<rect class="box" x="196" y="140" width="288" height="42" rx="6"/>
+<text class="th" x="212" y="157">output contract</text>
+<text class="ts" x="212" y="173">a query only, no prose; listed names only</text>
+<rect class="box" x="196" y="188" width="288" height="42" rx="6"/>
+<text class="th" x="212" y="205">MQL primer</text>
+<text class="ts" x="212" y="221">the rules plus worked query patterns</text>
+<rect class="box" x="196" y="236" width="288" height="42" rx="6"/>
+<text class="th" x="212" y="253">feature catalogue</text>
+<text class="ts" x="212" y="269">per object type · enum vs string · values</text>
+<line class="arr" x1="340" y1="288" x2="340" y2="310" marker-end="url(#arrow)"/>
+
+<!-- TRANSLATOR panel (pluggable) -->
+<rect class="c-blue" x="180" y="312" width="320" height="140" rx="8"/>
+<text class="th" x="200" y="334">translator — pluggable</text>
+<text class="ts" x="200" y="349">AI as a way in, not a way around</text>
+<rect class="box" x="196" y="356" width="288" height="42" rx="6"/>
+<text class="th" x="212" y="373">the server's built-in model</text>
+<text class="ts" x="212" y="389">search_bhsa: translates, then runs</text>
+<rect class="box" x="196" y="404" width="288" height="42" rx="6"/>
+<text class="th" x="212" y="421">or the MCP host's own model</text>
+<text class="ts" x="212" y="437">writes the query, calls run_mql</text>
+<line class="arr" x1="340" y1="452" x2="340" y2="474" marker-end="url(#arrow)"/>
+
+<!-- MQL query -->
+<rect class="c-gray" x="180" y="476" width="320" height="46" rx="8"/>
+<text class="th" x="340" y="497" text-anchor="middle">MQL query</text>
+<text class="ts" x="340" y="513" text-anchor="middle">always shown to the scholar</text>
+<line class="arr" x1="340" y1="522" x2="340" y2="544" marker-end="url(#arrow)"/>
+
+<!-- VALIDATOR panel -->
+<rect class="c-teal" x="180" y="546" width="320" height="162" rx="8"/>
+<text class="th" x="200" y="568">validator</text>
+<text class="ts" x="200" y="583">deterministic · read-only · same in every mode</text>
+<rect class="box" x="196" y="590" width="288" height="42" rx="6"/>
+<text class="th" x="212" y="607">pass 1 — read-only guard</text>
+<text class="ts" x="212" y="623">must be SELECT/GET; no CREATE / DROP / …</text>
+<rect class="box" x="196" y="638" width="288" height="56" rx="6"/>
+<text class="th" x="212" y="655">pass 2 — object-aware check</text>
+<text class="ts" x="212" y="671">tracks nesting: book &gt; … &gt; word</text>
+<text class="ts" x="212" y="685">right level? right quoting? real value?</text>
+
+<!-- reject branch -->
+<line class="arr" x1="500" y1="642" x2="528" y2="642" marker-end="url(#arrow)"/>
+<rect class="c-red" x="530" y="612" width="110" height="60" rx="8"/>
+<text class="th" x="585" y="635" text-anchor="middle">rejected</text>
+<text class="ts" x="585" y="651" text-anchor="middle">errors shown,</text>
+<text class="ts" x="585" y="665" text-anchor="middle">never run</text>
+
+<line class="arr" x1="340" y1="708" x2="340" y2="730" marker-end="url(#arrow)"/>
+
+<!-- Emdros -->
+<rect class="c-gray" x="180" y="732" width="320" height="46" rx="8"/>
+<text class="th" x="340" y="753" text-anchor="middle">Emdros engine</text>
+<text class="ts" x="340" y="769" text-anchor="middle">runs the verified query on the BHSA db</text>
+<line class="arr" x1="340" y1="778" x2="340" y2="800" marker-end="url(#arrow)"/>
+
+<!-- results -->
+<rect class="c-gray" x="180" y="802" width="320" height="48" rx="8"/>
+<text class="th" x="340" y="824" text-anchor="middle">results</text>
+<text class="ts" x="340" y="840" text-anchor="middle">query + glossed hits + references</text>
+
+<!-- legend -->
+<rect class="c-blue" x="150" y="870" width="13" height="13" rx="3"/>
+<text class="ts" x="169" y="881">where a model helps</text>
+<rect class="c-teal" x="310" y="870" width="13" height="13" rx="3"/>
+<text class="ts" x="329" y="881">deterministic check</text>
+<rect class="c-gray" x="455" y="870" width="13" height="13" rx="3"/>
+<text class="ts" x="474" y="881">data / engine</text>
+<rect class="c-red" x="560" y="870" width="13" height="13" rx="3"/>
+<text class="ts" x="579" y="881">rejected</text>
+</svg>
