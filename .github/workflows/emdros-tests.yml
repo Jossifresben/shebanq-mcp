@@ -137,6 +137,10 @@ jobs:
           key: bhsa-tf-2021-v1
 
       - name: Install TF extra and download BHSA 2021 data
+        # GHPERS: text-fabric hits the GitHub API to locate releases;
+        # unauthenticated calls from shared runner IPs hang on rate limits.
+        env:
+          GHPERS: ${{ secrets.GITHUB_TOKEN }}
         run: |
           python3 -m pip install -e ".[tf]"
           python3 - <<'EOF'
@@ -224,6 +228,10 @@ jobs:
         run: pip install -e ".[dev,tf]"
 
       - name: Download BHSA 2021 TF data (no-op when cached)
+        # GHPERS: text-fabric hits the GitHub API to locate releases;
+        # unauthenticated calls from shared runner IPs hang on rate limits.
+        env:
+          GHPERS: ${{ secrets.GITHUB_TOKEN }}
         run: |
           python - <<'EOF'
           from tf.app import use
