@@ -462,11 +462,11 @@
       "objects": {
         "clause": {
           "kind": "string",
-          "gloss": "text type / discourse register; values: N=narrative, D=discursive, Q=quotation, ?=unknown — string, QUOTED in MQL"
+          "gloss": "text type / discourse register; values: N=narrative, D=discursive, Q=quotation, ?=unknown"
         },
         "clause_atom": {
           "kind": "string",
-          "gloss": "text type / discourse register — string, QUOTED in MQL"
+          "gloss": "text type / discourse register"
         }
       }
     },
@@ -474,11 +474,11 @@
       "objects": {
         "clause": {
           "kind": "string",
-          "gloss": "discourse domain; same coding as txt (N/D/Q/?); string, QUOTED in MQL"
+          "gloss": "discourse domain; same coding as txt (N/D/?)"
         },
         "clause_atom": {
           "kind": "string",
-          "gloss": "discourse domain — string, QUOTED in MQL"
+          "gloss": "discourse domain"
         }
       }
     },

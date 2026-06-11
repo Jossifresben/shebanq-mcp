@@ -133,3 +133,39 @@ def test_prompt_includes_morphology_section():
     from shebanq_mcp.feature_reference import FeatureReference
     p = t.build_prompt(FeatureReference.load())
     assert "Word morphology" in p and "prs_ps=p3" in p
+
+
+def test_reference_block_without_quoting_annotations():
+    from shebanq_mcp.translate import _reference_block
+    from shebanq_mcp.feature_reference import FeatureReference
+    ref = FeatureReference.load()
+    block = _reference_block(ref, quoting=False)
+    assert "UNQUOTED" not in block
+    assert "QUOTED" not in block
+    assert "[enum]" in block          # kind still shown, just no quoting rule
+    assert "[string]" in block
+
+
+def test_anthropic_translator_uses_injected_prompt_builder():
+    from shebanq_mcp.translate import AnthropicTranslator
+    from shebanq_mcp.feature_reference import FeatureReference
+
+    captured = {}
+
+    class FakeMessages:
+        def create(self, **kwargs):
+            captured.update(kwargs)
+
+            class Msg:
+                content = [type("T", (), {"text": "clause"})()]
+            return Msg()
+
+    class FakeClient:
+        messages = FakeMessages()
+
+    ref = FeatureReference.load()
+    t = AnthropicTranslator(client=FakeClient(),
+                            prompt_builder=lambda r: "TF PROMPT SENTINEL")
+    out = t.translate("verbs", ref)
+    assert captured["system"] == "TF PROMPT SENTINEL"
+    assert out == "clause"
