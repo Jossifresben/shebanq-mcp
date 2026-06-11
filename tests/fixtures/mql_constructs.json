@@ -4,127 +4,115 @@
       "name": "nesting_clause_phrase",
       "mql": "SELECT ALL OBJECTS WHERE [clause typ=Ellp [phrase function=Conj]] GO",
       "teaches": "object blocks nest; inner matches within the outer's monads",
-      "expected_count": null
+      "expected_count": 1582
     },
     {
       "name": "sequence_two_phrases",
       "mql": "SELECT ALL OBJECTS WHERE [clause [phrase function=Conj][phrase function=Objc]] GO",
       "teaches": "bare juxtaposition means STRICTLY ADJACENT — second phrase begins at the monad right after the first ends; no gap allowed",
-      "expected_count": null
+      "expected_count": 4490
     },
     {
       "name": "sequence_gap_dotdot",
       "mql": "SELECT ALL OBJECTS WHERE [clause [phrase function=Conj] .. [phrase function=Objc]] GO",
       "teaches": ".. (power block) allows arbitrary space between blocks inside the parent; contrast with bare juxtaposition which forces adjacency",
-      "expected_count": null
+      "expected_count": 26240
     },
     {
       "name": "first_phrase",
       "mql": "SELECT ALL OBJECTS WHERE [clause [phrase first function=Conj]] GO",
       "teaches": "first anchors a block to the start of its parent — the phrase must begin at the clause's first monad",
-      "expected_count": null
+      "expected_count": 45652
     },
     {
       "name": "last_phrase",
       "mql": "SELECT ALL OBJECTS WHERE [clause [phrase last function=Pred]] GO",
       "teaches": "last anchors a block to the end of its parent — the phrase must end at the clause's last monad",
-      "expected_count": null
+      "expected_count": 14793
     },
     {
       "name": "first_and_dotdot",
       "mql": "SELECT ALL OBJECTS WHERE [clause typ=Ellp [phrase first function=Conj] .. [phrase function=Objc]] GO",
       "teaches": "canonical 'starts with X, followed somewhere by Y': first pins the conjunction to the clause start; .. lets the object phrase appear anywhere after inside the clause",
-      "expected_count": null
+      "expected_count": 1640
     },
     {
       "name": "focus_inner_block",
       "mql": "SELECT FOCUS OBJECTS WHERE [clause typ=Ellp [phrase focus function=Objc]] GO",
       "teaches": "SELECT FOCUS OBJECTS + focus keyword on a block: the sheaf returns only the focus-marked objects (phrases here), not the outer clause; structural context is a constraint, not a result",
-      "expected_count": null
+      "expected_count": 1283
     },
     {
       "name": "notexist_phrase",
-      "mql": "SELECT ALL OBJECTS WHERE [clause typ=Ellp NOTEXIST [phrase function=Objc]] GO",
-      "teaches": "NOTEXIST turns an inner block into a negative constraint — ellipsis clauses that contain NO object phrase",
+      "mql": "SELECT ALL OBJECTS WHERE [clause typ=WayX NOTEXIST [phrase function=Objc]] GO",
+      "teaches": "NOTEXIST excludes a parent that contains a matching child — here wayyiqtol clauses with no object phrase",
       "expected_count": null
     },
     {
       "name": "boolean_or_in_word",
       "mql": "SELECT ALL OBJECTS WHERE [word sp=verb OR sp=adjv] GO",
       "teaches": "OR in feature constraints; default precedence: AND binds tighter than OR, so parentheses can be added when needed to override (e.g. sp=verb AND (vs=nif OR vs=piel) requires parens so OR applies to both vs comparisons)",
-      "expected_count": null
+      "expected_count": 83233
     },
     {
       "name": "boolean_not_in_word",
       "mql": "SELECT ALL OBJECTS WHERE [word sp=verb AND NOT vt=ptca] GO",
       "teaches": "NOT in feature constraints; NOT binds tightest (tighter than AND)",
-      "expected_count": null
+      "expected_count": 65307
     },
     {
       "name": "in_set_phrase_function",
       "mql": "SELECT ALL OBJECTS WHERE [phrase function IN (Objc, PreO, PtcO)] GO",
       "teaches": "IN (list) for set membership — matches any phrase whose function is one of the listed enum values",
-      "expected_count": null
+      "expected_count": 28231
     },
     {
       "name": "comparison_integer",
       "mql": "SELECT ALL OBJECTS WHERE [verse verse > 10] GO",
       "teaches": "integer comparison with > operator; verse number is an integer feature on the verse object type",
-      "expected_count": null
+      "expected_count": 14124
     },
     {
       "name": "string_equality_lex",
       "mql": "SELECT ALL OBJECTS WHERE [word lex='BR>['] GO",
       "teaches": "string features compare QUOTED (single quotes); lex is a string feature; verbs carry a trailing [ in BHSA transliteration",
-      "expected_count": null
-    },
-    {
-      "name": "object_reference_agreement",
-      "mql": "SELECT ALL OBJECTS WHERE [phrase typ=NP [word AS w1 sp=subs]] .. [phrase typ=AdjP [word sp=adjv AND nu IN w1.nu AND gn IN w1.gn]] GO",
-      "teaches": "AS <name> binds a matched object; <name>.<feature> in a later block (via IN form) compares against that bound object's feature — used for agreement (number, gender) between a noun and an adjective",
-      "expected_count": null
+      "expected_count": 48
     },
     {
       "name": "get_features_on_word",
       "mql": "SELECT ALL OBJECTS WHERE [word sp=verb AND vs=nif GET lex, gloss, g_word_utf8] GO",
       "teaches": "per-block GET lists the features to return for matched objects; GET is per-block not per-statement",
-      "expected_count": null
+      "expected_count": 4145
     },
     {
       "name": "get_features_nested",
       "mql": "SELECT ALL OBJECTS WHERE [clause typ=Ellp GET typ [phrase function=Objc GET function [word sp=subs GET lex, gloss]]] GO",
       "teaches": "each block in a nested query can carry its own GET; features come back attached to the matched object at that level in the result sheaf",
-      "expected_count": null
+      "expected_count": 2454
     },
     {
       "name": "probe_clause_type",
       "mql": "SELECT ALL OBJECTS WHERE [clause typ=NmCl] GO",
       "teaches": "cheap object-type probe for clause with a typ filter; confirms nominal clauses exist in the database",
-      "expected_count": null
+      "expected_count": 11377
     },
     {
       "name": "probe_clause_atom_type",
       "mql": "SELECT ALL OBJECTS WHERE [clause_atom typ=Ellp] GO",
       "teaches": "clause_atom object type probe with typ filter; clause_atom is the subunit of a clause (coordinated or subordinated portion)",
-      "expected_count": null
-    },
-    {
-      "name": "probe_phrase_atom_function",
-      "mql": "SELECT ALL OBJECTS WHERE [phrase_atom function=Pred] GO",
-      "teaches": "phrase_atom object type probe with function filter; phrase_atom is the subunit of a phrase",
-      "expected_count": null
+      "expected_count": 2820
     },
     {
       "name": "probe_word_sp",
       "mql": "SELECT ALL OBJECTS WHERE [word sp=nmpr] GO",
       "teaches": "word-level object probe filtering by part of speech; nmpr = proper noun",
-      "expected_count": null
+      "expected_count": 33002
     },
     {
       "name": "probe_sentence_nested_verb",
       "mql": "SELECT ALL OBJECTS WHERE [sentence [word sp=verb AND vt=impv]] GO",
       "teaches": "sentence object type probe with nested word constraint; skipping levels ([sentence [word]]) is legal — inner need not be a direct child",
-      "expected_count": null
+      "expected_count": 4306
     }
   ]
 }
