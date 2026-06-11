@@ -169,7 +169,7 @@ Enumeration features: `sp`, `vs`, `vt`, `gn`, `nu`, `ps`, `function`, `typ`,
 sp=verb    vs=nif    typ=Ellp    function=Objc
 ```
 
-String features: `lex`, `gloss`, `g_word_utf8`, `g_cons_utf8`. Compare them with
+String features: `lex`, `gloss`, `g_word_utf8`, `voc_lex_utf8`. Compare them with
 single quotes:
 
 ```
