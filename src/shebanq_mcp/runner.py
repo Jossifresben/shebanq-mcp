@@ -17,6 +17,27 @@ def _parse_get_lists(mql: str) -> list[list[str]]:
             for clause in _GET_CLAUSE.findall(mql)]
 
 
+def _parse_get_by_level(mql: str) -> dict:
+    """Map each object-block nesting LEVEL to its own GET features, assigning a
+    GET clause to the block it is syntactically inside (by bracket depth) rather
+    than by textual order. So a query that GETs only on an inner block does not
+    misalign its features onto the outer object (which retrieved nothing).
+    Robust to '[' inside string literals (e.g. the lexeme 'BR>[')."""
+    stripped = re.sub(r"'[^']*'", "", mql)
+    out: dict = {}
+    depth = 0
+    for m in re.finditer(r"\[|\]|\bGET\s+([A-Za-z0-9_,\s]+?)(?=[\[\]])", stripped):
+        tok = m.group(0)
+        if tok == "[":
+            depth += 1
+        elif tok == "]":
+            depth -= 1
+        else:                       # GET clause: belongs to the block at this depth
+            out.setdefault(depth - 1, []).extend(
+                f.strip() for f in m.group(1).split(",") if f.strip())
+    return out
+
+
 def _nesting_depth(mql: str) -> int:
     """Structural object-block nesting depth, robust to '[' inside string
     literals (e.g. the lexeme 'BR>['). 1 = a flat single-object query, 2 = a
@@ -32,8 +53,8 @@ def _nesting_depth(mql: str) -> int:
     return top
 
 
-def _harvest_nested(sheaf, get_lists, depth, ctx, matches, limit, leaf_depth):
-    names = get_lists[depth] if depth < len(get_lists) else []
+def _harvest_nested(sheaf, get_by_level, depth, ctx, matches, limit, leaf_depth):
+    names = get_by_level.get(depth, [])
     is_leaf = depth >= leaf_depth
     total = 0
     it = sheaf.const_iterator()
@@ -47,7 +68,7 @@ def _harvest_nested(sheaf, get_lists, depth, ctx, matches, limit, leaf_depth):
                 for k in _REF_KEYS:
                     if k in feats:
                         child[k] = feats[k]
-                total += _harvest_nested(mo.getSheaf(), get_lists, depth + 1,
+                total += _harvest_nested(mo.getSheaf(), get_by_level, depth + 1,
                                          child, matches, limit, leaf_depth)
             else:
                 total += 1
@@ -102,7 +123,6 @@ def run_query(mql: str, db_path: str, features: list[str] | None = None,
     each word row; a flat query harvests `features` from each matched object as
     before."""
     features = features or []
-    get_lists = _parse_get_lists(mql)
     env = _make_env(db_path)
     if not env.executeString(mql, True, False, True):
         raise RuntimeError(f"Emdros error: {env.getCompilerError()}")
@@ -110,8 +130,9 @@ def run_query(mql: str, db_path: str, features: list[str] | None = None,
 
     levels = _nesting_depth(mql)
     if levels > 1:                                  # nested: harvest leaf rows
+        get_by_level = _parse_get_by_level(mql)
         matches: list[dict] = []
-        total = _harvest_nested(sheaf, get_lists, 0, {}, matches, limit, levels - 1)
+        total = _harvest_nested(sheaf, get_by_level, 0, {}, matches, limit, levels - 1)
         return RunResult(count=total, matches=matches)
 
     matches = []                                    # flat: existing behaviour

@@ -1,5 +1,5 @@
 import pytest
-from shebanq_mcp.runner import run_query, RunResult, _parse_get_lists
+from shebanq_mcp.runner import run_query, RunResult, _parse_get_lists, _parse_get_by_level
 
 
 @pytest.mark.emdros
@@ -267,3 +267,52 @@ def test_run_query_nested_without_inner_get_still_descends(monkeypatch):
     assert res.count == 2                       # the 2 words, NOT 1 verse
     assert res.matches[0]["book"] == "Genesis" and res.matches[0]["verse"] == "1"
     assert "id_d" in res.matches[0]
+
+
+# --- Level-aware GET parsing and inner-only GET crash fix ---
+
+
+def test_parse_get_by_level_assigns_to_owning_block():
+    assert _parse_get_by_level(
+        "SELECT ALL OBJECTS WHERE [clause typ=WayX [phrase function=Subj GET function]] GO"
+    ) == {1: ["function"]}
+    assert _parse_get_by_level(
+        "SELECT ALL OBJECTS WHERE [clause GET typ [phrase GET function [word GET lex, gloss]]] GO"
+    ) == {0: ["typ"], 1: ["function"], 2: ["lex", "gloss"]}
+    # '[' inside a string literal must not shift levels
+    assert _parse_get_by_level(
+        "SELECT ALL OBJECTS WHERE [verse GET book, chapter, verse [word lex='BR>[' GET g_word_utf8, gloss]] GO"
+    ) == {0: ["book", "chapter", "verse"], 1: ["g_word_utf8", "gloss"]}
+
+
+def test_run_query_nested_get_only_on_inner_never_touches_outer(monkeypatch):
+    import shebanq_mcp.runner as runner
+
+    class _Boom:  # the outer (clause) object retrieved NO features
+        def __init__(self, idx, inner):
+            self.idx, self._inner = idx, inner
+
+        def getID_D(self):
+            return self.idx
+
+        def getFeatureAsString(self, i):
+            raise AssertionError("outer object has no GET features; must not be read")
+
+        def getSheaf(self):
+            return self._inner
+
+    phrases = [_NMo(11, ["Subj"]), _NMo(12, ["Subj"])]      # inner phrase: GET function
+    clause = _Boom(1, _FakeSheaf([_FakeStraw(phrases)]))
+
+    class _Env:
+        def executeString(self, *a):
+            return True
+
+        def getSheaf(self):
+            return _FakeSheaf([_FakeStraw([clause])])
+
+    monkeypatch.setattr(runner, "_make_env", lambda db: _Env())
+    mql = "SELECT ALL OBJECTS WHERE [clause typ=WayX [phrase function=Subj GET function]] GO"
+    res = run_query(mql, "x.db")
+    assert res.count == 2
+    assert res.matches[0]["function"] == "Subj" and "id_d" in res.matches[0]

@@ -137,6 +137,7 @@ jobs:
           python3 -m pytest -m emdros -v
 
       - name: Print fixture counts (for pinning)
+        if: always()
         env:
           BHSA_SQLITE: data/bhsa.sqlite3
         run: python3 scripts/run_constructs.py
