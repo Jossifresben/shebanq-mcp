@@ -28,21 +28,42 @@ jobs:
             re2c bison flex imagemagick graphviz \
             libpcre3-dev libsqlite3-dev bzip2 wget ca-certificates
 
-      # NOTE: caching /usr/local does not work — actions/cache restores as the
-      # unprivileged runner user and cannot write to root-owned /usr/local. A
-      # real cache would need a user-writable --prefix (e.g. ~/.local/emdros) and
-      # LD_LIBRARY_PATH; deferred as a future optimization. Build runs each time
-      # (~5-6 min).
+      # Emdros is built into a user-writable prefix (~/.local/emdros) so the
+      # build can be cached: actions/cache restores as the unprivileged runner
+      # user and cannot write the root-owned /usr/local the build used to target.
+      # The build is deterministic for a source tag + runner OS, so a cache hit
+      # skips the ~5-6 min compile entirely. The next step sets PATH /
+      # LD_LIBRARY_PATH / PYTHONPATH to the prefix instead of relying on ldconfig.
+      - name: Cache the Emdros build
+        id: cache-emdros
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/emdros
+          # Bump the -vN suffix to force a rebuild if a runner image change ever
+          # breaks the cached binaries (they link against system libpcre/sqlite).
+          key: emdros-${{ env.EMDROS_TAG }}-${{ runner.os }}-v1
+
       - name: Build and install Emdros (SQLite + Python3 bindings)
+        if: steps.cache-emdros.outputs.cache-hit != 'true'
         run: |
           set -x
+          PREFIX="$HOME/.local/emdros"
+          mkdir -p "$PREFIX/bin"
+          # A nested EQT (query-tool) user guide tries to build a PDF via
+          # pdflatex, which we neither have nor need. Stub it so the rule
+          # produces an (empty) .pdf and succeeds, instead of pulling in LaTeX.
+          # In the prefix bin (no sudo) and on PATH for the build only.
+          printf '%s\n' '#!/bin/sh' 'for a in "$@"; do case "$a" in *.tex) : > "${a%.tex}.pdf";; esac; done' 'exit 0' \
+            > "$PREFIX/bin/pdflatex"
+          chmod +x "$PREFIX/bin/pdflatex"
+          export PATH="$PREFIX/bin:$PATH"
           wget --tries=3 --timeout=30 -O emdros.tar.gz \
             "https://github.com/emdros/emdros/archive/refs/tags/${EMDROS_TAG}.tar.gz"
           tar xzf emdros.tar.gz
           cd "emdros-${EMDROS_TAG}"
           # A git archive ships no generated configure; bootstrap autotools.
           ( [ -f autogen.sh ] && sh autogen.sh ) || autoreconf -fi
-          ./configure --prefix=/usr/local \
+          ./configure --prefix="$PREFIX" \
             --with-sqlite3=yes \
             --with-mysql=no \
             --with-postgresql=no \
@@ -58,39 +79,30 @@ jobs:
           # src, SWIG python bindings) lives in later SUBDIRS.
           sed -i -E 's/^(SUBDIRS *= *)doc /\1/' Makefile
           grep -E '^SUBDIRS' Makefile | head -3
-          # A nested EQT (query-tool) user guide still tries to build a PDF via
-          # pdflatex, which we neither have nor need. Stub pdflatex so the rule
-          # produces an (empty) .pdf and succeeds, instead of pulling in LaTeX.
-          printf '%s\n' '#!/bin/sh' 'for a in "$@"; do case "$a" in *.tex) : > "${a%.tex}.pdf";; esac; done' 'exit 0' \
-            | sudo tee /usr/local/bin/pdflatex >/dev/null
-          sudo chmod +x /usr/local/bin/pdflatex
           make -j"$(nproc)"
-          sudo make install
-          sudo ldconfig
+          make install
 
-      - name: Locate Emdros Python module (diagnostic, non-fatal)
-        continue-on-error: true
+      - name: Set up Emdros on PATH / LD_LIBRARY_PATH / PYTHONPATH
         run: |
-          echo "=== files matching *emdros* / *Emdros* under /usr/local ==="
-          sudo find /usr/local -iname "*emdros*" 2>/dev/null | head -80
-          echo "=== EmdrosPy*.py locations ==="
-          sudo find /usr/local -iname "EmdrosPy*.py" 2>/dev/null | head -20
+          # Runs whether Emdros was freshly built or restored from cache. The
+          # SWIG python wrapper installs as EmdrosPy3.py + _EmdrosPy3.so under
+          # $PREFIX/lib/emdros; libs under $PREFIX/lib; the mql binary in bin.
+          PREFIX="$HOME/.local/emdros"
+          echo "=== emdros prefix contents ==="
+          find "$PREFIX" -maxdepth 3 -iname '*emdros*' 2>/dev/null | head -40 || true
+          PYFILE="$(find "$PREFIX" -iname 'EmdrosPy3.py' 2>/dev/null | head -1)"
+          EMDROS_PYDIR="${PYFILE:+$(dirname "$PYFILE")}"
+          [ -z "$EMDROS_PYDIR" ] && EMDROS_PYDIR="$PREFIX/lib/emdros"
+          echo "$PREFIX/bin" >> "$GITHUB_PATH"
+          echo "LD_LIBRARY_PATH=$PREFIX/lib" >> "$GITHUB_ENV"
+          echo "PYTHONPATH=$EMDROS_PYDIR" >> "$GITHUB_ENV"
+          echo "Emdros module dir: $EMDROS_PYDIR"
+          ls -la "$EMDROS_PYDIR" || true
 
       - name: Install the package
         run: |
           python3 -m pip install --upgrade pip
           python3 -m pip install -e ".[dev]"
-
-      - name: Expose Emdros module on PYTHONPATH
-        run: |
-          # The SWIG python wrapper installs to /usr/local/lib/emdros as
-          # EmdrosPy3.py + _EmdrosPy3.so. Put that dir on PYTHONPATH.
-          EMDROS_PYDIR="/usr/local/lib/emdros"
-          PYFILE="$(sudo find /usr/local -iname 'EmdrosPy3.py' 2>/dev/null | head -1)"
-          [ -n "$PYFILE" ] && EMDROS_PYDIR="$(dirname "$PYFILE")"
-          echo "PYTHONPATH=$EMDROS_PYDIR" >> "$GITHUB_ENV"
-          echo "Emdros module dir: $EMDROS_PYDIR"
-          ls -la "$EMDROS_PYDIR" || true
 
       - name: Probe Emdros import (diagnostic, non-fatal)
         continue-on-error: true
@@ -113,12 +125,12 @@ jobs:
           bunzip2 -kf data/bhsa.mql.bz2
           ls -la data/
           echo "=== mql version ==="
-          /usr/local/bin/mql --version 2>&1 | head -5 || true
+          mql --version 2>&1 | head -5 || true
           echo "=== building sqlite db ==="
           # The dump contains `CREATE DATABASE 'shebanq_etcbc2021'`, so mql writes
           # the populated SQLite file under that internal name (in the cwd), not
           # the -d path. Run it, then relocate the real file to data/bhsa.sqlite3.
-          /usr/local/bin/mql --backend sqlite3 -d data/bhsa.sqlite3 data/bhsa.mql
+          mql --backend sqlite3 -d data/bhsa.sqlite3 data/bhsa.mql
           echo "=== locate populated db ==="
           ls -la
           find . -maxdepth 2 \( -name 'shebanq_etcbc2021*' -o -name '*.sqlite3' -o -name '*.db' \) ! -name '*.mql*' 2>/dev/null
