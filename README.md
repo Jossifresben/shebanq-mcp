@@ -14,14 +14,12 @@ always shown, validated before it runs, and empty results are honest.
 This is an [MCP](https://modelcontextprotocol.io/) server: it plugs into clients
 like Claude as a set of tools.
 
-> **Status: early.** The core server is built and unit-tested. The Emdros
-> execution path is implemented but exercised only where a built BHSA database
-> is present (those tests skip otherwise). The deploy path is built and proven
-> in CI: a Docker image bakes Emdros plus the BHSA database, and a smoke
-> workflow runs `run_mql` over MCP on every push. A live read-only instance runs
-> on Render (see [Use it in Claude Desktop](#use-it-in-claude-desktop)). The demo
-> web app is still future work. Feedback welcome, especially from people who
-> teach or use MQL.
+> **Status: early, but live.** The server is built, unit-tested, and deployed:
+> a public read-only MCP endpoint and a [web demo](https://shebanq-web.onrender.com)
+> both run on Render, each with server-side NL→MQL translation. A Docker image
+> bakes Emdros plus the BHSA database; a CI smoke workflow runs `run_mql` over MCP
+> on every push, and the MQL curriculum's example counts are pinned against the
+> real engine. Feedback welcome, especially from people who teach or use MQL.
 
 ## Try it (live demo)
 
