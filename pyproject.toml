@@ -10,6 +10,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0"]
+tf = ["text-fabric>=12.0"]
 
 [project.scripts]
 shebanq-mcp = "shebanq_mcp.server:main"
@@ -26,4 +27,7 @@ shebanq_mcp = ["features.json", "mql_primer.md", "tf_primer.md"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-markers = ["emdros: requires a built BHSA Emdros database"]
+markers = [
+    "emdros: requires a built BHSA Emdros database",
+    "tf: requires text-fabric and the BHSA 2021 TF data",
+]
