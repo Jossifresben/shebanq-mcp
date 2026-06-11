@@ -20,9 +20,9 @@
       "name": "bara_occurrences",
       "question": "Where does the verb bara (create) occur in the text?",
       "family": "where-question",
-      "mql": "SELECT ALL OBJECTS WHERE\n[verse\n   [word lex='BR>['\n      GET g_word_utf8, gloss\n   ]\n]\nGO",
+      "mql": "SELECT ALL OBJECTS WHERE [verse GET book, chapter, verse [word lex='BR>[' GET g_word_utf8, gloss]] GO",
       "expected_count": null,
-      "notes": "verse-nest pattern; lex is a string feature so it is quoted; bara carries trailing [ per BHSA convention"
+      "notes": "where-question; the verse wrap GETs book/chapter/verse so each hit shows its location (the reference pattern)"
     },
     {
       "name": "object_phrases",
