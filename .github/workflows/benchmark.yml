@@ -6,6 +6,9 @@ on:
         description: "JSON of pre-generated queries to score (skips translation; no key needed)"
         required: false
         default: ""
+  push:
+    branches: [mql-curriculum]
+    paths: [tests/data/bench_generated.json, .github/workflows/benchmark.yml]
 
 jobs:
   emdros:
@@ -134,5 +137,5 @@ jobs:
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           BHSA_SQLITE: data/bhsa.sqlite3
-          EVAL_INPUT: ${{ inputs.score_file }}
+          EVAL_INPUT: ${{ inputs.score_file || 'tests/data/bench_generated.json' }}
         run: python3 scripts/eval_translator.py
