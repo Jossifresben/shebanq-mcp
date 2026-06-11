@@ -1,1 +1,92 @@
-{"questions": []}
+{
+  "questions": [
+    {
+      "name": "ellipsis_conj_objc",
+      "question": "Find all ellipsis clauses that start with a conjunction and an object",
+      "family": "clause-structure",
+      "mql": "SELECT ALL OBJECTS WHERE\n[clause typ=Ellp\n   [phrase first function=Conj]\n   ..\n   [phrase function=Objc]\n]\nGO",
+      "expected_count": null,
+      "notes": "the motivating example; first + .. semantics per research"
+    },
+    {
+      "name": "niphal_verbs",
+      "question": "Find all Niphal verbs in the Hebrew Bible",
+      "family": "word-search",
+      "mql": "SELECT ALL OBJECTS WHERE\n[word sp=verb AND vs=nif\n   GET g_word_utf8, gloss\n]\nGO",
+      "expected_count": null,
+      "notes": "word-level filter on sp (part of speech) and vs (verbal stem); both enum features unquoted"
+    },
+    {
+      "name": "bara_occurrences",
+      "question": "Where does the verb bara (create) occur in the text?",
+      "family": "where-question",
+      "mql": "SELECT ALL OBJECTS WHERE\n[verse\n   [word lex='BR>['\n      GET g_word_utf8, gloss\n   ]\n]\nGO",
+      "expected_count": null,
+      "notes": "verse-nest pattern; lex is a string feature so it is quoted; bara carries trailing [ per BHSA convention"
+    },
+    {
+      "name": "object_phrases",
+      "question": "Find all object phrases in the Hebrew Bible",
+      "family": "phrase-function",
+      "mql": "SELECT ALL OBJECTS WHERE\n[phrase function=Objc\n   GET function\n]\nGO",
+      "expected_count": null,
+      "notes": "single-level phrase filter; function is enum on phrase, unquoted"
+    },
+    {
+      "name": "imperative_verbs",
+      "question": "Find all imperative verb forms",
+      "family": "word-search",
+      "mql": "SELECT ALL OBJECTS WHERE\n[word sp=verb AND vt=impv\n   GET g_word_utf8, gloss\n]\nGO",
+      "expected_count": null,
+      "notes": "vt (verbal tense) is enum; impv = imperative; sp and vt both unquoted"
+    },
+    {
+      "name": "nominal_clause_pred_subj",
+      "question": "Find nominal clauses that contain a predicate phrase followed by a subject phrase",
+      "family": "clause-structure",
+      "mql": "SELECT ALL OBJECTS WHERE\n[clause typ=NmCl\n   [phrase function=Pred]\n   ..\n   [phrase function=Subj]\n]\nGO",
+      "expected_count": null,
+      "notes": "NmCl = nominal clause; .. allows intervening phrases between Pred and Subj; both phrase.function values are enum"
+    },
+    {
+      "name": "construct_chain_nouns",
+      "question": "Find noun phrases that contain a construct-chain (regens-rectum) relationship",
+      "family": "phrase-function",
+      "mql": "SELECT ALL OBJECTS WHERE\n[phrase typ=NP\n   [subphrase rela=rec\n   ]\n]\nGO",
+      "expected_count": null,
+      "notes": "subphrase.rela values are lowercase in BHSA; rec = regens (construct chain); phrase.typ NP = nominal phrase"
+    },
+    {
+      "name": "feminine_plural_nouns",
+      "question": "Find all feminine plural nouns",
+      "family": "word-search",
+      "mql": "SELECT ALL OBJECTS WHERE\n[word sp=subs AND gn=f AND nu=pl\n   GET g_word_utf8, gloss\n]\nGO",
+      "expected_count": null,
+      "notes": "sp=subs (noun/substantive), gn=f (feminine), nu=pl (plural); all enum features unquoted"
+    },
+    {
+      "name": "wayyiqtol_clause_subject",
+      "question": "Find wayyiqtol clauses that have a subject phrase",
+      "family": "combination",
+      "mql": "SELECT ALL OBJECTS WHERE\n[clause typ=WayX\n   [phrase function=Subj\n      GET function\n   ]\n]\nGO",
+      "expected_count": null,
+      "notes": "WayX = Wayyiqtol-X clause (X-slot filled, including subject); combination of clause type filter with nested phrase function"
+    },
+    {
+      "name": "verse_proper_nouns_genesis",
+      "question": "Where do proper nouns occur in Genesis?",
+      "family": "where-question",
+      "mql": "SELECT ALL OBJECTS WHERE\n[verse book=Genesis\n   [word sp=nmpr\n      GET g_word_utf8, gloss\n   ]\n]\nGO",
+      "expected_count": null,
+      "notes": "verse-nest pattern filtered by book (enum on verse); sp=nmpr = proper noun; both enum features unquoted"
+    },
+    {
+      "name": "verbal_clause_pred_obj",
+      "question": "Find verbal clauses where the predicate is followed by an object phrase",
+      "family": "combination",
+      "mql": "SELECT ALL OBJECTS WHERE\n[clause kind=VC\n   [phrase function=Pred]\n   ..\n   [phrase function=Objc]\n]\nGO",
+      "expected_count": null,
+      "notes": "kind=VC targets all verbal clause subtypes; .. separates Pred and Objc to allow intervening phrases; clause.kind is enum unquoted"
+    }
+  ]
+}
