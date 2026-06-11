@@ -99,6 +99,8 @@ Ask the way you would ask a colleague:
 - "Find ellipsis clauses that start with a conjunction and an object." (Returns a
   nested clause/phrase MQL query with real results; clause-level and phrase-level
   questions work.)
+- "Which words carry a third person masculine singular pronominal suffix?" (Uses
+  the word-morphology features `prs_ps`/`prs_gn`/`prs_nu`.)
 
 **Getting the verse for each hit.** A word does not carry its own location;
 that lives on the verse around it. So to see where each match occurs, ask for
@@ -237,20 +239,22 @@ gallery content.
 ## Feature coverage
 
 The translation prompt and the validator are driven by a feature catalogue
-(`features.json`). It currently exposes the high-frequency core of the BHSA
-feature set: part of speech (`sp`), verbal stem and tense (`vs`, `vt`), gender,
-number, person and state (`gn`, `nu`, `ps`, `st`), phrase function (`function`),
-clause and phrase type (`typ`), relation (`rela`), clause kind (`kind`), lexeme
-(`lex`), and gloss. That is about a quarter of the queryable features in the
-ETCBC2021 database, weighted toward the ones that appear in most scholarly queries.
-
-What it does not yet expose is mainly the word-level morphology layer:
+(`features.json`). It exposes the high-frequency core of the BHSA feature set:
+part of speech (`sp`), verbal stem and tense (`vs`, `vt`), gender, number, person
+and state (`gn`, `nu`, `ps`, `st`), phrase function (`function`), clause and
+phrase type (`typ`), relation (`rela`), clause kind (`kind`), lexeme (`lex`), and
+gloss. As of v0.3.0 it also covers the word-level morphology layer:
 pronominal-suffix agreement (`prs_ps`, `prs_gn`, `prs_nu`), phrase-dependent part
-of speech (`pdp`), lexical set (`ls`), and name type (`nametype`), alongside a set
-of morpheme-string and alternate-encoding features. Adding the agreement,
-lexical-set, and name-type features is the next step. It would let the tool answer
-questions it cannot express today, such as "verbs with a third-person feminine
-singular suffix" or "gentilic nouns."
+of speech (`pdp`), lexical set (`ls`), and name type (`nametype`). Each value set
+was confirmed against the live ETCBC2021 engine. Together that is about a third of
+the queryable features, weighted toward the ones that appear in most scholarly
+queries, so the tool can now answer questions like "words with a third person
+masculine singular suffix," "place-name proper nouns," or "cardinal numbers."
+
+What it still does not expose is mostly the specialist tail: the morpheme-string
+features (`prs`, `pfm`, `nme`, `vbs`, `vbe`, `uvf`), the alternate word encodings
+(`g_cons`, `phono`, ketiv/qere), and frequency statistics. Generating the full
+catalogue from the ETCBC feature docs is the remaining roadmap item.
 
 ## Roadmap
 
@@ -268,9 +272,9 @@ singular suffix" or "gentilic nouns."
 - [x] Clause-level and phrase-level querying: engine-verified MQL curriculum
       (primer) in the translation prompt; object-type validation catches
       wrong-level queries loudly
-- [ ] Wider feature coverage: add the word-level morphology layer
-      (pronominal-suffix agreement `prs_ps`/`prs_gn`/`prs_nu`, phrase-dependent
-      part of speech `pdp`, lexical set `ls`, name type `nametype`)
+- [x] Wider feature coverage: word-level morphology layer (pronominal-suffix
+      agreement `prs_ps`/`prs_gn`/`prs_nu`, phrase-dependent part of speech `pdp`,
+      lexical set `ls`, name type `nametype`), value sets engine-confirmed
 - [ ] Full feature-catalogue generation from the ETCBC feature docs
 
 ## Deploy
@@ -331,7 +335,7 @@ engine. This project wraps that work; it does not replace it.
 If you use this software, please cite it via its DOI:
 
 > Fresco Benaim, Jose. (2026). *shebanq-mcp: a Model Context Protocol server for
-> querying the BHSA Hebrew Bible in plain language* (v0.2.0). Zenodo.
+> querying the BHSA Hebrew Bible in plain language* (v0.3.0). Zenodo.
 > https://doi.org/10.5281/zenodo.20625355
 
 A machine-readable `CITATION.cff` is in the repository, and GitHub's "Cite this
