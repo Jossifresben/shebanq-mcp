@@ -43,9 +43,12 @@ def warm(version: str | None = None):
         except Exception as exc:  # noqa: BLE001 - data download/load failure
             raise TFUnavailable(
                 f"could not load BHSA TF data version {v}: {exc}") from exc
-        if _A is None:
+        if _A is None or getattr(_A, "api", None) is None:
+            _A = None
             raise TFUnavailable(
-                f"could not load BHSA TF data version {v}")
+                f"could not load BHSA TF data version {v} (text-fabric "
+                "returned no API; is the [github] extra installed and the "
+                "data reachable?)")
     return _A
 
 

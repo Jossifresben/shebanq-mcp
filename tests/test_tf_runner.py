@@ -134,6 +134,26 @@ def test_above_verse_leaf_does_not_crash():
     assert formatted[0]["reference"] is None
 
 
+def test_warm_rejects_app_without_api(monkeypatch):
+    import sys
+    import types
+
+    class HollowApp:
+        api = None                      # what use() returns when loading fails
+
+    fake_app_mod = types.ModuleType("tf.app")
+    fake_app_mod.use = lambda *a, **k: HollowApp()
+    fake_tf_mod = types.ModuleType("tf")
+    fake_tf_mod.app = fake_app_mod
+    monkeypatch.setitem(sys.modules, "tf", fake_tf_mod)
+    monkeypatch.setitem(sys.modules, "tf.app", fake_app_mod)
+
+    tf_runner._A = None
+    with pytest.raises(tf_runner.TFUnavailable, match="returned no API"):
+        tf_runner.warm()
+    assert tf_runner._A is None         # reset so a later call can retry
+
+
 # ---- data-backed pinned counts (CI only) -----------------------------------
 # The same six counts the Emdros tests pin, on the same 2021 data. A mismatch
 # here is a fork bug (template generation or version pin), never data drift.

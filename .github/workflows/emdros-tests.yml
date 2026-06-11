@@ -142,7 +142,7 @@ jobs:
           python3 - <<'EOF'
           from tf.app import use
           A = use("etcbc/bhsa", version="2021", silent="deep")
-          assert A is not None, "BHSA TF data failed to load"
+          assert A is not None and getattr(A, "api", None) is not None, "BHSA TF data failed to load"
           EOF
 
       - name: Run Emdros-backed tests
@@ -228,7 +228,7 @@ jobs:
           python - <<'EOF'
           from tf.app import use
           A = use("etcbc/bhsa", version="2021", silent="deep")
-          assert A is not None, "BHSA TF data failed to load"
+          assert A is not None and getattr(A, "api", None) is not None, "BHSA TF data failed to load"
           EOF
 
       - name: Run TF-marked tests

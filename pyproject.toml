@@ -10,7 +10,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0"]
-tf = ["text-fabric>=12.0"]
+tf = ["text-fabric[github]>=12.0"]
 
 [project.scripts]
 shebanq-mcp = "shebanq_mcp.server:main"
