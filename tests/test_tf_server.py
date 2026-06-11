@@ -131,3 +131,15 @@ def test_search_bhsa_no_valid_artifact(stub_engines, monkeypatch):
     out = server.handle_search_bhsa("all verbs")
     assert out["error"] == "no valid query artifact to run"
     assert out["mql_validation_errors"] and out["tf_validation_errors"]
+
+
+def test_to_citable_mql_happy_path():
+    out = server.handle_to_citable_mql("word sp=verb vs=nif")
+    assert out["mql"] == "SELECT ALL OBJECTS WHERE [word sp=verb AND vs=nif] GO"
+    assert "SHEBANQ" in out["next"]
+
+
+def test_to_citable_mql_refusal():
+    out = server.handle_to_citable_mql("word lex~BR")
+    assert "cannot be converted" in out["error"]
+    assert "mql" not in out

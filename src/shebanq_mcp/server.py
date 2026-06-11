@@ -10,6 +10,7 @@ from .feature_reference import FeatureReference
 from .guard import QueryGuard, QueryTimeout, ServerBusy, WorkerCrashed
 from .validator import validate_mql
 from .tf_validator import validate_tf
+from .tf_to_mql import ConversionError, tf_to_mql
 from .tf_translate import build_tf_translator
 from . import tf_runner
 from .runner import run_query
@@ -190,6 +191,17 @@ def _run_tf_pipeline(template: str) -> dict:
 
 def handle_run_tf(template: str) -> dict:
     return _run_tf_pipeline(template)
+
+
+def handle_to_citable_mql(template: str) -> dict:
+    try:
+        mql = tf_to_mql(template, _ref)
+    except ConversionError as exc:
+        return {"tf_template": template, "error": str(exc)}
+    return {"tf_template": template, "mql": mql,
+            "next": "Paste this MQL into SHEBANQ and save the query for a "
+                    "citable permalink. Note the data version: this server "
+                    "is pinned to ETCBC 2021."}
 
 
 def _install_tf_guard(max_concurrent: int, timeout_seconds: int) -> None:
@@ -393,6 +405,19 @@ def run_tf(template: str) -> dict:
     feature's values. Pinned to the BHSA 2021 release.
     """
     return handle_run_tf(template)
+
+
+@mcp.tool()
+def to_citable_mql(template: str) -> dict:
+    """Convert a Text-Fabric search template to equivalent MQL for SHEBANQ.
+
+    Deterministic, no model involved: indentation becomes brackets, spaces
+    become AND, string features get quoted from the catalogue. Use this to
+    turn a notebook query into a citable SHEBANQ saved query. Templates using
+    TF constructs beyond '<object_type> feature=value ...' lines are refused
+    with an explanation.
+    """
+    return handle_to_citable_mql(template)
 
 
 @mcp.tool()
