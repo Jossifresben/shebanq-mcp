@@ -8,7 +8,10 @@ to A.search(), which cannot mutate, and nothing here is ever evaluated.
 v1 grammar (the shape tf_primer.md teaches): each line is
     <otype> [<feature>=<value>]...
 Relational operators and quantifiers are out of scope; a line that does not
-match the grammar is an error, never silently accepted.
+match the grammar is an error, never silently accepted. Indentation is also
+stricter than TF proper: deepenings must use one consistent step (TF itself
+accepts any deeper indent); over-strict beats under-strict for a validator
+that gates what we show users.
 """
 import re
 
