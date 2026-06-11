@@ -103,3 +103,14 @@ def test_v2_union_backcompat_multitype_feature():
     some_clause_rela = next(iter(ref.values_for("rela", "clause")))
     assert ref.is_valid("rela", some_clause_rela)
     assert not ref.is_valid("rela", "nonsense_rela_value")
+
+
+def test_mql_primer_ships_and_matches_fixtures():
+    from importlib import resources
+    import json
+    from pathlib import Path
+    text = resources.files("shebanq_mcp").joinpath("mql_primer.md").read_text(encoding="utf-8")
+    assert "SELECT ALL OBJECTS WHERE" in text and "first" in text
+    qs = json.loads((Path(__file__).parent / "fixtures" / "scholar_questions.json").read_text())
+    ell = next(q for q in qs["questions"] if q["name"] == "ellipsis_conj_objc")
+    assert ell["mql"] in text, "the motivating example must appear verbatim in the primer"
