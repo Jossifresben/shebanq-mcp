@@ -3,16 +3,6 @@ from dataclasses import dataclass, field
 
 from .feature_reference import FeatureReference
 
-# A constraint is `name = value`, where value is either quoted (a string
-# feature: name='val' / name="val") or a bare token (an enum/integer feature:
-# name=val). The two alternatives are captured separately so we can tell whether
-# the value was quoted.
-_CONSTRAINT = re.compile(
-    r"""\b([A-Za-z_][A-Za-z0-9_]*)\s*=\s*"""   # feature name, then '='
-    r"""(?:(['"])(.*?)\2|([^\s\]]+))""",        # quoted value OR bare token
-    re.VERBOSE,
-)
-
 
 # Read-only enforcement. Strip string literals first so a keyword inside a
 # quoted feature value (e.g. lex='DELETE') cannot trip the guard.
@@ -48,34 +38,77 @@ class ValidationResult:
     errors: list[str] = field(default_factory=list)
 
 
-def validate_mql(mql: str, ref: FeatureReference) -> ValidationResult:
-    errors: list[str] = _read_only_errors(mql)
-    for match in _CONSTRAINT.finditer(mql):
-        feature = match.group(1)
-        quoted = match.group(2) is not None
-        value = match.group(3) if quoted else match.group(4)
+_BLOCK_OPEN = re.compile(r"\[\s*([A-Za-z_][A-Za-z0-9_]*)")
+_GET_AT = re.compile(r"GET\s+([A-Za-z0-9_,\s]+?)\s*(?=[\[\]])", re.IGNORECASE)
+_CONSTRAINT_AT = re.compile(
+    r"([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(?:(['\"])(.*?)\2|([^\s\]]+))")
 
-        if not ref.has_feature(feature):
-            errors.append(
-                f"unknown feature '{feature}' (not in BHSA feature reference)"
-            )
+
+def _structure_errors(mql: str, ref: FeatureReference) -> list[str]:
+    errors: list[str] = []
+    stack: list[str] = []           # enclosing object types, innermost last
+    i, n = 0, len(mql)
+    while i < n:
+        ch = mql[i]
+        if ch in "'\"":             # skip a string literal whole
+            j = mql.find(ch, i + 1)
+            i = n if j == -1 else j + 1
             continue
+        if ch == "[":
+            m = _BLOCK_OPEN.match(mql, i)
+            if m:
+                otype = m.group(1)
+                if not ref.is_object_type(otype):
+                    valid = ", ".join(o["name"] for o in ref.object_types())
+                    errors.append(f"unknown object type '{otype}' (valid: {valid})")
+                stack.append(otype)
+                i = m.end()
+                continue
+            i += 1
+            continue
+        if ch == "]":
+            if stack:
+                stack.pop()
+            i += 1
+            continue
+        if stack:
+            mg = _GET_AT.match(mql, i)
+            if mg:
+                for feat in (f.strip() for f in mg.group(1).split(",") if f.strip()):
+                    if ref.kind_for(feat, stack[-1]) is None:
+                        errors.append(
+                            f"GET feature '{feat}' is not valid on object type "
+                            f"'{stack[-1]}'")
+                i = mg.end()
+                continue
+            mc = _CONSTRAINT_AT.match(mql, i)
+            if mc:
+                feat = mc.group(1)
+                quoted = mc.group(2) is not None
+                value = mc.group(3) if quoted else mc.group(4)
+                otype = stack[-1]
+                kind = ref.kind_for(feat, otype)
+                if kind is None:
+                    errors.append(
+                        f"feature '{feat}' is not valid on object type '{otype}'")
+                elif kind == "enum":
+                    if quoted:
+                        errors.append(
+                            f"enum feature '{feat}' must be unquoted "
+                            f"(use {feat}={value})")
+                    elif value not in (ref.values_for(feat, otype) or {}):
+                        errors.append(
+                            f"unknown value '{value}' for enum feature '{feat}' "
+                            f"on object type '{otype}'")
+                elif kind == "string" and not quoted:
+                    errors.append(
+                        f"string feature '{feat}' must be quoted (use {feat}='{value}')")
+                i = mc.end()
+                continue
+        i += 1
+    return errors
 
-        if ref.is_enum(feature):
-            if quoted:
-                errors.append(
-                    f"enum feature '{feature}' must be unquoted "
-                    f"(use {feature}={value}, not {feature}='{value}')"
-                )
-            elif not ref.is_enum_constant(value):
-                errors.append(
-                    f"unknown enum value '{value}' for feature '{feature}'"
-                )
-        elif ref.is_string(feature):
-            if not quoted:
-                errors.append(
-                    f"string feature '{feature}' must be quoted "
-                    f"(use {feature}='{value}', not {feature}={value})"
-                )
 
+def validate_mql(mql: str, ref: FeatureReference) -> ValidationResult:
+    errors = _read_only_errors(mql) + _structure_errors(mql, ref)
     return ValidationResult(ok=not errors, errors=errors)
