@@ -127,3 +127,9 @@ def test_prompt_includes_morphology_features():
     p = t.build_prompt(FeatureReference.load())
     for feat in ("prs_ps", "prs_gn", "prs_nu", "pdp", "ls", "nametype"):
         assert feat in p
+
+
+def test_prompt_includes_morphology_section():
+    from shebanq_mcp.feature_reference import FeatureReference
+    p = t.build_prompt(FeatureReference.load())
+    assert "Word morphology" in p and "prs_ps=p3" in p
