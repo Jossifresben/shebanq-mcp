@@ -182,6 +182,37 @@ not run. Note that BHSA verb lexemes carry a trailing `[` in transliteration
 
 ---
 
+## 7a. Word morphology
+
+Beyond part of speech and inflection, `word` carries a morphology layer.
+
+**Pronominal suffixes.** Many Hebrew words carry an attached pronoun ("his",
+"them", "me"). The suffix's own agreement lives in `prs_ps` (person), `prs_gn`
+(gender), and `prs_nu` (number), independent of the host word's `ps`/`gn`/`nu`.
+Words with no suffix have `NA`. So "words with a third person masculine singular
+suffix" is:
+
+```
+SELECT ALL OBJECTS WHERE [word prs_ps=p3 AND prs_gn=m AND prs_nu=sg] GO
+```
+
+(13754 hits.)
+
+**Phrase-dependent part of speech.** `sp` is the word's lexical category; `pdp`
+is the category it takes in its phrase. They differ when a word is used as
+something else. "Nouns used adverbially" is `[word sp=subs AND pdp=advb]`
+(1371 hits).
+
+**Lexical set.** `ls` subclassifies the part of speech: `ls=card` cardinal
+numbers (6287 hits), `ls=ordn` ordinals, `ls=gntl` gentilics.
+
+**Name types.** `nametype` types a proper noun: pers (person), topo (place),
+gens (people group), god (deity). It is a string feature stored comma-separated
+(a name can be more than one type), so match it with `~` rather than `=`:
+`[word sp=nmpr AND nametype ~ 'topo']` finds place names (10916 hits).
+
+---
+
 ## 8. Verse references
 
 To attach book, chapter, and verse numbers to each hit, wrap the query in a
