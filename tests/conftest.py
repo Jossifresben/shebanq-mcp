@@ -40,7 +40,7 @@ def _tf_available() -> bool:
         return False
     from pathlib import Path
     version = os.environ.get("BHSA_TF_VERSION", "2021")
-    base = Path(os.environ.get("TF_DATA_DIR", Path.home() / "text-fabric-data"))
+    base = Path.home() / "text-fabric-data"
     return (base / "github" / "etcbc" / "bhsa" / "tf" / version).exists()
 
 

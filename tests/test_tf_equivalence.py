@@ -20,6 +20,11 @@ PAIRS = [
      "word vt=impv"),
     ("SELECT ALL OBJECTS WHERE [word sp=nmpr] GO",
      "word sp=nmpr"),
+    # Nested: exercises Emdros leaf-counting (_harvest_nested) vs TF
+    # tuple-counting, and the converter's indentation-to-bracket logic.
+    ("SELECT ALL OBJECTS WHERE "
+     "[clause [phrase function=Pred [word sp=verb AND vs=nif]]] GO",
+     "clause\n  phrase function=Pred\n    word sp=verb vs=nif"),
 ]
 
 
