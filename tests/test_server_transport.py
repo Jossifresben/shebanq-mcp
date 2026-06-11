@@ -245,3 +245,18 @@ def test_search_bhsa_throttles_translation(monkeypatch):
     assert "mql" in a or "result_count" in a
     assert b.get("error") and "rate" in b["error"].lower()
     assert calls["n"] == 1
+
+
+def test_search_bhsa_degrades_on_translate_error(monkeypatch):
+    import shebanq_mcp.server as server
+    from shebanq_mcp.web import RateLimiter
+
+    class _Boom:
+        def translate(self, q, ref):
+            raise RuntimeError("spend cap reached")
+
+    monkeypatch.setattr(server, "_translator", _Boom())
+    monkeypatch.setattr(server, "_TRANSLATE_LIMITER", RateLimiter(100))
+    out = server.handle_search_bhsa("verbs")
+    assert out.get("error") and "run_mql" in out["error"]
+    assert "result_count" not in out

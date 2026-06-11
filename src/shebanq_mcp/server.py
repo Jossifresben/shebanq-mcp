@@ -161,7 +161,16 @@ def handle_search_bhsa(question: str) -> dict:
     if not _TRANSLATE_LIMITER.allow("global", monotonic()):
         return {"question": question,
                 "error": "translation rate limit reached; try again shortly"}
-    mql = _translator.translate(question, _ref)
+    try:
+        mql = _translator.translate(question, _ref)
+    except Exception:  # noqa: BLE001 - API error / spend cap / missing key -> degrade
+        return {
+            "question": question,
+            "error": "translation is unavailable right now (the model API errored or "
+                     "the spend cap was reached). Use run_mql with an MQL query you "
+                     "write by hand.",
+            "guidance": _QUOTING_RULE,
+        }
     return _run_pipeline(mql)
 
 
@@ -315,7 +324,7 @@ def main() -> None:
                   flush=True)
         _configure_http_security()
         if _web_api_enabled():
-            from .web import RateLimiter, register_web_routes
+            from .web import register_web_routes
             limiter = RateLimiter(int(os.environ.get("WEB_RATE_PER_MIN", "10")))
             register_web_routes(mcp, ask=handle_ask, run=handle_run_mql,
                                 translate=handle_translate,
