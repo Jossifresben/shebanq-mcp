@@ -72,7 +72,7 @@ def test_v2_scoped_lookups():
     assert ref.kind_for("rela", "clause") == "enum"
     assert ref.kind_for("lex", "word") == "string"
     assert ref.kind_for("lex", "clause") is None
-    assert set(ref.objects_for("function")) == {"phrase"} or "phrase" in ref.objects_for("function")
+    assert set(ref.objects_for("function")) == {"phrase", "phrase_atom"}
 
 
 def test_v2_union_backcompat():
@@ -91,3 +91,15 @@ def test_v2_features_for_object():
     clause_feats = ref.features_for("clause")
     assert "typ" in clause_feats and "kind" in clause_feats
     assert "lex" not in clause_feats
+
+
+def test_v2_union_backcompat_multitype_feature():
+    ref = FeatureReference.load()
+    # rela spans clause/clause_atom/phrase/phrase_atom/subphrase with different
+    # closed value sets; the v1 union shim must accept a value valid on ANY type
+    # and reject genuine garbage (validator object-awareness comes in a later plan).
+    assert len(ref.objects_for("rela")) >= 2
+    # a real rela value (pick one that exists — verify with values_for) passes:
+    some_clause_rela = next(iter(ref.values_for("rela", "clause")))
+    assert ref.is_valid("rela", some_clause_rela)
+    assert not ref.is_valid("rela", "nonsense_rela_value")

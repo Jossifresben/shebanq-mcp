@@ -25,7 +25,7 @@ class FeatureReference:
 
     # ---- v2 scoped API ----
     def object_types(self) -> list:
-        return self._object_types
+        return list(self._object_types)
 
     def is_object_type(self, name: str) -> bool:
         return any(o["name"] == name for o in self._object_types)
@@ -67,9 +67,16 @@ class FeatureReference:
         return name in self.features
 
     def kind(self, feature: str) -> str | None:
+        """The feature's kind. Every feature in the catalogue has a uniform kind
+        across its object types; a conflict means the catalogue is malformed."""
         kinds = {e["kind"] for e in self._entries(feature)}
-        return next(iter(kinds)) if len(kinds) == 1 else (
-            "enum" if "enum" in kinds else next(iter(kinds), None))
+        if not kinds:
+            return None
+        if len(kinds) > 1:
+            raise ValueError(
+                f"feature {feature!r} has conflicting kinds {sorted(kinds)} "
+                "across object types")
+        return next(iter(kinds))
 
     def is_enum(self, feature: str) -> bool:
         return self.kind(feature) == "enum"

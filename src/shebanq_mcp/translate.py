@@ -65,6 +65,8 @@ BHSA feature reference (feature [kind]: gloss; values):
 def _reference_block(ref: FeatureReference) -> str:
     lines = ["Object hierarchy (outermost first): "
              + " > ".join(o["name"] for o in ref.object_types())]
+    # A feature on several object types (e.g. typ, rela) is listed once per type
+    # on purpose — its value set differs per type and the model needs each.
     for o in ref.object_types():
         feats = ref.features_for(o["name"])
         if not feats:
@@ -75,11 +77,11 @@ def _reference_block(ref: FeatureReference) -> str:
             values = spec.get("values")
             if kind == "enum" and values:
                 vals = ", ".join(f"{k}={v}" for k, v in values.items())
-                lines.append(f"- {name} [enum, UNQUOTED]: {spec['gloss']}; values: {vals}")
+                lines.append(f"- {name} [enum, UNQUOTED]: {spec.get('gloss', '')}; values: {vals}")
             elif kind == "string":
-                lines.append(f"- {name} [string, QUOTED]: {spec['gloss']}")
+                lines.append(f"- {name} [string, QUOTED]: {spec.get('gloss', '')}")
             else:
-                lines.append(f"- {name} [{kind}]: {spec['gloss']}")
+                lines.append(f"- {name} [{kind}]: {spec.get('gloss', '')}")
     return "\n".join(lines)
 
 
