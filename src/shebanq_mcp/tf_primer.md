@@ -5,7 +5,7 @@ per line. Indentation expresses containment, the way brackets do in MQL.
 
 ## 1. The object hierarchy
 
-book > chapter > verse > sentence > clause > clause_atom > phrase > phrase_atom > subphrase > word
+book > chapter > verse > sentence > clause > phrase > word
 
 Secondary types `clause_atom`, `phrase_atom`, and `subphrase` sit between
 levels; `lex` holds lexeme nodes. You can skip levels freely: a `word` line
