@@ -17,8 +17,15 @@ services:
     envVars:
       - key: MCP_TRANSPORT
         value: http
+      # Server-side NL->MQL translation: search_bhsa answers directly over MCP.
       - key: LLM_PROVIDER
-        value: none
+        value: anthropic
+      - key: LLM_MODEL
+        value: claude-sonnet-4-6   # chosen by the benchmark: 11/11, ~2.3x cheaper than Opus
+      - key: LLM_RATE_PER_MIN
+        value: "20"            # throttle the paid translation path; the spend cap is the ceiling
+      - key: ANTHROPIC_API_KEY
+        sync: false            # set in the Render dashboard; scoped to the $10-capped workspace
       - key: BHSA_SQLITE
         value: /app/data/bhsa.sqlite3
       - key: QUERY_TIMEOUT_SECONDS
@@ -51,6 +58,8 @@ services:
         value: "on"
       - key: LLM_PROVIDER
         value: anthropic
+      - key: LLM_MODEL
+        value: claude-sonnet-4-6
       - key: ANTHROPIC_API_KEY
         sync: false            # set in the Render dashboard; scoped to the $10-capped workspace
       - key: MCP_TRANSPORT

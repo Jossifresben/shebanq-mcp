@@ -15,7 +15,7 @@ from typing import Protocol
 
 from .feature_reference import FeatureReference
 
-DEFAULT_MODEL = "claude-opus-4-8"
+DEFAULT_MODEL = "claude-sonnet-4-6"  # benchmark-chosen: 11/11, ~2.3x cheaper than Opus
 
 _OUTPUT_RULE = (
     "You translate questions about the Hebrew Bible into Emdros MQL queries over "
