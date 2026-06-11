@@ -97,6 +97,7 @@ class AnthropicTranslator:
         msg = client.messages.create(
             model=self._model,
             max_tokens=1024,
+            temperature=0,          # greedy decode: same question -> same query
             system=build_prompt(ref),
             messages=[{"role": "user", "content": question}],
         )
