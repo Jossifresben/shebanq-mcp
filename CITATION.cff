@@ -11,7 +11,7 @@ abstract: >-
   produced it, queries are validated before they run, and empty results are
   reported honestly. AI as a way in, not a way around.
 type: software
-version: 0.1.2
+version: 0.2.0
 doi: "10.5281/zenodo.20625355"
 date-released: "2026-06-11"
 license: MIT
