@@ -22,11 +22,15 @@ def _parse_get_by_level(mql: str) -> dict:
     GET clause to the block it is syntactically inside (by bracket depth) rather
     than by textual order. So a query that GETs only on an inner block does not
     misalign its features onto the outer object (which retrieved nothing).
-    Robust to '[' inside string literals (e.g. the lexeme 'BR>[')."""
+    Robust to '[' inside string literals (e.g. the lexeme 'BR>['). Note: two
+    sibling blocks at the same depth that each carry a GET merge into one list
+    for that depth; the query shapes we generate never do this (a level has at
+    most one GET), but a hand-written run_mql query could."""
     stripped = re.sub(r"'[^']*'", "", mql)
     out: dict = {}
     depth = 0
-    for m in re.finditer(r"\[|\]|\bGET\s+([A-Za-z0-9_,\s]+?)(?=[\[\]])", stripped):
+    for m in re.finditer(r"\[|\]|\bGET\s+([A-Za-z0-9_,\s]+?)(?=[\[\]])",
+                         stripped, re.IGNORECASE):
         tok = m.group(0)
         if tok == "[":
             depth += 1
