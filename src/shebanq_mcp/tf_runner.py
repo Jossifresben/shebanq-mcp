@@ -108,7 +108,11 @@ def run_template(template: str, features: list[str] | None = None,
 def tf_target(template, _db_path, features, q):
     """QueryGuard worker target for TF (same contract as guard._default_target).
     With a fork start method the child inherits the warm _A; with spawn it
-    loads the corpus itself (slow but correct)."""
+    loads the corpus itself (slow but correct).
+
+    Fork-safety invariant: this target must do nothing but bounded query work
+    and q.put() — no HTTP calls, no asyncio, no C libraries with background
+    threads. The fork-from-threaded-parent safety argument rests on it."""
     try:
         raw = os.environ.get("MAX_RESULTS", "100")
         limit = int(raw) if raw else None

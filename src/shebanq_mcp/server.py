@@ -8,6 +8,9 @@ from time import monotonic
 from .feature_reference import FeatureReference
 from .guard import QueryGuard, QueryTimeout, ServerBusy, WorkerCrashed
 from .validator import validate_mql
+from .tf_validator import validate_tf
+from .tf_translate import build_tf_translator
+from . import tf_runner
 from .runner import run_query
 from .formatter import format_results
 from .translate import build_translator, build_prompt
@@ -71,9 +74,20 @@ _QUOTING_RULE = (
 _ref = FeatureReference.load()
 # The configured LLM translator (None if LLM_PROVIDER=none -> translation-free).
 _translator = build_translator()
+# The TF translator shares LLM_PROVIDER/LLM_MODEL config with the MQL one.
+_tf_translator = build_tf_translator()
 # Global throttle on the paid translation path (the MCP transport has no per-IP
 # limit). LLM_RATE_PER_MIN bounds bursts; the Anthropic spend cap is the ceiling.
 _TRANSLATE_LIMITER = RateLimiter(int(os.environ.get("LLM_RATE_PER_MIN", "20")))
+
+# Which engine produces RESULTS for search_bhsa. Both artifacts are always
+# generated; this only selects execution. Default tf per the design spec; a
+# deploy without baked TF data sets BHSA_RESULT_ENGINE=emdros.
+_RESULT_ENGINE = os.environ.get("BHSA_RESULT_ENGINE", "tf").strip().lower()
+if _RESULT_ENGINE not in ("tf", "emdros"):
+    raise ValueError(
+        f"unknown BHSA_RESULT_ENGINE '{_RESULT_ENGINE}' (supported: tf, emdros)")
+
 mcp = FastMCP("shebanq")
 
 
@@ -145,6 +159,54 @@ def _install_guard(max_concurrent: int, timeout_seconds: int) -> None:
     _executor = guard.run
 
 
+def _tf_default_executor(template: str, features: list[str]):
+    """Default TF execution path: in-process warm corpus (stdio/local/tests)."""
+    return tf_runner.run_template(template, features=features or None,
+                                  limit=_RESULT_LIMIT)
+
+
+# Swappable TF execution backend. HTTP mode replaces this with a QueryGuard.
+_tf_executor = _tf_default_executor
+
+
+def _run_tf_pipeline(template: str) -> dict:
+    validation = validate_tf(template, _ref)
+    if not validation.ok:
+        return {"tf_template": template, "error": "TF template failed validation",
+                "validation_errors": validation.errors}
+    try:
+        result = _tf_executor(template, [])
+    except (RuntimeError, QueryTimeout, ServerBusy, WorkerCrashed) as exc:
+        return {"tf_template": template, "error": str(exc)}
+    out = {"tf_template": template, "result_count": result.count,
+           "results": format_results(result.matches)}
+    if result.count > len(result.matches):
+        out["results_truncated"] = True
+        out["results_shown"] = len(result.matches)
+    return out
+
+
+def handle_run_tf(template: str) -> dict:
+    return _run_tf_pipeline(template)
+
+
+def _install_tf_guard(max_concurrent: int, timeout_seconds: int) -> None:
+    """Warm TF and swap the TF executor to a guarded worker. Fork only on
+    Linux (the deploy target): glibc+CPython reinit their locks at fork.
+    macOS has fork but no such guarantees. If TF is unavailable, leave the
+    default executor in place to raise a clear per-request error."""
+    global _tf_executor
+    import sys
+    tf_runner.warm()        # before serving: COW benefit + quiet-thread fork
+    # fork only on Linux (the deploy target): glibc+CPython reinit
+    # their locks at fork. macOS has fork but no such guarantees.
+    ctx = "fork" if sys.platform == "linux" else "spawn"
+    guard = QueryGuard(DB_PATH, max_concurrent=max_concurrent,
+                       timeout_seconds=timeout_seconds,
+                       target=tf_runner.tf_target, mp_context=ctx)
+    _tf_executor = guard.run
+
+
 def _run_startup_selftest(query_fn=None) -> bool:
     """Run one real read-only query to prove the engine works. Sets _ready."""
     global _ready
@@ -178,17 +240,59 @@ def handle_search_bhsa(question: str) -> dict:
     if not _TRANSLATE_LIMITER.allow("global", monotonic()):
         return {"question": question,
                 "error": "translation rate limit reached; try again shortly"}
+    out: dict = {"question": question}
+
+    # Generate both artifacts; a failure in one never silences the other.
+    mql = tf_template = None
     try:
         mql = _translator.translate(question, _ref)
-    except Exception:  # noqa: BLE001 - API error / spend cap / missing key -> degrade
-        return {
-            "question": question,
-            "error": "translation is unavailable right now (the model API errored or "
-                     "the spend cap was reached). Use run_mql with an MQL query you "
-                     "write by hand.",
-            "guidance": _QUOTING_RULE,
-        }
-    return _run_pipeline(mql)
+        out["mql"] = mql
+    except Exception:  # noqa: BLE001 - API error / spend cap -> degrade
+        out["mql_error"] = "MQL translation unavailable (model API error or spend cap)"
+    if _tf_translator is not None:
+        try:
+            tf_template = _tf_translator.translate(question, _ref)
+            out["tf_template"] = tf_template
+        except Exception:  # noqa: BLE001
+            out["tf_error"] = "TF translation unavailable (model API error or spend cap)"
+    if mql is None and tf_template is None:
+        out["error"] = ("translation is unavailable right now. Use run_mql or "
+                        "run_tf with a query you write by hand.")
+        out["guidance"] = _QUOTING_RULE
+        return out
+
+    # Validate both; show invalid artifacts honestly, marked with their errors.
+    if mql is not None:
+        v = validate_mql(mql, _ref)
+        if not v.ok:
+            out["mql_validation_errors"] = v.errors
+            mql = None
+    if tf_template is not None:
+        v = validate_tf(tf_template, _ref)
+        if not v.ok:
+            out["tf_validation_errors"] = v.errors
+            tf_template = None
+
+    # Run ONE engine for results (equivalence is proven at test time). Fall
+    # back to the other engine if the selected artifact did not survive.
+    engine = _RESULT_ENGINE
+    if engine == "tf" and tf_template is None and mql is not None:
+        engine = "emdros"
+    elif engine == "emdros" and mql is None and tf_template is not None:
+        engine = "tf"
+    if engine == "tf" and tf_template is not None:
+        run = _run_tf_pipeline(tf_template)
+    elif engine == "emdros" and mql is not None:
+        run = _run_pipeline(mql)
+    else:
+        out["error"] = "no valid query artifact to run"
+        return out
+    out["engine"] = engine
+    for key in ("result_count", "results", "results_truncated",
+                "results_shown", "error"):
+        if key in run:
+            out[key] = run[key]
+    return out
 
 
 def _degraded_payload(question: str) -> dict:
@@ -277,6 +381,18 @@ def run_mql(mql: str) -> dict:
 
 
 @mcp.tool()
+def run_tf(template: str) -> dict:
+    """Validate and run a Text-Fabric search template; return glossed results.
+
+    A template is one object per line, indentation = containment, constraints
+    as unquoted feature=value pairs (sp=verb, lex=BR>[). Put the object you
+    want results for on the LAST line. Call lookup_feature(name) to check a
+    feature's values. Pinned to the BHSA 2021 release.
+    """
+    return handle_run_tf(template)
+
+
+@mcp.tool()
 def search_bhsa(question: str) -> dict:
     """Answer a plain-language question about the Hebrew Bible.
 
@@ -337,6 +453,11 @@ def main() -> None:
         if timeout_seconds < 1:
             raise SystemExit("QUERY_TIMEOUT_SECONDS must be >= 1")
         _install_guard(max_concurrent, timeout_seconds)
+        try:
+            _install_tf_guard(max_concurrent, timeout_seconds)
+        except Exception as exc:  # noqa: BLE001 - TF optional in HTTP mode
+            print(f"WARNING: TF engine unavailable ({exc}); "
+                  "run_tf will error per-request", flush=True)
         # Self-test through the guard: bounds a hung engine at timeout_seconds
         # and exercises the real production execution path.
         if not _run_startup_selftest(
