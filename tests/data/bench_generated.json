@@ -1,0 +1,266 @@
+[
+  {
+    "model": "claude-opus-4-8",
+    "name": "ellipsis_conj_objc",
+    "question": "Find all ellipsis clauses that start with a conjunction and an object",
+    "mql": "SELECT ALL OBJECTS WHERE\n[clause typ=Ellp\n   [phrase first function=Conj]\n   ..\n   [phrase function=Objc]\n]\nGO",
+    "expected": 1640,
+    "valid": true
+  },
+  {
+    "model": "claude-opus-4-8",
+    "name": "niphal_verbs",
+    "question": "Find all Niphal verbs in the Hebrew Bible",
+    "mql": "SELECT ALL OBJECTS WHERE\n[word sp=verb AND vs=nif\n   GET g_word_utf8, gloss\n]\nGO",
+    "expected": 4145,
+    "valid": true
+  },
+  {
+    "model": "claude-opus-4-8",
+    "name": "bara_occurrences",
+    "question": "Where does the verb bara (create) occur in the text?",
+    "mql": "SELECT ALL OBJECTS WHERE [verse GET book, chapter, verse [word sp=verb AND lex='BR>[' GET g_word_utf8, gloss]] GO",
+    "expected": 48,
+    "valid": true
+  },
+  {
+    "model": "claude-opus-4-8",
+    "name": "object_phrases",
+    "question": "Find all object phrases in the Hebrew Bible",
+    "mql": "SELECT ALL OBJECTS WHERE\n[phrase function=Objc\n   GET function\n]\nGO",
+    "expected": 22668,
+    "valid": true
+  },
+  {
+    "model": "claude-opus-4-8",
+    "name": "imperative_verbs",
+    "question": "Find all imperative verb forms",
+    "mql": "SELECT ALL OBJECTS WHERE\n[word sp=verb AND vt=impv\n   GET g_word_utf8, gloss\n]\nGO",
+    "expected": 4306,
+    "valid": true
+  },
+  {
+    "model": "claude-opus-4-8",
+    "name": "nominal_clause_with_subject",
+    "question": "Find nominal clauses that contain a subject phrase",
+    "mql": "SELECT ALL OBJECTS WHERE\n[clause typ=NmCl\n   [phrase function=Subj]\n]\nGO",
+    "expected": 7601,
+    "valid": true
+  },
+  {
+    "model": "claude-opus-4-8",
+    "name": "construct_chain_nouns",
+    "question": "Find noun phrases that contain a construct-chain (regens-rectum) relationship",
+    "mql": "SELECT ALL OBJECTS WHERE\n[phrase typ=NP\n   [subphrase rela=rec]\n]\nGO",
+    "expected": 14972,
+    "valid": true
+  },
+  {
+    "model": "claude-opus-4-8",
+    "name": "feminine_plural_nouns",
+    "question": "Find all feminine plural nouns",
+    "mql": "SELECT ALL OBJECTS WHERE\n[word sp=subs AND gn=f AND nu=pl\n   GET g_word_utf8, gloss\n]\nGO",
+    "expected": 5992,
+    "valid": true
+  },
+  {
+    "model": "claude-opus-4-8",
+    "name": "wayyiqtol_clause_subject",
+    "question": "Find wayyiqtol clauses that have a subject phrase",
+    "mql": "SELECT ALL OBJECTS WHERE\n[clause typ=WayX\n   [phrase function=Subj]\n]\nGO",
+    "expected": 5874,
+    "valid": true
+  },
+  {
+    "model": "claude-opus-4-8",
+    "name": "verse_proper_nouns_genesis",
+    "question": "Where do proper nouns occur in Genesis?",
+    "mql": "SELECT ALL OBJECTS WHERE\n[verse book=Genesis GET book, chapter, verse\n   [word sp=nmpr GET g_word_utf8, gloss]\n]\nGO",
+    "expected": 2465,
+    "valid": true
+  },
+  {
+    "model": "claude-opus-4-8",
+    "name": "verbal_clause_pred_obj",
+    "question": "Find verbal clauses where the predicate is followed by an object phrase",
+    "mql": "SELECT ALL OBJECTS WHERE\n[clause kind=VC\n   [phrase function=Pred]\n   ..\n   [phrase function=Objc]\n]\nGO",
+    "expected": 32250,
+    "valid": true
+  },
+  {
+    "model": "claude-sonnet-4-6",
+    "name": "ellipsis_conj_objc",
+    "question": "Find all ellipsis clauses that start with a conjunction and an object",
+    "mql": "SELECT ALL OBJECTS WHERE\n[clause typ=Ellp\n   [phrase first function=Conj]\n   ..\n   [phrase function=Objc]\n]\nGO",
+    "expected": 1640,
+    "valid": true
+  },
+  {
+    "model": "claude-sonnet-4-6",
+    "name": "niphal_verbs",
+    "question": "Find all Niphal verbs in the Hebrew Bible",
+    "mql": "SELECT ALL OBJECTS WHERE\n[word sp=verb AND vs=nif\n   GET g_word_utf8, gloss\n]\nGO",
+    "expected": 4145,
+    "valid": true
+  },
+  {
+    "model": "claude-sonnet-4-6",
+    "name": "bara_occurrences",
+    "question": "Where does the verb bara (create) occur in the text?",
+    "mql": "SELECT ALL OBJECTS WHERE\n  [verse GET book, chapter, verse\n    [word lex='BR>[' GET g_word_utf8, gloss]]\nGO",
+    "expected": 48,
+    "valid": true
+  },
+  {
+    "model": "claude-sonnet-4-6",
+    "name": "object_phrases",
+    "question": "Find all object phrases in the Hebrew Bible",
+    "mql": "SELECT ALL OBJECTS WHERE\n[phrase function=Objc\n   GET function\n]\nGO",
+    "expected": 22668,
+    "valid": true
+  },
+  {
+    "model": "claude-sonnet-4-6",
+    "name": "imperative_verbs",
+    "question": "Find all imperative verb forms",
+    "mql": "SELECT ALL OBJECTS WHERE\n[word sp=verb AND vt=impv\n   GET g_word_utf8, gloss, lex\n]\nGO",
+    "expected": 4306,
+    "valid": true
+  },
+  {
+    "model": "claude-sonnet-4-6",
+    "name": "nominal_clause_with_subject",
+    "question": "Find nominal clauses that contain a subject phrase",
+    "mql": "SELECT ALL OBJECTS WHERE\n[clause typ=NmCl\n   [phrase function=Subj]\n]\nGO",
+    "expected": 7601,
+    "valid": true
+  },
+  {
+    "model": "claude-sonnet-4-6",
+    "name": "construct_chain_nouns",
+    "question": "Find noun phrases that contain a construct-chain (regens-rectum) relationship",
+    "mql": "SELECT ALL OBJECTS WHERE\n  [phrase typ=NP\n    [subphrase rela=rec]\n  ]\nGO",
+    "expected": 14972,
+    "valid": true
+  },
+  {
+    "model": "claude-sonnet-4-6",
+    "name": "feminine_plural_nouns",
+    "question": "Find all feminine plural nouns",
+    "mql": "SELECT ALL OBJECTS WHERE\n[word sp=subs AND gn=f AND nu=pl\n   GET g_word_utf8, gloss\n]\nGO",
+    "expected": 5992,
+    "valid": true
+  },
+  {
+    "model": "claude-sonnet-4-6",
+    "name": "wayyiqtol_clause_subject",
+    "question": "Find wayyiqtol clauses that have a subject phrase",
+    "mql": "SELECT ALL OBJECTS WHERE\n[clause typ=WayX\n   [phrase function=Subj\n      GET function\n   ]\n]\nGO",
+    "expected": 5874,
+    "valid": true
+  },
+  {
+    "model": "claude-sonnet-4-6",
+    "name": "verse_proper_nouns_genesis",
+    "question": "Where do proper nouns occur in Genesis?",
+    "mql": "SELECT ALL OBJECTS WHERE\n  [verse book=Genesis GET book, chapter, verse\n    [word sp=nmpr GET g_word_utf8, gloss]]\nGO",
+    "expected": 2465,
+    "valid": true
+  },
+  {
+    "model": "claude-sonnet-4-6",
+    "name": "verbal_clause_pred_obj",
+    "question": "Find verbal clauses where the predicate is followed by an object phrase",
+    "mql": "SELECT ALL OBJECTS WHERE\n  [clause kind=VC\n    [phrase function=Pred]\n    ..\n    [phrase function=Objc]\n  ]\nGO",
+    "expected": 32250,
+    "valid": true
+  },
+  {
+    "model": "claude-haiku-4-5",
+    "name": "ellipsis_conj_objc",
+    "question": "Find all ellipsis clauses that start with a conjunction and an object",
+    "mql": "SELECT ALL OBJECTS WHERE\n[clause typ=Ellp\n   [phrase first function=Conj]\n   ..\n   [phrase function=Objc]\n]\nGO",
+    "expected": 1640,
+    "valid": true
+  },
+  {
+    "model": "claude-haiku-4-5",
+    "name": "niphal_verbs",
+    "question": "Find all Niphal verbs in the Hebrew Bible",
+    "mql": "SELECT ALL OBJECTS WHERE\n[word sp=verb AND vs=nif\n   GET g_word_utf8, gloss\n]\nGO",
+    "expected": 4145,
+    "valid": true
+  },
+  {
+    "model": "claude-haiku-4-5",
+    "name": "bara_occurrences",
+    "question": "Where does the verb bara (create) occur in the text?",
+    "mql": "SELECT ALL OBJECTS WHERE\n[verse GET book, chapter, verse\n  [word lex='BR>[' GET g_word_utf8, gloss]\n]\nGO",
+    "expected": 48,
+    "valid": true
+  },
+  {
+    "model": "claude-haiku-4-5",
+    "name": "object_phrases",
+    "question": "Find all object phrases in the Hebrew Bible",
+    "mql": "SELECT ALL OBJECTS WHERE\n[phrase function=Objc\n   GET function\n]\nGO",
+    "expected": 22668,
+    "valid": true
+  },
+  {
+    "model": "claude-haiku-4-5",
+    "name": "imperative_verbs",
+    "question": "Find all imperative verb forms",
+    "mql": "SELECT ALL OBJECTS WHERE\n[word sp=verb AND vt=impv GET g_word_utf8, gloss]\nGO",
+    "expected": 4306,
+    "valid": true
+  },
+  {
+    "model": "claude-haiku-4-5",
+    "name": "nominal_clause_with_subject",
+    "question": "Find nominal clauses that contain a subject phrase",
+    "mql": "SELECT ALL OBJECTS WHERE\n[clause typ=NmCl\n   [phrase function=Subj]\n]\nGO",
+    "expected": 7601,
+    "valid": true
+  },
+  {
+    "model": "claude-haiku-4-5",
+    "name": "construct_chain_nouns",
+    "question": "Find noun phrases that contain a construct-chain (regens-rectum) relationship",
+    "mql": "SELECT ALL OBJECTS WHERE\n[phrase typ=NP\n   [phrase_atom\n      [subphrase rela=rec]\n      ..\n      [subphrase rela=atr]\n   ]\n]\nGO",
+    "expected": 14972,
+    "valid": true
+  },
+  {
+    "model": "claude-haiku-4-5",
+    "name": "feminine_plural_nouns",
+    "question": "Find all feminine plural nouns",
+    "mql": "SELECT ALL OBJECTS WHERE\n[word sp=subs AND gn=f AND nu=pl\n   GET g_word_utf8, lex, gloss\n]\nGO",
+    "expected": 5992,
+    "valid": true
+  },
+  {
+    "model": "claude-haiku-4-5",
+    "name": "wayyiqtol_clause_subject",
+    "question": "Find wayyiqtol clauses that have a subject phrase",
+    "mql": "SELECT ALL OBJECTS WHERE\n[clause typ=WayX\n   [phrase function=Subj]\n]\nGO",
+    "expected": 5874,
+    "valid": true
+  },
+  {
+    "model": "claude-haiku-4-5",
+    "name": "verse_proper_nouns_genesis",
+    "question": "Where do proper nouns occur in Genesis?",
+    "mql": "SELECT ALL OBJECTS WHERE\n[verse GET book, chapter, verse\n  [word sp=nmpr GET g_word_utf8, gloss]\n]\nGO",
+    "expected": 2465,
+    "valid": true
+  },
+  {
+    "model": "claude-haiku-4-5",
+    "name": "verbal_clause_pred_obj",
+    "question": "Find verbal clauses where the predicate is followed by an object phrase",
+    "mql": "SELECT ALL OBJECTS WHERE\n[clause kind=VC\n   [phrase first function=Pred]\n   ..\n   [phrase function=Objc]\n]\nGO",
+    "expected": 32250,
+    "valid": true
+  }
+]

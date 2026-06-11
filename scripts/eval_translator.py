@@ -40,9 +40,37 @@ def score(mql: str, expected: int, ref) -> tuple[str, int | None]:
     return ("ok" if c == expected else f"wrong:{c}", c)
 
 
+def score_only(path: str, ref) -> None:
+    """Score pre-generated queries from a JSON list of {model, name, mql, expected}.
+    Needs the DB but no model API key — used to score locally-translated queries in
+    CI without an Anthropic secret."""
+    from collections import defaultdict
+    by_model: dict[str, list] = defaultdict(list)
+    for r in json.loads(Path(path).read_text(encoding="utf-8")):
+        by_model[r["model"]].append(r)
+    for model, rows in by_model.items():
+        correct = 0
+        out = []
+        for r in rows:
+            mql = r["mql"]
+            if mql.startswith("ERROR"):
+                verdict = "translate-error"
+            else:
+                verdict, _ = score(mql, r["expected"], ref)
+            correct += verdict == "ok"
+            out.append((r["name"], verdict))
+        print(f"\n=== {model}: {correct}/{len(rows)} count-match ===")
+        for name, verdict in out:
+            print(f"  {'PASS' if verdict == 'ok' else 'FAIL'}  {name}: {verdict}")
+
+
 def main() -> None:
-    import anthropic
     ref = FeatureReference.load()
+    score_file = os.environ.get("EVAL_INPUT", "").strip()
+    if score_file:                       # score pre-generated queries, no API key
+        score_only(score_file, ref)
+        return
+    import anthropic
     system = build_prompt(ref)
     questions = json.loads(FIX.read_text(encoding="utf-8"))["questions"]
     client = anthropic.Anthropic()
