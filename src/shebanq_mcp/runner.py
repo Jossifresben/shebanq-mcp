@@ -17,29 +17,35 @@ def _parse_get_lists(mql: str) -> list[list[str]]:
             for clause in _GET_CLAUSE.findall(mql)]
 
 
-def _parse_get_by_level(mql: str) -> dict:
-    """Map each object-block nesting LEVEL to its own GET features, assigning a
-    GET clause to the block it is syntactically inside (by bracket depth) rather
-    than by textual order. So a query that GETs only on an inner block does not
-    misalign its features onto the outer object (which retrieved nothing).
-    Robust to '[' inside string literals (e.g. the lexeme 'BR>['). Note: two
-    sibling blocks at the same depth that each carry a GET merge into one list
-    for that depth; the query shapes we generate never do this (a level has at
-    most one GET), but a hand-written run_mql query could."""
+def _block_node() -> dict:
+    return {"get": [], "children": []}
+
+
+def _parse_block_tree(mql: str) -> dict:
+    """Parse the object blocks into a tree (a virtual root whose children are
+    the top-level blocks); each node carries its own GET feature list. A GET
+    clause is assigned to the block it is syntactically inside, so two sibling
+    blocks that each carry a GET (e.g. a Pred word and a Cmpl word) keep
+    separate lists — merging them by depth over-indexes getFeatureAsString,
+    which aborts the Emdros C layer and kills the worker process. Robust to
+    '[' inside string literals (e.g. the lexeme 'BR>[')."""
     stripped = re.sub(r"'[^']*'", "", mql)
-    out: dict = {}
-    depth = 0
+    root = _block_node()
+    stack = [root]
     for m in re.finditer(r"\[|\]|\bGET\s+([A-Za-z0-9_,\s]+?)(?=[\[\]])",
                          stripped, re.IGNORECASE):
         tok = m.group(0)
         if tok == "[":
-            depth += 1
+            node = _block_node()
+            stack[-1]["children"].append(node)
+            stack.append(node)
         elif tok == "]":
-            depth -= 1
-        else:                       # GET clause: belongs to the block at this depth
-            out.setdefault(depth - 1, []).extend(
+            if len(stack) > 1:
+                stack.pop()
+        else:                       # GET clause: belongs to the enclosing block
+            stack[-1]["get"].extend(
                 f.strip() for f in m.group(1).split(",") if f.strip())
-    return out
+    return root
 
 
 def _nesting_depth(mql: str) -> int:
@@ -57,26 +63,35 @@ def _nesting_depth(mql: str) -> int:
     return top
 
 
-def _harvest_nested(sheaf, get_by_level, depth, ctx, matches, limit, leaf_depth):
+def _harvest_nested(sheaf, parent, depth, ctx, matches, limit, leaf_depth):
     if sheaf is None:               # a non-leaf object whose block has no inner
         return 0                    # query (e.g. a sibling [phrase function=Conj]
                                     # beside [phrase function=Objc [word ...]]) has
                                     # a None inner sheaf and contributes no leaves
-    names = get_by_level.get(depth, [])
+    blocks = parent["children"]
     is_leaf = depth >= leaf_depth
     total = 0
     it = sheaf.const_iterator()
     while it.hasNext():
         sit = it.next().const_iterator()
+        pos = 0
         while sit.hasNext():
             mo = sit.next()
+            # Matched objects in a straw line up with the sibling blocks in
+            # document order; the modulo also covers a straw holding several
+            # matches of a single block. Reading features beyond a block's own
+            # GET list would abort the Emdros C layer, so each object is read
+            # with exactly its block's names.
+            block = blocks[pos % len(blocks)] if blocks else _block_node()
+            pos += 1
+            names = block["get"]
             feats = {n: mo.getFeatureAsString(i) for i, n in enumerate(names)}
             if not is_leaf:
                 child = dict(ctx)
                 for k in _REF_KEYS:
                     if k in feats:
                         child[k] = feats[k]
-                total += _harvest_nested(mo.getSheaf(), get_by_level, depth + 1,
+                total += _harvest_nested(mo.getSheaf(), block, depth + 1,
                                          child, matches, limit, leaf_depth)
             else:
                 total += 1
@@ -138,9 +153,9 @@ def run_query(mql: str, db_path: str, features: list[str] | None = None,
 
     levels = _nesting_depth(mql)
     if levels > 1:                                  # nested: harvest leaf rows
-        get_by_level = _parse_get_by_level(mql)
+        tree = _parse_block_tree(mql)
         matches: list[dict] = []
-        total = _harvest_nested(sheaf, get_by_level, 0, {}, matches, limit, levels - 1)
+        total = _harvest_nested(sheaf, tree, 0, {}, matches, limit, levels - 1)
         return RunResult(count=total, matches=matches)
 
     matches = []                                    # flat: existing behaviour

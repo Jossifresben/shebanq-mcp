@@ -1,5 +1,5 @@
 import pytest
-from shebanq_mcp.runner import run_query, RunResult, _parse_get_lists, _parse_get_by_level
+from shebanq_mcp.runner import run_query, RunResult, _parse_get_lists, _parse_block_tree
 
 
 @pytest.mark.emdros
@@ -269,20 +269,45 @@ def test_run_query_nested_without_inner_get_still_descends(monkeypatch):
     assert "id_d" in res.matches[0]
 
 
-# --- Level-aware GET parsing and inner-only GET crash fix ---
+# --- Block-aware GET parsing and inner-only GET crash fix ---
 
 
-def test_parse_get_by_level_assigns_to_owning_block():
-    assert _parse_get_by_level(
+def _gets(node):
+    """Flatten a block tree to nested [get, [children...]] lists for assertions."""
+    return [node["get"], [_gets(c) for c in node["children"]]]
+
+
+def test_parse_block_tree_assigns_get_to_owning_block():
+    tree = _parse_block_tree(
         "SELECT ALL OBJECTS WHERE [clause typ=WayX [phrase function=Subj GET function]] GO"
-    ) == {1: ["function"]}
-    assert _parse_get_by_level(
+    )
+    assert _gets(tree) == [[], [[[], [[["function"], []]]]]]
+    tree = _parse_block_tree(
         "SELECT ALL OBJECTS WHERE [clause GET typ [phrase GET function [word GET lex, gloss]]] GO"
-    ) == {0: ["typ"], 1: ["function"], 2: ["lex", "gloss"]}
+    )
+    assert _gets(tree) == [[], [[["typ"], [[["function"], [[["lex", "gloss"], []]]]]]]]
     # '[' inside a string literal must not shift levels
-    assert _parse_get_by_level(
+    tree = _parse_block_tree(
         "SELECT ALL OBJECTS WHERE [verse GET book, chapter, verse [word lex='BR>[' GET g_word_utf8, gloss]] GO"
-    ) == {0: ["book", "chapter", "verse"], 1: ["g_word_utf8", "gloss"]}
+    )
+    assert _gets(tree) == [[], [[["book", "chapter", "verse"],
+                                [[["g_word_utf8", "gloss"], []]]]]]
+
+
+def test_parse_block_tree_sibling_gets_stay_separate():
+    """Two sibling blocks at the same depth each keep their OWN GET list; the old
+    by-depth parse merged them, over-indexing getFeatureAsString in the harvest
+    (a SIGABRT in the real Emdros C layer)."""
+    tree = _parse_block_tree(
+        "SELECT ALL OBJECTS WHERE [clause "
+        "[phrase function=Pred [word sp=verb GET g_word_utf8, gloss]] .. "
+        "[phrase function=Cmpl [word sp=prep GET lex]]] GO"
+    )
+    clause = tree["children"][0]
+    pred_word = clause["children"][0]["children"][0]
+    cmpl_word = clause["children"][1]["children"][0]
+    assert pred_word["get"] == ["g_word_utf8", "gloss"]
+    assert cmpl_word["get"] == ["lex"]
 
 
 def test_run_query_nested_get_only_on_inner_never_touches_outer(monkeypatch):
@@ -348,3 +373,79 @@ def test_run_query_nested_skips_none_sheaf_siblings(monkeypatch):
     r = res.matches[0]
     assert r["id_d"] == 101 and r["g_word_utf8"] == "דָּבָר"
     assert r["book"] == "Genesis" and r["verse"] == "1"
+
+
+# --- Sibling leaf blocks that each carry their own GET (worker-crash fix) ---
+
+# The translator generates this shape for verb+complement questions ("spoke
+# with"): a Pred word and a Cmpl word, sibling leaf blocks, each with its own
+# GET. The fakes raise IndexError on an out-of-range feature index, modelling
+# the real failure: Emdros aborts the worker process (SIGABRT, exit -6).
+
+_SPOKE_WITH_MQL = """SELECT ALL OBJECTS WHERE
+  [verse GET book, chapter, verse
+    [clause
+      [phrase function=Pred
+        [word sp=verb AND vt=wayq AND lex='DBR[' GET g_word_utf8, gloss]
+      ]
+      ..
+      [phrase function=Cmpl
+        [word sp=prep AND lex='<M' GET g_word_utf8, gloss]
+      ]
+    ]
+  ]
+GO"""
+
+
+def _spoke_with_env(pred_feats, cmpl_feats):
+    pred_word = _NMo(101, pred_feats)
+    cmpl_word = _NMo(102, cmpl_feats)
+    pred_phrase = _NMo(11, [], _FakeSheaf([_FakeStraw([pred_word])]))
+    cmpl_phrase = _NMo(12, [], _FakeSheaf([_FakeStraw([cmpl_word])]))
+    clause = _NMo(21, [], _FakeSheaf([_FakeStraw([pred_phrase, cmpl_phrase])]))
+    verse = _NMo(1, ["Genesis", "1", "1"],
+                 _FakeSheaf([_FakeStraw([clause])]))
+
+    class _Env:
+        def executeString(self, *a):
+            return True
+
+        def getSheaf(self):
+            return _FakeSheaf([_FakeStraw([verse])])
+
+    return _Env()
+
+
+def test_run_query_sibling_get_blocks_do_not_overrun_features(monkeypatch):
+    import shebanq_mcp.runner as runner
+    env = _spoke_with_env(["וַיְדַבֵּר", "speak"], ["עִם", "with"])
+    monkeypatch.setattr(runner, "_make_env", lambda db: env)
+    res = run_query(_SPOKE_WITH_MQL, "x.db")
+    assert res.count == 2                       # the Pred word and the Cmpl word
+    by_id = {r["id_d"]: r for r in res.matches}
+    assert by_id[101]["g_word_utf8"] == "וַיְדַבֵּר" and by_id[101]["gloss"] == "speak"
+    assert by_id[102]["g_word_utf8"] == "עִם" and by_id[102]["gloss"] == "with"
+    assert by_id[101]["book"] == "Genesis" and by_id[102]["verse"] == "1"
+
+
+def test_run_query_sibling_get_blocks_with_different_features(monkeypatch):
+    import shebanq_mcp.runner as runner
+    env = _spoke_with_env(["וַיְדַבֵּר", "speak"], ["<M"])
+    monkeypatch.setattr(runner, "_make_env", lambda db: env)
+    mql = _SPOKE_WITH_MQL.replace(
+        "[word sp=prep AND lex='<M' GET g_word_utf8, gloss]",
+        "[word sp=prep AND lex='<M' GET lex]")
+    res = run_query(mql, "x.db")
+    assert res.count == 2
+    by_id = {r["id_d"]: r for r in res.matches}
+    assert by_id[101]["g_word_utf8"] == "וַיְדַבֵּר"
+    assert by_id[102]["lex"] == "<M" and "g_word_utf8" not in by_id[102]
+
+
+@pytest.mark.emdros
+def test_sibling_get_query_survives_real_engine(require_emdros, db_path):
+    # The exact user query that killed the worker (SIGABRT) in v0.2.0.
+    result = run_query(_SPOKE_WITH_MQL, db_path)
+    assert isinstance(result.count, int)
+    for row in result.matches:
+        assert "book" in row and "g_word_utf8" in row
