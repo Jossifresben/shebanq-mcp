@@ -316,3 +316,35 @@ def test_run_query_nested_get_only_on_inner_never_touches_outer(monkeypatch):
     res = run_query(mql, "x.db")
     assert res.count == 2
     assert res.matches[0]["function"] == "Subj" and "id_d" in res.matches[0]
+
+
+def test_run_query_nested_skips_none_sheaf_siblings(monkeypatch):
+    """An asymmetric nest where one sibling block has no inner query (e.g.
+    [phrase function=Conj] beside [phrase function=Objc [word ...]]) yields a None
+    inner sheaf for that sibling. The harvest must skip it, not crash."""
+    import shebanq_mcp.runner as runner
+    word = _NMo(101, ["דָּבָר", "word"])
+    word_sheaf = _FakeSheaf([_FakeStraw([word])])
+    conj = _NMo(201, [], None)                  # no inner block -> getSheaf() is None
+    objc = _NMo(202, [], word_sheaf)
+    phrase_sheaf = _FakeSheaf([_FakeStraw([conj, objc])])
+    clause = _NMo(301, [], phrase_sheaf)
+    verse = _NMo(1, ["Genesis", "1", "1"], _FakeSheaf([_FakeStraw([clause])]))
+    verse_sheaf = _FakeSheaf([_FakeStraw([verse])])
+
+    class _Env:
+        def executeString(self, *a):
+            return True
+
+        def getSheaf(self):
+            return verse_sheaf
+
+    monkeypatch.setattr(runner, "_make_env", lambda db: _Env())
+    mql = ("SELECT ALL OBJECTS WHERE [verse GET book, chapter, verse "
+           "[clause typ=Ellp [phrase first function=Conj] .. "
+           "[phrase function=Objc [word GET g_word_utf8, gloss]]]] GO")
+    res = run_query(mql, "x.db")
+    assert res.count == 1                        # the one object word; conj skipped
+    r = res.matches[0]
+    assert r["id_d"] == 101 and r["g_word_utf8"] == "דָּבָר"
+    assert r["book"] == "Genesis" and r["verse"] == "1"

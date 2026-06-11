@@ -58,6 +58,10 @@ def _nesting_depth(mql: str) -> int:
 
 
 def _harvest_nested(sheaf, get_by_level, depth, ctx, matches, limit, leaf_depth):
+    if sheaf is None:               # a non-leaf object whose block has no inner
+        return 0                    # query (e.g. a sibling [phrase function=Conj]
+                                    # beside [phrase function=Objc [word ...]]) has
+                                    # a None inner sheaf and contributes no leaves
     names = get_by_level.get(depth, [])
     is_leaf = depth >= leaf_depth
     total = 0
