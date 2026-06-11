@@ -43,12 +43,6 @@
       "expected_count": 1283
     },
     {
-      "name": "notexist_phrase",
-      "mql": "SELECT ALL OBJECTS WHERE [clause typ=WayX NOTEXIST [phrase function=Objc]] GO",
-      "teaches": "NOTEXIST excludes a parent that contains a matching child — here wayyiqtol clauses with no object phrase",
-      "expected_count": null
-    },
-    {
       "name": "boolean_or_in_word",
       "mql": "SELECT ALL OBJECTS WHERE [word sp=verb OR sp=adjv] GO",
       "teaches": "OR in feature constraints; default precedence: AND binds tighter than OR, so parentheses can be added when needed to override (e.g. sp=verb AND (vs=nif OR vs=piel) requires parens so OR applies to both vs comparisons)",

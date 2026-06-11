@@ -45,7 +45,7 @@
       "question": "Find nominal clauses that contain a subject phrase",
       "family": "clause-structure",
       "mql": "SELECT ALL OBJECTS WHERE [clause typ=NmCl [phrase function=Subj]] GO",
-      "expected_count": null,
+      "expected_count": 7601,
       "notes": "nominal (verbless) clause with an explicit subject; reformulated from a Pred-based query that returned 0 (verbless clauses use PreC, not Pred)"
     },
     {
