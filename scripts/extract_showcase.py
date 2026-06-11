@@ -1,7 +1,9 @@
 """Extract real showcase data from the BHSA database.
 
 Runs each featured search via the tested run_query, collecting the total count
-and up to SAMPLE_N real sample rows (Hebrew word + English gloss). Prints the
+and up to SAMPLE_N real sample rows (Hebrew word + gloss + verse reference). Every
+query is verse-wrapped and drills down to [word GET g_word_utf8, gloss], so
+run_query returns word rows that already carry book/chapter/verse. Prints the
 showcase JSON to stdout. Run in CI where Emdros + the DB exist:
 
     python scripts/extract_showcase.py data/bhsa.sqlite3 > demo/showcase.json
@@ -9,115 +11,65 @@ showcase JSON to stdout. Run in CI where Emdros + the DB exist:
 import json
 import sys
 
-from shebanq_mcp.runner import run_query, _import_emdros
-from shebanq_mcp.server import _wrap_in_verse
+from shebanq_mcp.runner import run_query
 
 DB = sys.argv[1] if len(sys.argv) > 1 else "data/bhsa.sqlite3"
 SAMPLE_N = 5
+_V = "GET book, chapter, verse"   # the verse wrapper that carries the reference
 
+# Two word-level classics for contrast, then clause/phrase-structure searches that
+# show off the curriculum. Each drills to [word ...] so the result rows show real
+# Hebrew + gloss + reference (a bare clause query has no single word to display).
 SEARCHES = [
-    {
-        "id": "niphal-verbs",
-        "question": "Find all Niphal verbs",
-        "mql": "SELECT ALL OBJECTS WHERE [word sp=verb AND vs=nif GET g_word_utf8, gloss] GO",
-        "where": "sp=verb AND vs=nif",
-    },
-    {
-        "id": "bara-create",
-        "question": "Where does the verb בָּרָא (bara, 'to create') occur?",
-        "mql": "SELECT ALL OBJECTS WHERE [word lex='BR>[' GET g_word_utf8, gloss] GO",
-        "where": "lex='BR>['",
-    },
-    {
-        "id": "feminine-plural-nouns",
-        "question": "Find feminine plural nouns",
-        "mql": "SELECT ALL OBJECTS WHERE [word sp=subs AND gn=f AND nu=pl GET g_word_utf8, gloss] GO",
-        "where": "sp=subs AND gn=f AND nu=pl",
-    },
-    {
-        "id": "imperative-verbs",
-        "question": "Find all imperative verbs",
-        "mql": "SELECT ALL OBJECTS WHERE [word vt=impv GET g_word_utf8, gloss] GO",
-        "where": "vt=impv",
-    },
-    {
-        "id": "proper-nouns",
-        "question": "Find all proper nouns (names)",
-        "mql": "SELECT ALL OBJECTS WHERE [word sp=nmpr GET g_word_utf8, gloss] GO",
-        "where": "sp=nmpr",
-    },
+    {"id": "bara-create",
+     "question": "Where does the verb בָּרָא (bara, to create) occur?",
+     "mql": f"SELECT ALL OBJECTS WHERE [verse {_V} "
+            "[word lex='BR>[' GET g_word_utf8, gloss]] GO"},
+    {"id": "niphal-verbs",
+     "question": "Find all Niphal verbs",
+     "mql": f"SELECT ALL OBJECTS WHERE [verse {_V} "
+            "[word sp=verb AND vs=nif GET g_word_utf8, gloss]] GO"},
+    {"id": "ellipsis-conj-object",
+     "question": "Object words in ellipsis clauses that begin with a conjunction",
+     "mql": f"SELECT ALL OBJECTS WHERE [verse {_V} "
+            "[clause typ=Ellp [phrase first function=Conj] .. "
+            "[phrase function=Objc [word GET g_word_utf8, gloss]]]] GO"},
+    {"id": "nominal-clause-subjects",
+     "question": "Subjects of verbless (nominal) clauses",
+     "mql": f"SELECT ALL OBJECTS WHERE [verse {_V} "
+            "[clause typ=NmCl [phrase function=Subj "
+            "[word GET g_word_utf8, gloss]]]] GO"},
+    {"id": "wayyiqtol-objects",
+     "question": "Objects of the verb in narrative (wayyiqtol) clauses",
+     "mql": f"SELECT ALL OBJECTS WHERE [verse {_V} "
+            "[clause typ=WayX [phrase function=Objc "
+            "[word GET g_word_utf8, gloss]]]] GO"},
+    {"id": "construct-chain-nouns",
+     "question": "Nouns in construct chains (the genitive relation)",
+     "mql": f"SELECT ALL OBJECTS WHERE [verse {_V} "
+            "[phrase typ=NP [subphrase rela=rec "
+            "[word GET g_word_utf8, gloss]]]] GO"},
 ]
 
 
-def _samples_with_refs(inner_where: str, db: str, n: int) -> list | None:
-    """Run a verse>word nested query and harvest up to n samples with verse
-    references. Returns None on any failure (caller falls back to flat samples).
-
-    The verse object carries book (enum book name), chapter (int) and verse
-    (int); the inner word carries g_word_utf8 and gloss.
-    """
-    try:
-        emdros = _import_emdros()
-        env = emdros.EmdrosEnv(
-            emdros.kOKConsole, emdros.kCSUTF8, "", "", "", db, emdros.kSQLite3,
-        )
-        mql = (
-            "SELECT ALL OBJECTS WHERE "
-            "[verse GET book, chapter, verse "
-            "  [word " + inner_where + " GET g_word_utf8, gloss] "
-            "] GO"
-        )
-        if not env.executeString(mql, True, False, True):
-            return None
-        out: list = []
-        sheaf = env.getSheaf()
-        it = sheaf.const_iterator()
-        while it.hasNext() and len(out) < n:
-            straw = it.next()
-            sit = straw.const_iterator()
-            while sit.hasNext() and len(out) < n:
-                vmo = sit.next()
-                ref = (
-                    f"{vmo.getFeatureAsString(0)} "
-                    f"{vmo.getFeatureAsString(1)}:{vmo.getFeatureAsString(2)}"
-                )
-                inner = vmo.getSheaf()
-                iit = inner.const_iterator()
-                while iit.hasNext() and len(out) < n:
-                    istraw = iit.next()
-                    wit = istraw.const_iterator()
-                    while wit.hasNext() and len(out) < n:
-                        wmo = wit.next()
-                        out.append({
-                            "hebrew": wmo.getFeatureAsString(0),
-                            "gloss": wmo.getFeatureAsString(1),
-                            "reference": ref,
-                        })
-        return out or None
-    except Exception:
-        return None
+def _reference(m: dict) -> str | None:
+    if m.get("book") and m.get("chapter") and m.get("verse"):
+        return f"{m['book']} {m['chapter']}:{m['verse']}"
+    return None
 
 
 def extract(db: str) -> dict:
     searches = []
     for s in SEARCHES:
-        res = run_query(s["mql"], db, features=["g_word_utf8", "gloss"])
-        samples = _samples_with_refs(s["where"], db, SAMPLE_N)
-        if samples is None:
-            samples = [
-                {
-                    "hebrew": m.get("g_word_utf8", ""),
-                    "gloss": m.get("gloss", ""),
-                    "reference": None,
-                }
-                for m in res.matches[:SAMPLE_N]
-            ]
+        res = run_query(s["mql"], db, limit=SAMPLE_N)
+        samples = [
+            {"hebrew": m.get("g_word_utf8", ""), "gloss": m.get("gloss", ""),
+             "reference": _reference(m)}
+            for m in res.matches
+        ]
         searches.append({
-            "id": s["id"],
-            "question": s["question"],
-            "mql": _wrap_in_verse(s["mql"]),
-            "count": res.count,
-            "samples": samples,
+            "id": s["id"], "question": s["question"], "mql": s["mql"],
+            "count": res.count, "samples": samples,
         })
     return {"version": "bhsa-2021", "searches": searches}
 
