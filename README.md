@@ -143,15 +143,33 @@ query visible and central rather than hiding it:
 
 AI as a way in, not a way around.
 
+## Two query languages, one answer
+
+`search_bhsa` returns the same question expressed twice: an Emdros MQL query
+and a Text-Fabric search template, both validated, with results from one
+engine (`BHSA_RESULT_ENGINE`, default `tf`). Scholars migrating from SHEBANQ
+to Text-Fabric can read their MQL next to its TF equivalent. `run_tf` executes
+a template directly, the way `run_mql` executes a query. Both engines are
+pinned to the BHSA 2021 release, so counts agree; CI proves it on every push.
+
+It also works the other way round. `to_citable_mql` converts a Text-Fabric
+template into the equivalent MQL, with no model involved, so a query from a
+research notebook can become a saved SHEBANQ query with a citable permalink.
+
+The TF engine needs the optional extra: `pip install "shebanq-mcp[tf]"`. The
+corpus downloads from GitHub on first use.
+
 ## Tools
 
 | Tool | Purpose |
 | --- | --- |
 | `search_bhsa(question)` | Plain-language question to generated MQL plus results |
 | `run_mql(mql)` | Validate and run MQL you already have |
+| `run_tf(template)` | Validate and run a Text-Fabric search template |
+| `to_citable_mql(template)` | Convert a TF template to SHEBANQ-citable MQL, no model |
 | `lookup_feature(name_or_term)` | A BHSA feature's gloss and valid values |
 
-`run_mql` and `lookup_feature` need no LLM. `search_bhsa` drafts the query with
+`run_mql`, `run_tf`, `to_citable_mql`, and `lookup_feature` need no LLM. `search_bhsa` drafts the query with
 an LLM, with the feature catalogue injected into the prompt.
 
 ### LLM provider
