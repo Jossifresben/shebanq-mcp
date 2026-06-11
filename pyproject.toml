@@ -22,7 +22,7 @@ build-backend = "setuptools.build_meta"
 where = ["src"]
 
 [tool.setuptools.package-data]
-shebanq_mcp = ["features.json", "mql_primer.md"]
+shebanq_mcp = ["features.json", "mql_primer.md", "tf_primer.md"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
