@@ -67,3 +67,25 @@ def test_build_translator_reads_env(monkeypatch):
 def test_build_translator_unknown_provider_raises():
     with pytest.raises(ValueError):
         build_translator("bogus")
+
+
+import shebanq_mcp.translate as t
+
+
+def test_build_translator_uses_llm_model_env(monkeypatch):
+    monkeypatch.setenv("LLM_PROVIDER", "anthropic")
+    monkeypatch.setenv("LLM_MODEL", "claude-haiku-4-5")
+    tr = t.build_translator()
+    assert tr is not None and tr._model == "claude-haiku-4-5"
+
+
+def test_build_translator_defaults_model(monkeypatch):
+    monkeypatch.setenv("LLM_PROVIDER", "anthropic")
+    monkeypatch.delenv("LLM_MODEL", raising=False)
+    tr = t.build_translator()
+    assert tr._model == t.DEFAULT_MODEL
+
+
+def test_build_translator_none_provider(monkeypatch):
+    monkeypatch.setenv("LLM_PROVIDER", "none")
+    assert t.build_translator() is None

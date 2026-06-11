@@ -129,16 +129,15 @@ class AnthropicTranslator:
 
 
 def build_translator(provider: str | None = None) -> "Translator | None":
-    """Construct the configured translator.
-
-    `provider` defaults to the LLM_PROVIDER env var, then to "anthropic".
-    "none"/"off"/"" returns None (translation-free server).
-    """
+    """Construct the configured translator. `provider` defaults to LLM_PROVIDER
+    then "anthropic"; "none"/"off"/"" returns None. The model is LLM_MODEL (env),
+    defaulting to DEFAULT_MODEL."""
     provider = (provider or os.environ.get("LLM_PROVIDER", "anthropic")).strip().lower()
     if provider in ("none", "off", ""):
         return None
     if provider == "anthropic":
-        return AnthropicTranslator()
+        model = os.environ.get("LLM_MODEL", "").strip() or DEFAULT_MODEL
+        return AnthropicTranslator(model=model)
     raise ValueError(
         f"unknown LLM_PROVIDER '{provider}' (supported: anthropic, none)"
     )
