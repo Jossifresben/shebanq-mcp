@@ -56,3 +56,19 @@ def test_out_of_grammar_construct_refused(ref):
 def test_quantifier_refused(ref):
     with pytest.raises(ConversionError, match="cannot be converted"):
         tf_to_mql("word sp=verb\n/without/\nclause\n/-/", ref)
+
+
+def test_quote_in_string_value_refused(ref):
+    with pytest.raises(ConversionError, match="quote or backslash"):
+        tf_to_mql("word lex=A'B", ref)
+
+
+def test_tab_indentation_refused(ref):
+    with pytest.raises(ConversionError, match="tab"):
+        tf_to_mql("clause\n\tword", ref)
+
+
+def test_multi_root_template_converts(ref):
+    mql = tf_to_mql("word sp=verb\nclause", ref)
+    assert mql == "SELECT ALL OBJECTS WHERE [word sp=verb] [clause] GO"
+    assert validate_mql(mql, ref).ok

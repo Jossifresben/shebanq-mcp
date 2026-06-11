@@ -23,6 +23,10 @@ def _constraints(otype: str, pairs: str, ref: FeatureReference) -> str:
     parts = []
     for feat, value in _PAIR.findall(pairs):
         if ref.kind_for(feat, otype) == "string":
+            if "'" in value or "\\" in value:
+                raise ConversionError(
+                    f"value {value!r} for string feature '{feat}' contains a "
+                    "quote or backslash that cannot be carried into MQL")
             parts.append(f"{feat}='{value}'")
         else:
             parts.append(f"{feat}={value}")
@@ -63,5 +67,5 @@ def tf_to_mql(template: str, ref: FeatureReference) -> str:
         out.append("[" + _constraints(m.group(1), m.group(2), ref))
         stack.append(indent)
     out.extend("]" * len(stack))
-    body = " ".join(out).replace("[ ", "[").replace(" ]", "]")
+    body = " ".join(out).replace(" ]", "]")
     return f"SELECT ALL OBJECTS WHERE {body} GO"
