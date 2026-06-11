@@ -12,9 +12,11 @@ def test_get_features_empty_when_no_get_clause():
 
 
 def test_lookup_feature_returns_table():
+    # v2 shape: top-level "objects" key with per-object-type specs
     out = server.handle_lookup_feature("vs")
-    assert out["gloss"] == "verbal stem"
-    assert out["values"]["nif"] == "Niphal"
+    word_spec = out["objects"]["word"]
+    assert word_spec["gloss"] == "verbal stem"
+    assert word_spec["values"]["nif"] == "Nif'al"
 
 
 def test_lookup_feature_unknown_returns_error_field():

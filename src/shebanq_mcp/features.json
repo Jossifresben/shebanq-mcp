@@ -1,5 +1,528 @@
 {
-  "version": "bhsa-2021",
+  "version": "2",
+  "object_types": [
+    {"name": "book",     "gloss": "a book of the Hebrew Bible"},
+    {"name": "chapter",  "gloss": "a chapter within a book"},
+    {"name": "verse",    "gloss": "a verse; carries book, chapter, verse for citations"},
+    {"name": "sentence", "gloss": "a sentence (may span clauses)"},
+    {"name": "clause",   "gloss": "a clause within a sentence"},
+    {"name": "clause_atom", "gloss": "a subunit of a clause (coordinated or subordinated portion)"},
+    {"name": "phrase",   "gloss": "a phrase within a clause"},
+    {"name": "phrase_atom", "gloss": "a subunit of a phrase"},
+    {"name": "subphrase","gloss": "a nested constituent within a phrase_atom"},
+    {"name": "word",     "gloss": "a single word; the morphological level"},
+    {"name": "lex",      "gloss": "a lexeme node (one per dictionary entry)"}
+  ],
+  "features": {
+    "book": {
+      "objects": {
+        "book":    {"kind": "enum", "gloss": "book name", "values": {
+          "Genesis": "Genesis", "Exodus": "Exodus", "Leviticus": "Leviticus",
+          "Numeri": "Numbers", "Deuteronomium": "Deuteronomy", "Josua": "Joshua",
+          "Judices": "Judges", "Samuel_I": "1 Samuel", "Samuel_II": "2 Samuel",
+          "Reges_I": "1 Kings", "Reges_II": "2 Kings", "Jesaia": "Isaiah",
+          "Jeremia": "Jeremiah", "Ezechiel": "Ezekiel", "Hosea": "Hosea",
+          "Joel": "Joel", "Amos": "Amos", "Obadia": "Obadiah", "Jona": "Jonah",
+          "Micha": "Micah", "Nahum": "Nahum", "Habakuk": "Habakkuk",
+          "Zephania": "Zephaniah", "Haggai": "Haggai", "Sacharia": "Zechariah",
+          "Maleachi": "Malachi", "Psalmi": "Psalms", "Iob": "Job",
+          "Proverbia": "Proverbs", "Ruth": "Ruth", "Canticum": "Song of Songs",
+          "Ecclesiastes": "Ecclesiastes", "Threni": "Lamentations",
+          "Esther": "Esther", "Daniel": "Daniel", "Esra": "Ezra",
+          "Nehemia": "Nehemiah", "Chronica_I": "1 Chronicles",
+          "Chronica_II": "2 Chronicles"
+        }},
+        "chapter": {"kind": "enum", "gloss": "book name (present on chapter)", "values": {
+          "Genesis": "Genesis", "Exodus": "Exodus", "Leviticus": "Leviticus",
+          "Numeri": "Numbers", "Deuteronomium": "Deuteronomy", "Josua": "Joshua",
+          "Judices": "Judges", "Samuel_I": "1 Samuel", "Samuel_II": "2 Samuel",
+          "Reges_I": "1 Kings", "Reges_II": "2 Kings", "Jesaia": "Isaiah",
+          "Jeremia": "Jeremiah", "Ezechiel": "Ezekiel", "Hosea": "Hosea",
+          "Joel": "Joel", "Amos": "Amos", "Obadia": "Obadiah", "Jona": "Jonah",
+          "Micha": "Micah", "Nahum": "Nahum", "Habakuk": "Habakkuk",
+          "Zephania": "Zephaniah", "Haggai": "Haggai", "Sacharia": "Zechariah",
+          "Maleachi": "Malachi", "Psalmi": "Psalms", "Iob": "Job",
+          "Proverbia": "Proverbs", "Ruth": "Ruth", "Canticum": "Song of Songs",
+          "Ecclesiastes": "Ecclesiastes", "Threni": "Lamentations",
+          "Esther": "Esther", "Daniel": "Daniel", "Esra": "Ezra",
+          "Nehemia": "Nehemiah", "Chronica_I": "1 Chronicles",
+          "Chronica_II": "2 Chronicles"
+        }},
+        "verse":   {"kind": "enum", "gloss": "book name (present on verse)", "values": {
+          "Genesis": "Genesis", "Exodus": "Exodus", "Leviticus": "Leviticus",
+          "Numeri": "Numbers", "Deuteronomium": "Deuteronomy", "Josua": "Joshua",
+          "Judices": "Judges", "Samuel_I": "1 Samuel", "Samuel_II": "2 Samuel",
+          "Reges_I": "1 Kings", "Reges_II": "2 Kings", "Jesaia": "Isaiah",
+          "Jeremia": "Jeremiah", "Ezechiel": "Ezekiel", "Hosea": "Hosea",
+          "Joel": "Joel", "Amos": "Amos", "Obadia": "Obadiah", "Jona": "Jonah",
+          "Micha": "Micah", "Nahum": "Nahum", "Habakuk": "Habakkuk",
+          "Zephania": "Zephaniah", "Haggai": "Haggai", "Sacharia": "Zechariah",
+          "Maleachi": "Malachi", "Psalmi": "Psalms", "Iob": "Job",
+          "Proverbia": "Proverbs", "Ruth": "Ruth", "Canticum": "Song of Songs",
+          "Ecclesiastes": "Ecclesiastes", "Threni": "Lamentations",
+          "Esther": "Esther", "Daniel": "Daniel", "Esra": "Ezra",
+          "Nehemia": "Nehemiah", "Chronica_I": "1 Chronicles",
+          "Chronica_II": "2 Chronicles"
+        }}
+      }
+    },
+    "chapter": {
+      "objects": {
+        "verse": {"kind": "integer", "gloss": "chapter number within the book"}
+      }
+    },
+    "verse": {
+      "objects": {
+        "verse": {"kind": "integer", "gloss": "verse number within the chapter"}
+      }
+    },
+    "label": {
+      "objects": {
+        "verse": {"kind": "string", "gloss": "verse reference string e.g. \"Gen 1:1\""}
+      }
+    },
+    "number": {
+      "objects": {
+        "sentence": {"kind": "integer", "gloss": "sequential sentence number"}
+      }
+    },
+    "typ": {
+      "objects": {
+        "clause": {"kind": "enum", "gloss": "clause type (syntactic pattern)", "values": {
+          "AjCl": "Adjective clause",
+          "CPen": "Casus pendens",
+          "Defc": "Defective clause atom",
+          "Ellp": "Ellipsis",
+          "InfA": "Infinitive absolute clause",
+          "InfC": "Infinitive construct clause",
+          "MSyn": "Macrosyntactic sign",
+          "NmCl": "Nominal clause",
+          "Ptcp": "Participle clause",
+          "Reop": "Reopening",
+          "Voct": "Vocative clause",
+          "Way0": "Wayyiqtol-null clause",
+          "WayX": "Wayyiqtol-X clause",
+          "WIm0": "We-imperative-null clause",
+          "WImX": "We-imperative-X clause",
+          "WQt0": "We-qatal-null clause",
+          "WQtX": "We-qatal-X clause",
+          "WxI0": "We-x-imperative-null clause",
+          "WXIm": "We-X-imperative clause",
+          "WxQ0": "We-x-qatal-null clause",
+          "WXQt": "We-X-qatal clause",
+          "WxQX": "We-x-qatal-X clause",
+          "WxY0": "We-x-yiqtol-null clause",
+          "WXYq": "We-X-yiqtol clause",
+          "WxYX": "We-x-yiqtol-X clause",
+          "WYq0": "We-yiqtol-null clause",
+          "WYqX": "We-yiqtol-X clause",
+          "xIm0": "x-imperative-null clause",
+          "XImp": "X-imperative clause",
+          "xImX": "x-imperative-X clause",
+          "XPos": "Extraposition",
+          "xQt0": "x-qatal-null clause",
+          "XQtl": "X-qatal clause",
+          "xQtX": "x-qatal-X clause",
+          "xYq0": "x-yiqtol-null clause",
+          "XYqt": "X-yiqtol clause",
+          "xYqX": "x-yiqtol-X clause",
+          "ZIm0": "Zero-imperative-null clause",
+          "ZImX": "Zero-imperative-X clause",
+          "ZQt0": "Zero-qatal-null clause",
+          "ZQtX": "Zero-qatal-X clause",
+          "ZYq0": "Zero-yiqtol-null clause",
+          "ZYqX": "Zero-yiqtol-X clause"
+        }},
+        "clause_atom": {"kind": "enum", "gloss": "clause atom type (syntactic pattern)", "values": {
+          "AjCl": "Adjective clause",
+          "CPen": "Casus pendens",
+          "Defc": "Defective clause atom",
+          "Ellp": "Ellipsis",
+          "InfA": "Infinitive absolute clause",
+          "InfC": "Infinitive construct clause",
+          "MSyn": "Macrosyntactic sign",
+          "NmCl": "Nominal clause",
+          "Ptcp": "Participle clause",
+          "Reop": "Reopening",
+          "Voct": "Vocative clause",
+          "Way0": "Wayyiqtol-null clause",
+          "WayX": "Wayyiqtol-X clause",
+          "WIm0": "We-imperative-null clause",
+          "WImX": "We-imperative-X clause",
+          "WQt0": "We-qatal-null clause",
+          "WQtX": "We-qatal-X clause",
+          "WxI0": "We-x-imperative-null clause",
+          "WXIm": "We-X-imperative clause",
+          "WxQ0": "We-x-qatal-null clause",
+          "WXQt": "We-X-qatal clause",
+          "WxQX": "We-x-qatal-X clause",
+          "WxY0": "We-x-yiqtol-null clause",
+          "WXYq": "We-X-yiqtol clause",
+          "WxYX": "We-x-yiqtol-X clause",
+          "WYq0": "We-yiqtol-null clause",
+          "WYqX": "We-yiqtol-X clause",
+          "xIm0": "x-imperative-null clause",
+          "XImp": "X-imperative clause",
+          "xImX": "x-imperative-X clause",
+          "XPos": "Extraposition",
+          "xQt0": "x-qatal-null clause",
+          "XQtl": "X-qatal clause",
+          "xQtX": "x-qatal-X clause",
+          "xYq0": "x-yiqtol-null clause",
+          "XYqt": "X-yiqtol clause",
+          "xYqX": "x-yiqtol-X clause",
+          "ZIm0": "Zero-imperative-null clause",
+          "ZImX": "Zero-imperative-X clause",
+          "ZQt0": "Zero-qatal-null clause",
+          "ZQtX": "Zero-qatal-X clause",
+          "ZYq0": "Zero-yiqtol-null clause",
+          "ZYqX": "Zero-yiqtol-X clause"
+        }},
+        "phrase": {"kind": "enum", "gloss": "phrase type (syntactic category)", "values": {
+          "VP":   "Verbal phrase",
+          "NP":   "Nominal phrase",
+          "PrNP": "Proper-noun phrase",
+          "AdvP": "Adverbial phrase",
+          "PP":   "Prepositional phrase",
+          "CP":   "Conjunctive phrase",
+          "PPrP": "Personal pronoun phrase",
+          "DPrP": "Demonstrative pronoun phrase",
+          "IPrP": "Interrogative pronoun phrase",
+          "InjP": "Interjectional phrase",
+          "NegP": "Negative phrase",
+          "InrP": "Interrogative phrase",
+          "AdjP": "Adjective phrase"
+        }},
+        "phrase_atom": {"kind": "enum", "gloss": "phrase atom type (syntactic category)", "values": {
+          "VP":   "Verbal phrase",
+          "NP":   "Nominal phrase",
+          "PrNP": "Proper-noun phrase",
+          "AdvP": "Adverbial phrase",
+          "PP":   "Prepositional phrase",
+          "CP":   "Conjunctive phrase",
+          "PPrP": "Personal pronoun phrase",
+          "DPrP": "Demonstrative pronoun phrase",
+          "IPrP": "Interrogative pronoun phrase",
+          "InjP": "Interjectional phrase",
+          "NegP": "Negative phrase",
+          "InrP": "Interrogative phrase",
+          "AdjP": "Adjective phrase"
+        }}
+      }
+    },
+    "kind": {
+      "objects": {
+        "clause": {"kind": "enum", "gloss": "broad clause category", "values": {
+          "VC": "Verbal clause (includes infinitive, participle, conjugated-verb patterns)",
+          "NC": "Nominal clause (AjCl, NmCl)",
+          "WP": "Without predication (pendens, ellipsis, macrosyntactic, reopened, vocative, extraposition)"
+        }},
+        "clause_atom": {"kind": "enum", "gloss": "broad clause atom category", "values": {
+          "VC": "Verbal clause",
+          "NC": "Nominal clause",
+          "WP": "Without predication"
+        }}
+      }
+    },
+    "rela": {
+      "objects": {
+        "clause": {"kind": "enum", "gloss": "relation of this clause to its mother", "values": {
+          "Adju": "Adjunctive clause",
+          "Attr": "Attributive (relative) clause",
+          "Cmpl": "Complement clause",
+          "Coor": "Coordinated clause",
+          "Objc": "Object clause",
+          "PrAd": "Predicative adjunct clause",
+          "PreC": "Predicative complement clause",
+          "ReVo": "Referral to the vocative",
+          "Resu": "Resumptive clause",
+          "RgRc": "Regens/rectum connection",
+          "Spec": "Specification clause",
+          "Subj": "Subject clause",
+          "NA":   "Not applicable (root clause)"
+        }},
+        "clause_atom": {"kind": "enum", "gloss": "relation of this clause atom to its mother", "values": {
+          "Adju": "Adjunctive",
+          "Attr": "Attributive (relative)",
+          "Cmpl": "Complement",
+          "Coor": "Coordinated",
+          "Objc": "Object",
+          "PrAd": "Predicative adjunct",
+          "PreC": "Predicative complement",
+          "ReVo": "Referral to the vocative",
+          "Resu": "Resumptive",
+          "RgRc": "Regens/rectum",
+          "Spec": "Specification",
+          "Subj": "Subject",
+          "NA":   "Not applicable (root)"
+        }},
+        "phrase": {"kind": "enum", "gloss": "relation to mother phrase (phrase_atom level)", "values": {
+          "Appo": "Apposition",
+          "Sfxs": "Suffix specification",
+          "Link": "Conjunction",
+          "Spec": "Specification",
+          "Para": "Parallel",
+          "PrAd": "Predicative adjunct",
+          "Resu": "Resumption"
+        }},
+        "phrase_atom": {"kind": "enum", "gloss": "relation of phrase atom to mother", "values": {
+          "Appo": "Apposition",
+          "Sfxs": "Suffix specification",
+          "Link": "Conjunction",
+          "Spec": "Specification",
+          "Para": "Parallel"
+        }},
+        "subphrase": {"kind": "enum", "gloss": "grammatical relation to head", "values": {
+          "adj": "adjunct",
+          "atr": "attribute",
+          "dem": "demonstrative",
+          "mod": "modifier",
+          "par": "parallel",
+          "rec": "regens (construct chain)"
+        }}
+      }
+    },
+    "txt": {
+      "objects": {
+        "clause": {"kind": "string", "gloss": "text type / discourse register; values: N=narrative, D=discursive, Q=quotation, ?=unknown — string, QUOTED in MQL"},
+        "clause_atom": {"kind": "string", "gloss": "text type / discourse register — string, QUOTED in MQL"}
+      }
+    },
+    "domain": {
+      "objects": {
+        "clause": {"kind": "string", "gloss": "discourse domain; same coding as txt (N/D/Q/?); string, QUOTED in MQL"},
+        "clause_atom": {"kind": "string", "gloss": "discourse domain — string, QUOTED in MQL"}
+      }
+    },
+    "function": {
+      "objects": {
+        "phrase": {"kind": "enum", "gloss": "syntactic function of the phrase in the clause", "values": {
+          "Adju": "Adjunct",
+          "Cmpl": "Complement",
+          "Conj": "Conjunction",
+          "EPPr": "Enclitic personal pronoun",
+          "ExsS": "Existence with subject suffix",
+          "Exst": "Existence",
+          "Frnt": "Fronted element",
+          "Intj": "Interjection",
+          "IntS": "Interjection with subject suffix",
+          "Loca": "Locative",
+          "Modi": "Modifier",
+          "ModS": "Modifier with subject suffix",
+          "NCop": "Negative copula",
+          "NCoS": "Negative copula with subject suffix",
+          "Nega": "Negation",
+          "Objc": "Object",
+          "PrAd": "Predicative adjunct",
+          "PrcS": "Predicate complement with subject suffix",
+          "PreC": "Predicate complement",
+          "Pred": "Predicate",
+          "PreO": "Predicate with object suffix",
+          "PreS": "Predicate with subject suffix",
+          "PtcO": "Participle with object suffix",
+          "Ques": "Question",
+          "Rela": "Relative",
+          "Subj": "Subject",
+          "Supp": "Supplementary constituent",
+          "Time": "Time reference",
+          "Voct": "Vocative"
+        }},
+        "phrase_atom": {"kind": "enum", "gloss": "syntactic function of the phrase atom in the clause", "values": {
+          "Adju": "Adjunct",
+          "Cmpl": "Complement",
+          "Conj": "Conjunction",
+          "EPPr": "Enclitic personal pronoun",
+          "ExsS": "Existence with subject suffix",
+          "Exst": "Existence",
+          "Frnt": "Fronted element",
+          "Intj": "Interjection",
+          "IntS": "Interjection with subject suffix",
+          "Loca": "Locative",
+          "Modi": "Modifier",
+          "ModS": "Modifier with subject suffix",
+          "NCop": "Negative copula",
+          "NCoS": "Negative copula with subject suffix",
+          "Nega": "Negation",
+          "Objc": "Object",
+          "PrAd": "Predicative adjunct",
+          "PrcS": "Predicate complement with subject suffix",
+          "PreC": "Predicate complement",
+          "Pred": "Predicate",
+          "PreO": "Predicate with object suffix",
+          "PreS": "Predicate with subject suffix",
+          "PtcO": "Participle with object suffix",
+          "Ques": "Question",
+          "Rela": "Relative",
+          "Subj": "Subject",
+          "Supp": "Supplementary constituent",
+          "Time": "Time reference",
+          "Voct": "Vocative"
+        }}
+      }
+    },
+    "det": {
+      "objects": {
+        "phrase": {"kind": "enum", "gloss": "determinacy of the phrase", "values": {
+          "det": "determined",
+          "und": "undetermined",
+          "NA":  "not applicable"
+        }},
+        "phrase_atom": {"kind": "enum", "gloss": "determinacy of the phrase atom", "values": {
+          "det": "determined",
+          "und": "undetermined",
+          "NA":  "not applicable"
+        }}
+      }
+    },
+    "lex": {
+      "objects": {
+        "word": {"kind": "string", "gloss": "consonantal lexeme in BHSA transliteration; verbs end with [, nouns with /; quoted in MQL: lex='BR>['"},
+        "lex":  {"kind": "string", "gloss": "lexeme identifier on the lex object type"}
+      }
+    },
+    "gloss": {
+      "objects": {
+        "word": {"kind": "string", "gloss": "short English gloss of the lexeme (dictionary sense, not inflected)"},
+        "lex":  {"kind": "string", "gloss": "English gloss of the lexeme"}
+      }
+    },
+    "g_word_utf8": {
+      "objects": {
+        "word": {"kind": "string", "gloss": "the word as it appears in the text (vocalized Hebrew, UTF-8)"}
+      }
+    },
+    "voc_lex_utf8": {
+      "objects": {
+        "word": {"kind": "string", "gloss": "vocalized lexeme form (UTF-8)"},
+        "lex":  {"kind": "string", "gloss": "vocalized lexeme form on the lex object type (UTF-8)"}
+      }
+    },
+    "sp": {
+      "objects": {
+        "word": {"kind": "enum", "gloss": "part of speech", "values": {
+          "art":  "article",
+          "verb": "verb",
+          "subs": "noun (substantive)",
+          "nmpr": "proper noun",
+          "advb": "adverb",
+          "prep": "preposition",
+          "conj": "conjunction",
+          "prps": "personal pronoun",
+          "prde": "demonstrative pronoun",
+          "prin": "interrogative pronoun",
+          "intj": "interjection",
+          "nega": "negative particle",
+          "inrg": "interrogative particle",
+          "adjv": "adjective"
+        }},
+        "lex": {"kind": "enum", "gloss": "part of speech on the lex object type", "values": {
+          "art":  "article",
+          "verb": "verb",
+          "subs": "noun (substantive)",
+          "nmpr": "proper noun",
+          "advb": "adverb",
+          "prep": "preposition",
+          "conj": "conjunction",
+          "prps": "personal pronoun",
+          "prde": "demonstrative pronoun",
+          "prin": "interrogative pronoun",
+          "intj": "interjection",
+          "nega": "negative particle",
+          "inrg": "interrogative particle",
+          "adjv": "adjective"
+        }}
+      }
+    },
+    "vs": {
+      "objects": {
+        "word": {"kind": "enum", "gloss": "verbal stem", "values": {
+          "qal":  "Qal",
+          "nif":  "Nif'al",
+          "piel": "Pi\"el",
+          "pual": "Pu\"al",
+          "hif":  "Hif'il",
+          "hof":  "Hof'al",
+          "hit":  "Hitpa\"el",
+          "htpo": "Hitpo\"el",
+          "poal": "Po\"al",
+          "poel": "Po\"el",
+          "peal": "Pe'al",
+          "peil": "Pe'il",
+          "pael": "Pa\"el",
+          "afel": "Af'el",
+          "haf":  "Haf'el",
+          "shaf": "Shaf'el",
+          "etpa": "Etpa\"al",
+          "etpe": "Etpe'el",
+          "htpa": "Hitpa\"al",
+          "htpe": "Hitpe'el",
+          "nit":  "Nitpa\"el",
+          "tif":  "Tif'al",
+          "hotp": "Hotpa\"al",
+          "hsht": "Hishtaf'al",
+          "pasq": "Passive qal",
+          "NA":   "not applicable (non-verbal words)"
+        }}
+      }
+    },
+    "vt": {
+      "objects": {
+        "word": {"kind": "enum", "gloss": "verbal tense / conjugation pattern", "values": {
+          "perf": "perfect",
+          "impf": "imperfect",
+          "wayq": "wayyiqtol",
+          "impv": "imperative",
+          "infa": "infinitive absolute",
+          "infc": "infinitive construct",
+          "ptca": "active participle",
+          "ptcp": "passive participle",
+          "NA":   "not applicable (non-verbal words)"
+        }}
+      }
+    },
+    "ps": {
+      "objects": {
+        "word": {"kind": "enum", "gloss": "grammatical person", "values": {
+          "p1":      "first person",
+          "p2":      "second person",
+          "p3":      "third person",
+          "NA":      "not applicable",
+          "unknown": "unknown"
+        }}
+      }
+    },
+    "gn": {
+      "objects": {
+        "word": {"kind": "enum", "gloss": "grammatical gender", "values": {
+          "m":       "masculine",
+          "f":       "feminine",
+          "NA":      "not applicable",
+          "unknown": "unknown"
+        }}
+      }
+    },
+    "nu": {
+      "objects": {
+        "word": {"kind": "enum", "gloss": "grammatical number", "values": {
+          "sg":      "singular",
+          "pl":      "plural",
+          "du":      "dual",
+          "NA":      "not applicable",
+          "unknown": "unknown"
+        }}
+      }
+    },
+    "st": {
+      "objects": {
+        "word": {"kind": "enum", "gloss": "state (noun form)", "values": {
+          "a":  "absolute",
+          "c":  "construct",
+          "e":  "emphatic",
+          "NA": "not applicable"
+        }}
+      }
+    }
+  },
   "enum_constants": [
     "AdjP",
     "Adju",
@@ -238,133 +761,5 @@
     "xQtX",
     "xYq0",
     "xYqX"
-  ],
-  "features": {
-    "lex": {
-      "kind": "string",
-      "gloss": "lexeme (dictionary form); verbs carry a trailing [",
-      "values": null
-    },
-    "gloss": {
-      "kind": "string",
-      "gloss": "English gloss of the lexeme",
-      "values": null
-    },
-    "g_word_utf8": {
-      "kind": "string",
-      "gloss": "the word as it appears in the text (UTF-8)",
-      "values": null
-    },
-    "voc_lex_utf8": {
-      "kind": "string",
-      "gloss": "vocalized lexeme (UTF-8)",
-      "values": null
-    },
-    "sp": {
-      "kind": "enum",
-      "gloss": "part of speech",
-      "values": {
-        "verb": "verb",
-        "subs": "noun",
-        "nmpr": "proper noun",
-        "advb": "adverb",
-        "prep": "preposition",
-        "conj": "conjunction",
-        "art": "article",
-        "prde": "demonstrative",
-        "prin": "interrogative pronoun",
-        "prps": "personal pronoun",
-        "intj": "interjection",
-        "nega": "negative",
-        "inrg": "interrogative"
-      }
-    },
-    "vs": {
-      "kind": "enum",
-      "gloss": "verbal stem",
-      "values": {
-        "qal": "Qal",
-        "nif": "Niphal",
-        "piel": "Piel",
-        "pual": "Pual",
-        "hif": "Hiphil",
-        "hof": "Hophal",
-        "hit": "Hitpael"
-      }
-    },
-    "vt": {
-      "kind": "enum",
-      "gloss": "verbal tense",
-      "values": {
-        "perf": "perfect",
-        "impf": "imperfect",
-        "wayq": "wayyiqtol",
-        "impv": "imperative",
-        "infa": "infinitive absolute",
-        "infc": "infinitive construct",
-        "ptca": "active participle",
-        "ptcp": "passive participle"
-      }
-    },
-    "ps": {
-      "kind": "enum",
-      "gloss": "grammatical person",
-      "values": {
-        "p1": "first person",
-        "p2": "second person",
-        "p3": "third person"
-      }
-    },
-    "gn": {
-      "kind": "enum",
-      "gloss": "grammatical gender",
-      "values": {
-        "m": "masculine",
-        "f": "feminine"
-      }
-    },
-    "nu": {
-      "kind": "enum",
-      "gloss": "grammatical number",
-      "values": {
-        "sg": "singular",
-        "pl": "plural",
-        "du": "dual"
-      }
-    },
-    "st": {
-      "kind": "enum",
-      "gloss": "state",
-      "values": {
-        "a": "absolute",
-        "c": "construct",
-        "e": "emphatic"
-      }
-    },
-    "function": {
-      "kind": "enum",
-      "gloss": "phrase function in the clause",
-      "values": {
-        "Pred": "predicate",
-        "Subj": "subject",
-        "Objc": "object",
-        "Cmpl": "complement",
-        "Adju": "adjunct",
-        "Time": "time",
-        "Loca": "location",
-        "Modi": "modifier"
-      }
-    },
-    "typ": {
-      "kind": "enum",
-      "gloss": "phrase type",
-      "values": {
-        "VP": "verbal phrase",
-        "NP": "nominal phrase",
-        "PP": "prepositional phrase",
-        "AdvP": "adverbial phrase",
-        "AdjP": "adjective phrase"
-      }
-    }
-  }
+  ]
 }

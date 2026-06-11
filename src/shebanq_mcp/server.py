@@ -58,7 +58,14 @@ def handle_lookup_feature(name_or_term: str) -> dict:
     spec = _ref.lookup(name_or_term)
     if spec is None:
         return {"error": f"unknown feature '{name_or_term}'"}
-    return {"feature": name_or_term, "gloss": spec["gloss"], "values": spec.get("values")}
+    return {
+        "feature": name_or_term,
+        "objects": {
+            ot: {"kind": s["kind"], "gloss": s.get("gloss"),
+                 "values": s.get("values")}
+            for ot, s in spec["objects"].items()
+        },
+    }
 
 
 def _get_features(mql: str) -> list[str]:

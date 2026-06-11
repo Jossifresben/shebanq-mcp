@@ -63,17 +63,23 @@ BHSA feature reference (feature [kind]: gloss; values):
 
 
 def _reference_block(ref: FeatureReference) -> str:
-    lines = []
-    for name, spec in ref.features.items():
-        kind = spec.get("kind", "string")
-        values = spec.get("values")
-        if kind == "enum" and values:
-            vals = ", ".join(f"{k}={v}" for k, v in values.items())
-            lines.append(f"- {name} [enum, UNQUOTED]: {spec['gloss']}; values: {vals}")
-        elif kind == "string":
-            lines.append(f"- {name} [string, QUOTED]: {spec['gloss']}")
-        else:
-            lines.append(f"- {name} [{kind}]: {spec['gloss']}")
+    lines = ["Object hierarchy (outermost first): "
+             + " > ".join(o["name"] for o in ref.object_types())]
+    for o in ref.object_types():
+        feats = ref.features_for(o["name"])
+        if not feats:
+            continue
+        lines.append(f"\n[{o['name']}] — {o['gloss']}")
+        for name, spec in sorted(feats.items()):
+            kind = spec.get("kind", "string")
+            values = spec.get("values")
+            if kind == "enum" and values:
+                vals = ", ".join(f"{k}={v}" for k, v in values.items())
+                lines.append(f"- {name} [enum, UNQUOTED]: {spec['gloss']}; values: {vals}")
+            elif kind == "string":
+                lines.append(f"- {name} [string, QUOTED]: {spec['gloss']}")
+            else:
+                lines.append(f"- {name} [{kind}]: {spec['gloss']}")
     return "\n".join(lines)
 
 
