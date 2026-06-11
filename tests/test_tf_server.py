@@ -97,3 +97,37 @@ def test_search_bhsa_translation_free_mode(monkeypatch):
     monkeypatch.setattr(server, "_translator", None)
     out = server.handle_search_bhsa("all verbs")
     assert "next" in out                          # existing guidance payload
+
+
+def test_handle_ask_degrades_on_invalid_mql_artifact(stub_engines, monkeypatch):
+    # sp='verb' is a quoted enum: fails validation -> mql_validation_errors present
+    monkeypatch.setattr(server, "_translator", StubTranslator("SELECT ALL OBJECTS WHERE [word sp='verb'] GO"))
+    monkeypatch.setattr(server, "_RESULT_ENGINE", "tf")
+    out = server.handle_ask("all verbs")
+    assert out.get("degraded") is True            # no invalid-MQL-next-to-results
+
+
+def test_search_bhsa_falls_back_to_emdros_when_tf_invalid(stub_engines, monkeypatch):
+    monkeypatch.setattr(server, "_tf_translator", StubTranslator("wibble x=1"))
+    monkeypatch.setattr(server, "_RESULT_ENGINE", "tf")
+    out = server.handle_search_bhsa("all verbs")
+    assert out["tf_validation_errors"]
+    assert out["engine"] == "emdros"              # fallback fired
+    assert out["result_count"] == 1
+
+
+def test_search_bhsa_falls_back_to_tf_when_mql_invalid(stub_engines, monkeypatch):
+    monkeypatch.setattr(server, "_translator", StubTranslator("DROP DATABASE x"))
+    monkeypatch.setattr(server, "_RESULT_ENGINE", "emdros")
+    out = server.handle_search_bhsa("all verbs")
+    assert out["mql_validation_errors"]
+    assert out["engine"] == "tf"
+    assert out["result_count"] == 1
+
+
+def test_search_bhsa_no_valid_artifact(stub_engines, monkeypatch):
+    monkeypatch.setattr(server, "_translator", StubTranslator("DROP DATABASE x"))
+    monkeypatch.setattr(server, "_tf_translator", StubTranslator("wibble x=1"))
+    out = server.handle_search_bhsa("all verbs")
+    assert out["error"] == "no valid query artifact to run"
+    assert out["mql_validation_errors"] and out["tf_validation_errors"]

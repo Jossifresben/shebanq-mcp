@@ -1,5 +1,6 @@
 import os
 import re
+import sys
 
 from mcp.server.fastmcp import FastMCP
 
@@ -78,6 +79,7 @@ _translator = build_translator()
 _tf_translator = build_tf_translator()
 # Global throttle on the paid translation path (the MCP transport has no per-IP
 # limit). LLM_RATE_PER_MIN bounds bursts; the Anthropic spend cap is the ceiling.
+# Each allowance now covers BOTH translators (one charge, up to two model calls).
 _TRANSLATE_LIMITER = RateLimiter(int(os.environ.get("LLM_RATE_PER_MIN", "20")))
 
 # Which engine produces RESULTS for search_bhsa. Both artifacts are always
@@ -196,10 +198,7 @@ def _install_tf_guard(max_concurrent: int, timeout_seconds: int) -> None:
     macOS has fork but no such guarantees. If TF is unavailable, leave the
     default executor in place to raise a clear per-request error."""
     global _tf_executor
-    import sys
     tf_runner.warm()        # before serving: COW benefit + quiet-thread fork
-    # fork only on Linux (the deploy target): glibc+CPython reinit
-    # their locks at fork. macOS has fork but no such guarantees.
     ctx = "fork" if sys.platform == "linux" else "spawn"
     guard = QueryGuard(DB_PATH, max_concurrent=max_concurrent,
                        timeout_seconds=timeout_seconds,
@@ -288,6 +287,7 @@ def handle_search_bhsa(question: str) -> dict:
         out["error"] = "no valid query artifact to run"
         return out
     out["engine"] = engine
+    # pipeline re-validation cannot fail: same input, pure validator — so no validation_errors key can appear here.
     for key in ("result_count", "results", "results_truncated",
                 "results_shown", "error"):
         if key in run:
@@ -308,12 +308,15 @@ def _degraded_payload(question: str) -> dict:
 
 
 def handle_ask(question: str) -> dict:
-    """Web /api/ask: translate + run in one shot, with graceful degrade."""
+    """Web /api/ask: translate + run in one shot, with graceful degrade. The
+    web UI shows the MQL next to the results, so degrade unless there is a
+    VALID MQL artifact — TF-only successes would pair results with a query
+    that did not produce them."""
     try:
         result = handle_search_bhsa(question)
     except Exception:  # noqa: BLE001 - any LLM/translate failure degrades
         result = None
-    if not result or "mql" not in result:
+    if not result or "mql" not in result or "mql_validation_errors" in result:
         return _degraded_payload(question)
     return result
 
