@@ -2,167 +2,200 @@
   "version": "bhsa-2021",
   "searches": [
     {
-      "id": "niphal-verbs",
-      "question": "Find all Niphal verbs",
-      "mql": "SELECT ALL OBJECTS WHERE [verse GET book, chapter, verse [word sp=verb AND vs=nif GET g_word_utf8, gloss]] GO",
-      "count": 4145,
-      "samples": [
-        {
-          "hebrew": "יִקָּו֨וּ",
-          "gloss": "collect",
-          "reference": "Genesis 1:9"
-        },
-        {
-          "hebrew": "תֵרָאֶ֖ה",
-          "gloss": "see",
-          "reference": "Genesis 1:9"
-        },
-        {
-          "hebrew": "הִבָּֽרְאָ֑ם",
-          "gloss": "create",
-          "reference": "Genesis 2:4"
-        },
-        {
-          "hebrew": "נֶחְמָ֥ד",
-          "gloss": "desire",
-          "reference": "Genesis 2:9"
-        },
-        {
-          "hebrew": "יִפָּרֵ֔ד",
-          "gloss": "divide",
-          "reference": "Genesis 2:10"
-        }
-      ]
-    },
-    {
       "id": "bara-create",
-      "question": "Where does the verb בָּרָא (bara, 'to create') occur?",
-      "mql": "SELECT ALL OBJECTS WHERE [verse GET book, chapter, verse [word lex='BR>[' GET g_word_utf8, gloss]] GO",
+      "question": "Where does the verb בָּרָא (bara, to create) occur?",
+      "mql": "SELECT ALL OBJECTS WHERE [word lex='BR>[' GET g_word_utf8, gloss] GO",
       "count": 48,
       "samples": [
         {
           "hebrew": "בָּרָ֣א",
           "gloss": "create",
-          "reference": "Genesis 1:1"
+          "reference": null
         },
         {
           "hebrew": "יִּבְרָ֣א",
           "gloss": "create",
-          "reference": "Genesis 1:21"
+          "reference": null
         },
         {
           "hebrew": "יִּבְרָ֨א",
           "gloss": "create",
-          "reference": "Genesis 1:27"
+          "reference": null
         },
         {
           "hebrew": "בָּרָ֣א",
           "gloss": "create",
-          "reference": "Genesis 1:27"
+          "reference": null
         },
         {
           "hebrew": "בָּרָ֥א",
           "gloss": "create",
-          "reference": "Genesis 1:27"
+          "reference": null
         }
       ]
     },
     {
-      "id": "feminine-plural-nouns",
-      "question": "Find feminine plural nouns",
-      "mql": "SELECT ALL OBJECTS WHERE [verse GET book, chapter, verse [word sp=subs AND gn=f AND nu=pl GET g_word_utf8, gloss]] GO",
-      "count": 5992,
+      "id": "niphal-verbs",
+      "question": "Find all Niphal verbs",
+      "mql": "SELECT ALL OBJECTS WHERE [word sp=verb AND vs=nif GET g_word_utf8, gloss] GO",
+      "count": 4145,
       "samples": [
         {
-          "hebrew": "אֹתֹת֙",
-          "gloss": "sign",
-          "reference": "Genesis 1:14"
+          "hebrew": "יִקָּו֨וּ",
+          "gloss": "collect",
+          "reference": null
         },
         {
-          "hebrew": "שָׁנִֽים",
-          "gloss": "year",
-          "reference": "Genesis 1:14"
+          "hebrew": "תֵרָאֶ֖ה",
+          "gloss": "see",
+          "reference": null
         },
         {
-          "hebrew": "תֹולְדֹ֧ות",
-          "gloss": "generations",
-          "reference": "Genesis 2:4"
+          "hebrew": "הִבָּֽרְאָ֑ם",
+          "gloss": "create",
+          "reference": null
         },
         {
-          "hebrew": "צַּלְעֹתָ֔יו",
-          "gloss": "side",
-          "reference": "Genesis 2:21"
+          "hebrew": "נֶחְמָ֥ד",
+          "gloss": "desire",
+          "reference": null
         },
         {
-          "hebrew": "עֲצָמַ֔י",
-          "gloss": "bone",
-          "reference": "Genesis 2:23"
+          "hebrew": "יִפָּרֵ֔ד",
+          "gloss": "divide",
+          "reference": null
         }
       ]
     },
     {
-      "id": "imperative-verbs",
-      "question": "Find all imperative verbs",
-      "mql": "SELECT ALL OBJECTS WHERE [verse GET book, chapter, verse [word vt=impv GET g_word_utf8, gloss]] GO",
-      "count": 4306,
+      "id": "ellipsis-conj-object",
+      "question": "Object words in ellipsis clauses that begin with a conjunction",
+      "mql": "SELECT ALL OBJECTS WHERE [verse GET book, chapter, verse [clause typ=Ellp [phrase first function=Conj] .. [phrase function=Objc [word GET g_word_utf8, gloss]]]] GO",
+      "count": 3319,
       "samples": [
         {
-          "hebrew": "פְּר֣וּ",
-          "gloss": "be fertile",
-          "reference": "Genesis 1:22"
+          "hebrew": "אֵ֨ת",
+          "gloss": "<object marker>",
+          "reference": "Genesis 1:21"
         },
         {
-          "hebrew": "רְב֗וּ",
-          "gloss": "be many",
-          "reference": "Genesis 1:22"
+          "hebrew": "כָּל",
+          "gloss": "whole",
+          "reference": "Genesis 1:21"
         },
         {
-          "hebrew": "מִלְא֤וּ",
-          "gloss": "be full",
-          "reference": "Genesis 1:22"
+          "hebrew": "עֹ֤וף",
+          "gloss": "birds",
+          "reference": "Genesis 1:21"
         },
         {
-          "hebrew": "פְּר֥וּ",
-          "gloss": "be fertile",
-          "reference": "Genesis 1:28"
+          "hebrew": "כָּנָף֙",
+          "gloss": "wing",
+          "reference": "Genesis 1:21"
         },
         {
-          "hebrew": "רְב֛וּ",
-          "gloss": "be many",
-          "reference": "Genesis 1:28"
+          "hebrew": "אֶת",
+          "gloss": "<object marker>",
+          "reference": "Genesis 1:25"
         }
       ]
     },
     {
-      "id": "proper-nouns",
-      "question": "Find all proper nouns (names)",
-      "mql": "SELECT ALL OBJECTS WHERE [verse GET book, chapter, verse [word sp=nmpr GET g_word_utf8, gloss]] GO",
-      "count": 33002,
+      "id": "nominal-clause-subjects",
+      "question": "Subjects of verbless (nominal) clauses",
+      "mql": "SELECT ALL OBJECTS WHERE [verse GET book, chapter, verse [clause typ=NmCl [phrase function=Subj [word GET g_word_utf8, gloss]]]] GO",
+      "count": 14171,
       "samples": [
         {
-          "hebrew": "יְהוָ֥ה",
-          "gloss": "YHWH",
-          "reference": "Genesis 2:4"
+          "hebrew": "חֹ֖שֶׁךְ",
+          "gloss": "darkness",
+          "reference": "Genesis 1:2"
         },
         {
-          "hebrew": "יְהוָ֤ה",
-          "gloss": "YHWH",
-          "reference": "Genesis 2:5"
+          "hebrew": "זַרְעֹו",
+          "gloss": "seed",
+          "reference": "Genesis 1:11"
         },
         {
-          "hebrew": "יְהוָ֨ה",
-          "gloss": "YHWH",
-          "reference": "Genesis 2:7"
+          "hebrew": "זַרְעֹו",
+          "gloss": "seed",
+          "reference": "Genesis 1:12"
         },
         {
-          "hebrew": "יְהוָ֧ה",
-          "gloss": "YHWH",
-          "reference": "Genesis 2:8"
+          "hebrew": "פְרִי",
+          "gloss": "fruit",
+          "reference": "Genesis 1:29"
         },
         {
-          "hebrew": "עֵ֖דֶן",
-          "gloss": "Eden",
-          "reference": "Genesis 2:8"
+          "hebrew": "עֵ֖ץ",
+          "gloss": "tree",
+          "reference": "Genesis 1:29"
+        }
+      ]
+    },
+    {
+      "id": "wayyiqtol-objects",
+      "question": "Objects of the verb in narrative (wayyiqtol) clauses",
+      "mql": "SELECT ALL OBJECTS WHERE [verse GET book, chapter, verse [clause typ=WayX [phrase function=Objc [word GET g_word_utf8, gloss]]]] GO",
+      "count": 4290,
+      "samples": [
+        {
+          "hebrew": "אֶת",
+          "gloss": "<object marker>",
+          "reference": "Genesis 1:4"
+        },
+        {
+          "hebrew": "הָ",
+          "gloss": "the",
+          "reference": "Genesis 1:4"
+        },
+        {
+          "hebrew": "אֹ֖ור",
+          "gloss": "light",
+          "reference": "Genesis 1:4"
+        },
+        {
+          "hebrew": "יֹ֔ום",
+          "gloss": "day",
+          "reference": "Genesis 1:5"
+        },
+        {
+          "hebrew": "אֶת",
+          "gloss": "<object marker>",
+          "reference": "Genesis 1:7"
+        }
+      ]
+    },
+    {
+      "id": "construct-chain-nouns",
+      "question": "Nouns in construct chains (the genitive relation)",
+      "mql": "SELECT ALL OBJECTS WHERE [verse GET book, chapter, verse [phrase typ=NP [subphrase rela=rec [word GET g_word_utf8, gloss]]]] GO",
+      "count": 20773,
+      "samples": [
+        {
+          "hebrew": "אֱלֹהִ֔ים",
+          "gloss": "god(s)",
+          "reference": "Genesis 1:2"
+        },
+        {
+          "hebrew": "הַ",
+          "gloss": "the",
+          "reference": "Genesis 1:9"
+        },
+        {
+          "hebrew": "שָּׁמַ֨יִם֙",
+          "gloss": "heavens",
+          "reference": "Genesis 1:9"
+        },
+        {
+          "hebrew": "פְּרִ֞י",
+          "gloss": "fruit",
+          "reference": "Genesis 1:11"
+        },
+        {
+          "hebrew": "נֶ֣פֶשׁ",
+          "gloss": "soul",
+          "reference": "Genesis 1:20"
         }
       ]
     }
