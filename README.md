@@ -192,8 +192,9 @@ strongest model, Claude Opus 4.8, at 11 of 11, for about 2.3 times less cost; th
 cheapest, Claude Haiku 4.5, got 8 of 11, missing the harder nested clause and
 phrase queries (it dropped a verse scope, mis-built a construct chain). So Sonnet
 4.6 is the default. A translation averages about **$0.022** (roughly two cents),
-so the $10/month spend cap covers about 450 translations; `run_mql` and
-`lookup_feature` make no model calls and cost nothing.
+so the $10/month spend cap covers about 450 translations; the other tools
+(`run_mql`, `run_tf`, `to_citable_mql`, `lookup_feature`) make no model calls
+and cost nothing.
 
 Adding another provider (OpenAI, a local model) is a small adapter: a class with
 a `translate()` method plus a branch in `build_translator()`. Re-run the
