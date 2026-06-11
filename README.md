@@ -3,13 +3,14 @@
 [![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.20625355-1682D4.svg)](https://doi.org/10.5281/zenodo.20625355)
 
 Ask the Hebrew Bible a linguistic question in plain language and get back two
-things together: the **MQL query** and the **real results**. The server has a
-built-in NL→MQL translator: it takes your question, drafts a query using the
-BHSA feature catalogue, validates it, runs it against a local
-[Emdros](https://github.com/emdros/emdros) engine on the
-[BHSA](https://github.com/ETCBC/bhsa) database (the same data behind
-[SHEBANQ](https://shebanq.ancient-data.org/)), and returns both. The query is
-always shown, validated before it runs, and empty results are honest.
+things together: a citable query in two languages -- an Emdros MQL query and a
+[Text-Fabric](https://github.com/annotation/text-fabric) search template -- plus
+the **real results**. The server has a built-in NL→MQL translator: it takes your
+question, drafts a query using the BHSA feature catalogue, validates it, runs it
+against one of the two engines on the [BHSA](https://github.com/ETCBC/bhsa)
+database (the same data behind [SHEBANQ](https://shebanq.ancient-data.org/)),
+and returns both. The query is always shown, validated before it runs, and empty
+results are honest.
 
 This is an [MCP](https://modelcontextprotocol.io/) server: it plugs into clients
 like Claude as a set of tools.
@@ -72,15 +73,16 @@ Ask in plain language. `search_bhsa` translates server-side: the server prompts
 the configured model (`LLM_MODEL`) with an engine-verified MQL curriculum and the
 BHSA feature catalogue, validates the generated query for object-type correctness,
 runs it against the local BHSA database, and returns the MQL plus results. No
-dependency on your client's own model to write MQL. `run_mql` and `lookup_feature`
-are also available if you want to work with queries directly.
+dependency on your client's own model to write MQL. `run_mql`, `run_tf`,
+`to_citable_mql`, and `lookup_feature` are also available if you want to work
+with queries directly.
 
 ### How translation works
 
 When you call `search_bhsa`, the server prompts the configured model (`LLM_MODEL`)
 with two things: an engine-verified MQL curriculum (the primer, covering nesting,
 sequence and adjacency, FOCUS, quoting rules, and verse references) and the BHSA
-feature catalogue scoped per object type. Before the query reaches Emdros, the
+feature catalogue scoped per object type. Before the query runs, the
 validator checks object-type correctness: a wrong-level query fails loudly with
 a clear error rather than silently returning zero results. Honest counts come
 back every time: zero matches returns the query and a plain "0 results" so you
@@ -209,16 +211,18 @@ benchmark to measure any model's count-match reliability before switching.
 shown, validated, and run read-only. The blue steps are where a model helps; the
 rest is deterministic and checkable.*
 
-Four small, independently testable units: a static feature reference, a
-validator, an Emdros runner, and a formatter, wired together behind the MCP
-tools.
+Five small, independently testable units: a static feature reference, a
+validator, an Emdros runner, a Text-Fabric runner, and a formatter, wired
+together behind the MCP tools.
 
 ## Setup
 
-1. Install [Emdros](https://github.com/emdros/emdros) (provides the `mql` CLI and the
-   `emdros` Python binding).
-2. Build the database (see [Data](#data)).
-3. `pip install -e ".[dev]"` (Python 3.10+).
+1. Install [Emdros](https://github.com/emdros/emdros) (provides the `mql` CLI and
+   the `emdros` Python binding). Needed for `run_mql` and the MQL execution path;
+   skip if you plan to use only the TF engine.
+2. Build the database (see [Data](#data)). Also Emdros-only; skip for TF-only use.
+3. `pip install -e ".[dev]"` (Python 3.10+). For TF support add the extra:
+   `pip install -e ".[tf,dev]"`.
 4. Choose an LLM provider (see [LLM provider](#llm-provider)). For the default,
    set `ANTHROPIC_API_KEY`; or set `LLM_PROVIDER=none` to run translation-free.
 5. Run: `BHSA_SQLITE=data/bhsa.sqlite3 shebanq-mcp`
@@ -294,6 +298,8 @@ catalogue from the ETCBC feature docs is the remaining roadmap item.
 - [x] Wider feature coverage: word-level morphology layer (pronominal-suffix
       agreement `prs_ps`/`prs_gn`/`prs_nu`, phrase-dependent part of speech `pdp`,
       lexical set `ls`, name type `nametype`), value sets engine-confirmed
+- [x] Text-Fabric engine: dual-language output (MQL + TF template), `run_tf`,
+      `to_citable_mql`, equivalence-tested against Emdros on BHSA 2021
 - [ ] Full feature-catalogue generation from the ETCBC feature docs
 
 ## Deploy
