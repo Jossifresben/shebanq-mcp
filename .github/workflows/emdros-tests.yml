@@ -130,11 +130,26 @@ jobs:
           ls -la data/
           test -s data/bhsa.sqlite3
 
+      - name: Cache BHSA TF data (for equivalence tests)
+        uses: actions/cache@v4
+        with:
+          path: ~/text-fabric-data
+          key: bhsa-tf-2021-v1
+
+      - name: Install TF extra and download BHSA 2021 data
+        run: |
+          python3 -m pip install -e ".[tf]"
+          python3 - <<'EOF'
+          from tf.app import use
+          A = use("etcbc/bhsa", version="2021", silent="deep")
+          assert A is not None, "BHSA TF data failed to load"
+          EOF
+
       - name: Run Emdros-backed tests
         env:
           BHSA_SQLITE: data/bhsa.sqlite3
         run: |
-          python3 -m pytest -m emdros -v
+          python3 -m pytest -m "emdros or tf" -v
 
       - name: Print fixture counts (for pinning)
         if: always()
@@ -189,3 +204,32 @@ jobs:
         with:
           name: showcase
           path: demo/showcase.json
+
+  tf:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Cache BHSA TF data
+        uses: actions/cache@v4
+        with:
+          path: ~/text-fabric-data
+          key: bhsa-tf-2021-v1
+
+      - name: Install package with TF extra
+        run: pip install -e ".[dev,tf]"
+
+      - name: Download BHSA 2021 TF data (no-op when cached)
+        run: |
+          python - <<'EOF'
+          from tf.app import use
+          A = use("etcbc/bhsa", version="2021", silent="deep")
+          assert A is not None, "BHSA TF data failed to load"
+          EOF
+
+      - name: Run TF-marked tests
+        run: pytest -q -m tf
