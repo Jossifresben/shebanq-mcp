@@ -216,17 +216,24 @@ def handle_ask(question: str) -> dict:
 
 def handle_translate(question: str, references: bool = False) -> dict:
     """Web /api/translate: translate a question to MQL only, without running it.
-    When `references`, wrap the (flat) query in a verse nest so the run will carry
-    book/chapter/verse; otherwise strip the reference wrapper if the LLM added one
-    on its own. Degrades like handle_ask when translation is unavailable."""
+
+    Translates ONCE and returns both forms of that single query: `mql_flat` (no
+    verse wrapper) and `mql_ref` (wrapped to carry book/chapter/verse). The
+    reference checkbox toggles between these client-side, so it never triggers a
+    fresh, possibly-different translation. `mql` mirrors the requested flag for
+    back-compat. Degrades like handle_ask when translation is unavailable."""
     if _translator is None:
         return _degraded_payload(question)
     try:
         mql = _translator.translate(question, _ref)
     except Exception:  # noqa: BLE001 - any LLM/translate failure degrades
         return _degraded_payload(question)
-    mql = _wrap_in_verse(mql) if references else _unwrap_verse(mql)
-    return {"question": question, "mql": mql}
+    flat = _unwrap_verse(mql)               # normalise: strip any wrapper the LLM added
+    wrapped = _wrap_in_verse(flat)
+    return {"question": question,
+            "mql": wrapped if references else flat,
+            "mql_flat": flat,
+            "mql_ref": wrapped}
 
 
 def _web_api_enabled() -> bool:

@@ -220,6 +220,27 @@ def test_handle_translate_references_default_false(monkeypatch):
     assert "[verse" not in server.handle_translate("verbs")["mql"]
 
 
+def test_handle_translate_returns_both_forms_from_one_translation(monkeypatch):
+    # One translation, both forms returned, so toggling the reference checkbox
+    # never re-translates (and never silently changes which query the user runs).
+    calls = {"n": 0}
+
+    class _T:
+        def translate(self, q, ref):
+            calls["n"] += 1
+            return "SELECT ALL OBJECTS WHERE [word lex='BR>[' GET g_word_utf8, gloss] GO"
+    monkeypatch.setattr(server, "_translator", _T())
+    out = server.handle_translate("bara", references=True)
+    assert calls["n"] == 1
+    assert "[verse" not in out["mql_flat"]
+    assert out["mql_ref"].startswith("SELECT ALL OBJECTS WHERE [verse GET book, chapter, verse")
+    # The two forms are the same core query: unwrapping the ref form == the flat form.
+    assert server._unwrap_verse(out["mql_ref"]) == out["mql_flat"]
+    # `mql` mirrors the requested flag for back-compat.
+    assert out["mql"] == out["mql_ref"]
+    assert server.handle_translate("bara", references=False)["mql"] == out["mql_flat"]
+
+
 def test_wrap_in_verse_is_idempotent():
     nested = ("SELECT ALL OBJECTS WHERE [verse GET book, chapter, verse "
               "[word lex='BR>[' GET g_word_utf8, gloss]] GO")
