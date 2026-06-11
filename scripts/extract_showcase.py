@@ -17,18 +17,18 @@ DB = sys.argv[1] if len(sys.argv) > 1 else "data/bhsa.sqlite3"
 SAMPLE_N = 5
 _V = "GET book, chapter, verse"   # the verse wrapper that carries the reference
 
-# Two word-level classics for contrast, then clause/phrase-structure searches that
-# show off the curriculum. Each drills to [word ...] so the result rows show real
-# Hebrew + gloss + reference (a bare clause query has no single word to display).
+# Two plain word-level classics (no verse wrapper, so the rows show Hebrew + gloss
+# with no reference), then clause/phrase-structure searches that show off the
+# curriculum. The structural ones verse-wrap and drill to [word ...] so their rows
+# carry a real reference (a bare clause query has no single word to display).
 SEARCHES = [
     {"id": "bara-create",
      "question": "Where does the verb בָּרָא (bara, to create) occur?",
-     "mql": f"SELECT ALL OBJECTS WHERE [verse {_V} "
-            "[word lex='BR>[' GET g_word_utf8, gloss]] GO"},
+     "mql": "SELECT ALL OBJECTS WHERE [word lex='BR>[' GET g_word_utf8, gloss] GO"},
     {"id": "niphal-verbs",
      "question": "Find all Niphal verbs",
-     "mql": f"SELECT ALL OBJECTS WHERE [verse {_V} "
-            "[word sp=verb AND vs=nif GET g_word_utf8, gloss]] GO"},
+     "mql": "SELECT ALL OBJECTS WHERE "
+            "[word sp=verb AND vs=nif GET g_word_utf8, gloss] GO"},
     {"id": "ellipsis-conj-object",
      "question": "Object words in ellipsis clauses that begin with a conjunction",
      "mql": f"SELECT ALL OBJECTS WHERE [verse {_V} "
@@ -61,7 +61,10 @@ def _reference(m: dict) -> str | None:
 def extract(db: str) -> dict:
     searches = []
     for s in SEARCHES:
-        res = run_query(s["mql"], db, limit=SAMPLE_N)
+        # features are used by the flat path (the bare word queries); the nested
+        # path ignores them and harvests from the query's own GET clauses.
+        res = run_query(s["mql"], db, features=["g_word_utf8", "gloss"],
+                        limit=SAMPLE_N)
         samples = [
             {"hebrew": m.get("g_word_utf8", ""), "gloss": m.get("gloss", ""),
              "reference": _reference(m)}
