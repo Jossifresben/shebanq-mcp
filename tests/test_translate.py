@@ -120,3 +120,10 @@ def test_build_prompt_includes_primer_and_reference():
     assert "Object hierarchy" in p
     # quoting rule reaches the model
     assert "UNQUOTED" in p
+
+
+def test_prompt_includes_morphology_features():
+    from shebanq_mcp.feature_reference import FeatureReference
+    p = t.build_prompt(FeatureReference.load())
+    for feat in ("prs_ps", "prs_gn", "prs_nu", "pdp", "ls", "nametype"):
+        assert feat in p
