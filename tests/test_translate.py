@@ -89,3 +89,16 @@ def test_build_translator_defaults_model(monkeypatch):
 def test_build_translator_none_provider(monkeypatch):
     monkeypatch.setenv("LLM_PROVIDER", "none")
     assert t.build_translator() is None
+
+
+def test_build_prompt_includes_primer_and_reference():
+    from shebanq_mcp.feature_reference import FeatureReference
+    p = t.build_prompt(FeatureReference.load())
+    # terse output rule
+    assert "ONLY the MQL" in p
+    # primer content (the sequence/adjacency lesson is primer-specific)
+    assert ".." in p and "first" in p and "4490" in p
+    # the object-grouped v2 reference block
+    assert "Object hierarchy" in p
+    # quoting rule reaches the model
+    assert "UNQUOTED" in p

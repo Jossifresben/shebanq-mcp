@@ -10,56 +10,25 @@ None, in which case `search_bhsa` is unavailable and callers use `run_mql` with
 a query composed elsewhere (e.g. by the MCP host's own model).
 """
 import os
+from importlib import resources
 from typing import Protocol
 
 from .feature_reference import FeatureReference
 
 DEFAULT_MODEL = "claude-opus-4-8"
 
-# The worked examples below are authored to teach query STRUCTURE and to GET
-# display features (g_word_utf8, gloss) so generated queries match what the web
-# demo shows. They are deliberately NOT synced from
-# tests/fixtures/featured_searches.json (that fixture exists for count
-# regression, where the GET clause is irrelevant) — keep them display-oriented.
-_INSTRUCTIONS = """You translate questions about the Hebrew Bible into Emdros \
-MQL queries over the BHSA database. Output ONLY the MQL query, nothing else: no \
-explanation, no code fences. Use only the features and values listed below. \
-Prefer querying the appropriate object type (word, phrase, clause, sentence).
+_OUTPUT_RULE = (
+    "You translate questions about the Hebrew Bible into Emdros MQL queries over "
+    "the BHSA database. Output ONLY the MQL query: no explanation, no code fences. "
+    "Use only the object types, features, and values in the reference below, and "
+    "follow the MQL primer."
+)
 
-QUERY STRUCTURE (required). Write exactly one complete query of this form:
-  SELECT ALL OBJECTS WHERE [<object_type> <conditions> GET <features>] GO
-- The query MUST begin with `SELECT ALL OBJECTS WHERE` and end with `GO`.
-- The `GET` clause goes INSIDE the object's square brackets, after the \
-conditions, and lists the features to return (use g_word_utf8 and gloss to show \
-the word and its meaning).
-- Combine multiple conditions with AND inside the brackets.
 
-Worked examples:
-  Q: Find all Niphal verbs
-  SELECT ALL OBJECTS WHERE [word sp=verb AND vs=nif GET g_word_utf8, gloss] GO
-
-  Q: Where does the verb bara (to create) occur?
-  SELECT ALL OBJECTS WHERE [word lex='BR>[' GET g_word_utf8, gloss, vs] GO
-
-  Q: Where does bara occur, with the book, chapter and verse?
-  SELECT ALL OBJECTS WHERE [verse GET book, chapter, verse \
-[word lex='BR>[' GET g_word_utf8, gloss]] GO
-
-VERSE REFERENCES (location). A word does not carry book/chapter/verse; those \
-live on the verse around it. When the question asks WHERE something occurs, or \
-asks for the reference/citation, nest the word query inside a verse: \
-[verse GET book, chapter, verse [word <conditions> GET g_word_utf8, gloss]]. The \
-matches are still the words, now each with its location. For a plain count or \
-list with no location, keep the flat [word ...] form.
-
-CRITICAL quoting rule:
-- Enumeration features are compared UNQUOTED: write sp=verb, vs=nif (NOT \
-sp='verb').
-- String features are compared QUOTED: write lex='BR>[', gloss='create'.
-Getting this wrong makes the query fail to compile.
-
-BHSA feature reference (feature [kind]: gloss; values):
-{reference}"""
+def _load_primer() -> str:
+    return resources.files("shebanq_mcp").joinpath("mql_primer.md").read_text(
+        encoding="utf-8"
+    )
 
 
 def _reference_block(ref: FeatureReference) -> str:
@@ -94,8 +63,14 @@ def _strip_fences(text: str) -> str:
 
 
 def build_prompt(ref: FeatureReference) -> str:
-    """The provider-agnostic system prompt, shared by all adapters."""
-    return _INSTRUCTIONS.format(reference=_reference_block(ref))
+    """The provider-agnostic system prompt: a terse output rule, the MQL primer
+    (curriculum), and the v2 object-scoped feature reference."""
+    return "\n\n".join([
+        _OUTPUT_RULE,
+        _load_primer(),
+        "BHSA feature reference (feature [kind]: gloss; values), grouped by object "
+        "type:\n" + _reference_block(ref),
+    ])
 
 
 class Translator(Protocol):
