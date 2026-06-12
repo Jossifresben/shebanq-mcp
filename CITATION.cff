@@ -11,9 +11,9 @@ abstract: >-
   produced it, queries are validated before they run, and empty results are
   reported honestly. AI as a way in, not a way around.
 type: software
-version: 0.4.1
+version: 0.5.0
 doi: "10.5281/zenodo.20625355"
-date-released: "2026-06-12"
+date-released: "2026-06-13"
 license: MIT
 repository-code: "https://github.com/Jossifresben/shebanq-mcp"
 keywords:
