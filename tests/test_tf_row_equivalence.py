@@ -61,19 +61,25 @@ def test_row_sets_identical(require_emdros, require_tf, db_path, constraint):
 
 @pytest.mark.tf
 @pytest.mark.emdros
-def test_sibling_ordered_conversion_matches_emdros(require_emdros, require_tf,
-                                                   db_path):
-    """The shape that forced the v0.4.0 refusal now converts via << ordering
-    and must return the IDENTICAL rows: Emdros (ordered siblings) vs the
-    ordering-converted TF template. This is the empirical arbiter of the
-    operator choice (<< vs <)."""
+def test_gap_siblings_match_tf_ordering(require_emdros, require_tf, db_path):
+    """The semantic arbiter, round two. Round one (2026-06-13) proved that
+    MQL's BARE sibling juxtaposition means adjacent-within-the-parent's-monads
+    (25827 rows; gaps in the clause skipped), which no TF template operator
+    expresses (TF '<<' gave 40371, '<:' 25698; the 129-row gap is the
+    gap-straddling clauses, confirmed by direct slot analysis on the corpus).
+
+    MQL's OTHER sibling form, [A] .. [B] ("B anywhere after A"), should be
+    semantically identical to TF '<<'. This test proves or refutes that with
+    the full row multiset. If it passes, the faithful conversion pairing is
+    MQL '..' <-> TF '<<', and bare juxtaposition stays refused."""
     mql = ("SELECT ALL OBJECTS WHERE [verse GET book, chapter, verse "
-           "[clause [phrase function=Pred] "
+           "[clause [phrase function=Pred] .. "
            "[phrase function=Objc [word GET g_word_utf8]]]] GO")
-    r = mql_to_tf(mql, FeatureReference.load())
-    template = r.text
-    assert r.notes                     # GET clauses dropped, noted
+    # Hand-written template: the converter does not accept '..' yet; this
+    # test is the semantic gate for teaching it to.
+    template = ("verse\n  clause\n    p1:phrase function=Pred\n"
+                "    p2:phrase function=Objc\n      word\np1 << p2")
     emdros = _emdros_rows(mql, db_path)
     tf = _tf_rows(template)
-    assert len(emdros) == len(tf), (len(emdros), len(tf))   # expect 25827
+    assert len(emdros) == len(tf), (len(emdros), len(tf))   # expect 40371
     assert emdros == tf
