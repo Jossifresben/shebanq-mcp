@@ -51,3 +51,35 @@ def test_citable_mql_round_trip(require_emdros, require_tf, db_path,
     emdros_count = run_query(converted, db_path, [], limit=1).count
     tf_count = tf_runner.run_template(template, limit=1).count
     assert emdros_count == tf_count
+
+
+@pytest.mark.tf
+@pytest.mark.emdros
+@pytest.mark.parametrize("mql,template", PAIRS)
+def test_mql_to_tf_round_trip(require_emdros, require_tf, db_path,
+                              mql, template):
+    """The MQL->TF direction: converting the pinned MQL must yield a
+    template that returns the same count on TF as the MQL does on Emdros."""
+    from shebanq_mcp.feature_reference import FeatureReference
+    from shebanq_mcp.mql_to_tf import mql_to_tf
+    converted = mql_to_tf(mql, FeatureReference.load()).text
+    emdros_count = run_query(mql, db_path, [], limit=1).count
+    tf_count = tf_runner.run_template(converted, limit=1).count
+    assert emdros_count == tf_count
+
+
+@pytest.mark.tf
+@pytest.mark.emdros
+def test_get_query_count_unchanged_by_conversion(require_emdros, require_tf,
+                                                 db_path):
+    """Dropping GET must not change what matches: the verse-wrapped
+    reference shape converts to a verse/word template with equal count."""
+    from shebanq_mcp.feature_reference import FeatureReference
+    from shebanq_mcp.mql_to_tf import mql_to_tf
+    mql = ("SELECT ALL OBJECTS WHERE [verse GET book, chapter, verse "
+           "[word lex='BR>[' GET g_word_utf8, gloss]] GO")
+    r = mql_to_tf(mql, FeatureReference.load())
+    assert r.notes                              # the GET note fired
+    emdros_count = run_query(mql, db_path, [], limit=1).count
+    tf_count = tf_runner.run_template(r.text, limit=1).count
+    assert emdros_count == tf_count == 48       # bara, the pinned count
