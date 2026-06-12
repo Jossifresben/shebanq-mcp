@@ -308,7 +308,10 @@
     var tfCopy = h("button", "ghost icon");
     tfCopy.type = "button";
     tfCopy.title = "Copy the Text-Fabric template to the clipboard";
-    tfCopy.appendChild(h("span", null, "Copy TF"));
+    var tfCopyIcon = h("span");
+    tfCopyIcon.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
+    var tfCopyLabel = h("span", null, "Copy TF");
+    tfCopy.appendChild(tfCopyIcon); tfCopy.appendChild(tfCopyLabel);
     tfRow.appendChild(tfCopy);
     card.appendChild(tfLabel); card.appendChild(tfBox);
     card.appendChild(tfRow); card.appendChild(tfCaption);
@@ -335,9 +338,23 @@
     var lastTf = tf;                       // for un-stale restore
     renderTf(tf);
     setTimeout(fitTf, 0);                  // scrollHeight is 0 pre-DOM, like fitMql
+    var tfCopyTimer;
+    function tfCopyFeedback(text) {
+      tfCopyLabel.textContent = text;
+      tfCopy.classList.toggle("ok", text === "Copied");
+      clearTimeout(tfCopyTimer);
+      tfCopyTimer = setTimeout(function () {
+        tfCopyLabel.textContent = "Copy TF";
+        tfCopy.classList.remove("ok");
+      }, 1400);
+    }
     tfCopy.onclick = function () {
-      if (navigator.clipboard && !tfBox.hidden)
-        navigator.clipboard.writeText(tfBox.value);
+      if (tfBox.hidden) return;
+      if (!navigator.clipboard) { tfCopyFeedback("Copy failed"); return; }
+      navigator.clipboard.writeText(tfBox.value).then(
+        function () { tfCopyFeedback("Copied"); },
+        function () { tfCopyFeedback("Copy failed"); }
+      );
     };
     // Hand-edits make the TF view stale until the next Run; editing back to
     // the derived MQL un-stales it.
