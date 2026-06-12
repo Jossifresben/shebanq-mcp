@@ -471,7 +471,8 @@ def search_bhsa(question: str) -> dict:
     With server-side translation enabled, returns generated MQL + results. On
     the public deploy (no server-side LLM) it returns a concise MQL-writing
     primer so you compose a read-only query yourself and call run_mql. Use the
-    write-mql prompt for the full feature reference.
+    write-mql prompt for the full feature reference. The response also carries
+    the query's Text-Fabric equivalent, derived deterministically from the MQL.
     """
     return handle_search_bhsa(question)
 

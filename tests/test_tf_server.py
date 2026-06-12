@@ -52,7 +52,7 @@ def test_run_tf_engine_error(monkeypatch):
     assert out["error"] == "TF exploded"
 
 
-def test_search_bhsa_dual_emit(stub_engines, monkeypatch):
+def test_search_bhsa_returns_mql_and_derived_tf(stub_engines, monkeypatch):
     monkeypatch.setattr(server, "_RESULT_ENGINE", "tf")
     out = server.handle_search_bhsa("all verbs")
     assert out["mql"] == GOOD_MQL

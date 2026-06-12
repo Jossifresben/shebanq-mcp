@@ -147,18 +147,22 @@ AI as a way in, not a way around.
 
 ## Two query languages, one answer
 
-`search_bhsa` returns the same question expressed twice: an Emdros MQL query
-and a Text-Fabric search template, both validated, with results from one
-engine (`BHSA_RESULT_ENGINE`, default `tf`). Scholars migrating from SHEBANQ
-to Text-Fabric can read their MQL next to its TF equivalent. `run_tf` executes
-a template directly, the way `run_mql` executes a query. Both engines are
-pinned to the BHSA 2021 release, so counts agree; CI proves it on every push.
+`search_bhsa` drafts an Emdros MQL query (one model call) and derives the
+Text-Fabric equivalent from it by deterministic code, no second model call.
+Row-level equivalence is proven in CI on every push: the derived template
+returns the same result rows on Text-Fabric as the source MQL does on Emdros.
+`run_tf` executes a template directly, the way `run_mql` executes a query.
+Both engines are pinned to BHSA 2021.
 
 It also works the other way round. `to_citable_mql` converts a Text-Fabric
 template into the equivalent MQL, with no model involved, so a query from a
 research notebook can become a saved SHEBANQ query with a citable permalink.
 `to_tf_template` is its mirror, MQL in and template out, and the web app's
 converter modal wraps both directions behind one paste box.
+
+The live web demo shows both languages side by side for every answer (MQL runs,
+TF displayed beside it) and in the Examples gallery, with build-time derivation
+so every gallery card shows the exact TF equivalent of its MQL.
 
 The TF engine needs the optional extra: `pip install "shebanq-mcp[tf]"`. The
 corpus downloads from GitHub on first use.
@@ -303,6 +307,8 @@ catalogue from the ETCBC feature docs is the remaining roadmap item.
       lexical set `ls`, name type `nametype`), value sets engine-confirmed
 - [x] Text-Fabric engine: dual-language output (MQL + TF template), `run_tf`,
       `to_citable_mql`, equivalence-tested against Emdros on BHSA 2021
+- [x] v0.4.0 Rosetta display: derived TF beside every MQL, row-level equivalence
+      proven in CI, citation converter, about page
 - [ ] Full feature-catalogue generation from the ETCBC feature docs
 
 ## Deploy
@@ -338,7 +344,10 @@ broken, the deploy fails loudly rather than serving errors silently.
 **Guardrails**
 
 `QUERY_TIMEOUT_SECONDS` and `MAX_CONCURRENT_QUERIES` hard-kill runaway queries
-and bound memory. They are declared in `render.yaml`.
+and bound memory. `WEB_RATE_PER_MIN` caps how many translate/run calls the web
+demo accepts per minute across all users. Note: a Run on a hand-edited query
+costs up to two limiter tokens (one for the run, one for the `/api/convert`
+call that re-derives the TF view). All values are declared in `render.yaml`.
 
 **CI smoke test**
 
