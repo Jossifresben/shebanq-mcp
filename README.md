@@ -133,6 +133,30 @@ each one. If results come back without locations, say "include the verse
 references" and the model will re-nest the query. (The web app does this
 wrapping for you when the reference box is ticked.)
 
+## Run it locally with Docker
+
+A prebuilt image bundles Emdros and the BHSA database, so you can run the whole
+thing offline with no build:
+
+```bash
+docker run --rm -p 8000:8000 -e WEB_API=on \
+  ghcr.io/jossifresben/shebanq-mcp:latest
+```
+
+Open http://localhost:8000. Out of the box it is read-only and works offline:
+`run_mql` and the MQL/Text-Fabric converter run with no key. To enable
+plain-language translation, add your own model key:
+
+```bash
+docker run --rm -p 8000:8000 -e WEB_API=on \
+  -e LLM_PROVIDER=anthropic -e ANTHROPIC_API_KEY=sk-... \
+  ghcr.io/jossifresben/shebanq-mcp:latest
+```
+
+Drop `-e WEB_API=on` to run the MCP server instead of the web app. The image
+bundles BHSA data under CC BY-NC 4.0 (attribution required, non-commercial use
+only); see [ATTRIBUTION.md](ATTRIBUTION.md).
+
 ## Why
 
 Querying BHSA today means knowing MQL, the BHSA feature vocabulary, and the
@@ -436,5 +460,11 @@ dataset (ETCBC), the Emdros engine (Petersen 2004), and SHEBANQ.
 
 ## License
 
-[MIT](LICENSE). The BHSA data is licensed separately by the ETCBC and is not
-included in this repository.
+The shebanq-mcp software is [MIT](LICENSE).
+
+The BHSA data is the work of the ETCBC, licensed
+[CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/): attribution
+required, non-commercial use only (DOI
+[10.17026/dans-z6y-skyh](https://doi.org/10.17026/dans-z6y-skyh)). The source
+repository does not include the data; the published container image bundles it
+under those terms. See [ATTRIBUTION.md](ATTRIBUTION.md) for the full notice.

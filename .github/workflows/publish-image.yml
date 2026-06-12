@@ -1,0 +1,45 @@
+name: publish-image
+
+# Publishes the deploy image (Emdros + the BHSA SQLite database baked in) to the
+# GitHub Container Registry on each release, and on demand. The image bundles
+# BHSA data under CC BY-NC 4.0 (attribution required, non-commercial use only);
+# see ATTRIBUTION.md. The version tag is read from pyproject.toml, so a manual
+# run publishes the current version too.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read version from pyproject
+        id: ver
+        run: |
+          v=$(grep -m1 '^version' pyproject.toml | sed -E 's/.*"([^"]+)".*/\1/')
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+          echo "publishing shebanq-mcp $v"
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push (Emdros + BHSA baked in)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          build-args: BHSA_REF=4db00e2157915495e1a4d3d57e41223df24775da
+          push: true
+          tags: |
+            ghcr.io/jossifresben/shebanq-mcp:${{ steps.ver.outputs.version }}
+            ghcr.io/jossifresben/shebanq-mcp:latest

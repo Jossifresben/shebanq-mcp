@@ -82,6 +82,10 @@ COPY demo/index.html /app/demo/index.html
 COPY demo/about.html /app/demo/about.html
 COPY demo/og.png /app/demo/og.png
 
+# Data license and attribution, readable inside the image (the bundled BHSA
+# data is CC BY-NC 4.0: attribution required, non-commercial use only).
+COPY ATTRIBUTION.md /app/ATTRIBUTION.md
+
 # Read-only database: file 444, directory 555 (not writable by appuser).
 COPY --from=builder /build/db/bhsa.sqlite3 /app/data/bhsa.sqlite3
 RUN chmod 0444 /app/data/bhsa.sqlite3 && chmod 0555 /app/data
@@ -90,6 +94,17 @@ ENV BHSA_SQLITE=/app/data/bhsa.sqlite3
 ENV LLM_PROVIDER=none
 ENV MCP_TRANSPORT=http
 ENV PORT=8000
+# Results run on Emdros. The image bundles the BHSA SQLite database but not the
+# Text-Fabric corpus, so the Text-Fabric template is derived, not executed.
+# Without this, the engine selector would default to tf and search_bhsa would
+# fail when the image is run on its own.
+ENV BHSA_RESULT_ENGINE=emdros
+
+LABEL org.opencontainers.image.title="shebanq-mcp" \
+      org.opencontainers.image.description="Query the BHSA Hebrew Bible in plain language: a citable MQL query, its Text-Fabric equivalent, and real results." \
+      org.opencontainers.image.source="https://github.com/Jossifresben/shebanq-mcp" \
+      org.opencontainers.image.licenses="MIT" \
+      org.shebanq.bundled-data="BHSA (ETCBC), CC BY-NC 4.0: attribution required, non-commercial use only. DOI 10.17026/dans-z6y-skyh. See /app/ATTRIBUTION.md"
 
 USER appuser
 # Build-time read-only self-test: prove appuser can query a 444 DB in a 555 dir
