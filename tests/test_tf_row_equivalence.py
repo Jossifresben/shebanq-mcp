@@ -59,22 +59,21 @@ def test_row_sets_identical(require_emdros, require_tf, db_path, constraint):
     assert emdros == tf            # full multiset, every row, both engines
 
 
-def test_sibling_blocks_converter_refused():
-    """The converter refuses sibling MQL blocks rather than producing a template
-    that matches different results.
-
-    CI row-level testing (2026-06-12) confirmed the divergence:
-      MQL  [clause [phrase function=Pred] [phrase function=Objc ...]]  → 25,827 rows
-      TF   clause / phrase function=Pred / phrase function=Objc ...    → 46,968 rows
-    MQL siblings are ORDERED (first block before second in text order); TF
-    template siblings are UNORDERED (any arrangement matches). Faithful ordered
-    conversion would require TF relational operators (future work). Until then,
-    both converters refuse with a clear reason rather than silently changing
-    meaning.
-    """
-    from shebanq_mcp.tf_to_mql import ConversionError
+@pytest.mark.tf
+@pytest.mark.emdros
+def test_sibling_ordered_conversion_matches_emdros(require_emdros, require_tf,
+                                                   db_path):
+    """The shape that forced the v0.4.0 refusal now converts via << ordering
+    and must return the IDENTICAL rows: Emdros (ordered siblings) vs the
+    ordering-converted TF template. This is the empirical arbiter of the
+    operator choice (<< vs <)."""
     mql = ("SELECT ALL OBJECTS WHERE [verse GET book, chapter, verse "
            "[clause [phrase function=Pred] "
            "[phrase function=Objc [word GET g_word_utf8]]]] GO")
-    with pytest.raises(ConversionError, match="sibling blocks cannot be converted"):
-        mql_to_tf(mql, FeatureReference.load())
+    r = mql_to_tf(mql, FeatureReference.load())
+    template = r.text
+    assert r.notes                     # GET clauses dropped, noted
+    emdros = _emdros_rows(mql, db_path)
+    tf = _tf_rows(template)
+    assert len(emdros) == len(tf), (len(emdros), len(tf))   # expect 25827
+    assert emdros == tf
