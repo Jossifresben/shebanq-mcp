@@ -218,3 +218,10 @@ def test_modal_renamed_tf_to_mql():
     html = _page("index.html")
     assert "TF → MQL converter" in html
     assert "&#x21c4;" not in html
+
+
+def test_about_page_citation_story():
+    html = _page("about.html")
+    assert "permanent link" in html
+    assert "ETCBC 2021" in html
+    assert "Deuteronomium" in html      # book-name honesty note

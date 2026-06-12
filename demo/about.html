@@ -56,22 +56,25 @@
     <strong>Translate to MQL</strong> and the generated query appears,
     editable, before anything runs. Read it. Change it if you like. Then
     <strong>Run query</strong> executes it against the BHSA and the results
-    come back with vocalized Hebrew, glosses, and counts.</p>
+    come back with vocalized Hebrew, glosses, and counts.
+    Beside every MQL query the answer also shows its Text-Fabric
+    equivalent, derived by plain code, for scholars who work in notebooks.</p>
   <p>The <strong>reference checkbox</strong> wraps the query in a verse
     block so each hit carries its book, chapter, and verse. Untick it for
     the plain form. Toggling never re-translates; it switches between the
     two forms of the same query.</p>
 
   <h3>The converter</h3>
-  <p>The <strong>Text-Fabric ⇄ MQL converter</strong> (link at the top)
-    converts a query between the two languages. Paste either one; the
-    direction is detected automatically (MQL starts with
-    <code>SELECT</code>). The conversion is deterministic, plain code with
-    no AI involved, so the same input always gives the same output. MQL
-    <code>GET</code> clauses are dropped with a note: they only choose
-    which features come back, and Text-Fabric results expose all features.
-    A query using constructs the other language cannot express is refused
-    with a plain explanation, never converted approximately.</p>
+  <p>The <strong>TF → MQL converter</strong> (link at the top) exists for
+    citation. Work in your Text-Fabric notebook, paste your search template
+    into the converter, and take the resulting MQL to
+    <a href="https://shebanq.ancient-data.org/">SHEBANQ</a>: save it there
+    and you have a permanent link you can cite in print, one your readers
+    can click and re-run. The conversion is deterministic, plain code with
+    no AI involved, so the same input always gives the same output. A
+    template using constructs MQL cannot express is refused with a plain
+    explanation, never converted approximately. Note the data version when
+    you cite: this server is pinned to ETCBC 2021.</p>
 
   <h3>From an MCP client</h3>
   <p>The same engine is a remote
@@ -124,11 +127,17 @@
     <li><strong>One dataset, two engines, equal answers.</strong> Both
       engines are pinned to the BHSA 2021 release. A test suite proves on
       every change that the same question returns the same counts from
-      both, so the two query languages are genuinely interchangeable.</li>
+      both, so the two query languages are genuinely interchangeable.
+      One labeling difference to know: Text-Fabric notebooks display English
+      book names (Deuteronomy) where SHEBANQ shows the ETCBC names
+      (Deuteronomium); same verses, different labels.</li>
     <li><strong>Conversion without a model.</strong> The MQL ⇄ Text-Fabric
       converter is deterministic code. What you cite is exactly what ran,
       and a query that cannot be expressed in the other language is
-      refused with the reason.</li>
+      refused with the reason.
+      A test suite re-proves on every change that a derived template returns
+      the identical result rows on Text-Fabric as its source MQL does on
+      Emdros, so a citation returns what the notebook returned.</li>
     <li><strong>The model has a small, bounded role.</strong> Only
       the plain-language translation uses an AI model, behind a swappable
       interface and a spend cap. Everything downstream of the generated
