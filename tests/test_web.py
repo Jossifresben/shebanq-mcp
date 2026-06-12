@@ -225,3 +225,10 @@ def test_about_page_citation_story():
     assert "permanent link" in html
     assert "ETCBC 2021" in html
     assert "Deuteronomium" in html      # book-name honesty note
+
+
+def test_about_page_what_is_this_for():
+    html = _page("about.html")
+    assert "What is this for" in html
+    assert "front door to the BHSA" in html
+    assert "Read the query before you cite it" in html
