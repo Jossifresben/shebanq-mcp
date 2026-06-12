@@ -30,9 +30,19 @@ def _emdros_rows(mql, db_path):
                    r["g_word_utf8"]) for r in res.matches)
 
 
+def _english_to_native():
+    """TF's section API serves English book names (1_Samuel); the Emdros dump
+    carries the ETCBC native names (Samuel_I). Both live in the TF data, so
+    the bridge table comes from the corpus itself, not from hand-keeping."""
+    api = tf_runner.warm().api
+    return {api.T.sectionFromNode(n)[0]: api.F.book.v(n)
+            for n in api.F.otype.s("book")}
+
+
 def _tf_rows(template):
     res = tf_runner.run_template(template, features=["g_word_utf8"])
-    return sorted((r["book"], str(r["chapter"]), str(r["verse"]),
+    to_native = _english_to_native()
+    return sorted((to_native[r["book"]], str(r["chapter"]), str(r["verse"]),
                    r["g_word_utf8"]) for r in res.matches)
 
 
