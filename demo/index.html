@@ -321,7 +321,7 @@
       tfLabel.hidden = tfCaption.hidden = false;
       if (t.error) {
         tfBox.hidden = tfRow.hidden = true;
-        tfCaption.textContent = "No Text-Fabric equivalent: " + t.error;
+        tfCaption.textContent = t.error;
         return;
       }
       tfBox.hidden = tfRow.hidden = false;
