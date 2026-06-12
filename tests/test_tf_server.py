@@ -205,3 +205,38 @@ def test_translate_tf_error_rides_along(monkeypatch):
     out = server.handle_translate("all verbs")
     assert out["mql"]                               # MQL path unaffected
     assert "cannot be converted" in out["tf_flat"]["error"]
+
+
+def test_search_bhsa_carries_assumptions(stub_engines, monkeypatch):
+    monkeypatch.setattr(server, "_translator",
+                        StubTranslator("SELECT ALL OBJECTS WHERE [word gn=f] GO"))
+    monkeypatch.setattr(server, "_RESULT_ENGINE", "emdros")
+    out = server.handle_search_bhsa("feminine things")
+    assert any("gender" in n.lower() for n in out["assumptions"])
+
+
+def test_search_bhsa_omits_assumptions_when_none(stub_engines, monkeypatch):
+    monkeypatch.setattr(server, "_translator", StubTranslator(GOOD_MQL))  # sp=verb
+    monkeypatch.setattr(server, "_RESULT_ENGINE", "emdros")
+    out = server.handle_search_bhsa("verbs")
+    assert "assumptions" not in out
+
+
+def test_translate_carries_one_assumptions_list(monkeypatch):
+    monkeypatch.setattr(server, "_translator",
+                        StubTranslator("SELECT ALL OBJECTS WHERE [word gn=f] GO"))
+    out = server.handle_translate("feminine things", references=True)
+    assert any("gender" in n.lower() for n in out["assumptions"])  # one list
+    # wrapping (verse book/chapter/verse) adds no caveats: same list either way
+
+
+def test_run_mql_carries_assumptions(stub_engines):
+    out = server.handle_run_mql("SELECT ALL OBJECTS WHERE [word gn=f] GO")
+    assert any("gender" in n.lower() for n in out["assumptions"])
+
+
+def test_lookup_feature_carries_caveat():
+    out = server.handle_lookup_feature("gn")
+    assert "caveat" in out and "gender" in out["caveat"].lower()
+    plain = server.handle_lookup_feature("sp")
+    assert plain.get("caveat") is None

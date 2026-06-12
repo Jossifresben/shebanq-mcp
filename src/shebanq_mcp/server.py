@@ -17,6 +17,7 @@ from . import tf_runner
 from .runner import run_query
 from .formatter import format_results
 from .translate import build_translator, build_prompt
+from .assumptions import assumptions_for
 from .web import RateLimiter
 
 DB_PATH = os.environ.get("BHSA_SQLITE", "data/bhsa.sqlite3")
@@ -92,18 +93,27 @@ if _RESULT_ENGINE not in ("tf", "emdros"):
 mcp = FastMCP("shebanq")
 
 
+def _attach_assumptions(out: dict, query_text: str) -> None:
+    """Attach the query's encoding caveats, omitted when there are none."""
+    notes = assumptions_for(query_text, _ref)
+    if notes:
+        out["assumptions"] = notes
+
+
 def handle_lookup_feature(name_or_term: str) -> dict:
     spec = _ref.lookup(name_or_term)
     if spec is None:
         return {"error": f"unknown feature '{name_or_term}'"}
-    return {
+    out = {
         "feature": name_or_term,
         "objects": {
             ot: {"kind": s["kind"], "gloss": s.get("gloss"),
                  "values": s.get("values")}
             for ot, s in spec["objects"].items()
         },
+        "caveat": _ref.caveat_for(name_or_term),
     }
+    return out
 
 
 def _get_features(mql: str) -> list[str]:
@@ -188,7 +198,9 @@ def _run_tf_pipeline(template: str) -> dict:
 
 
 def handle_run_tf(template: str) -> dict:
-    return _run_tf_pipeline(template)
+    out = _run_tf_pipeline(template)
+    _attach_assumptions(out, template)
+    return out
 
 
 def handle_to_citable_mql(template: str) -> dict:
@@ -261,7 +273,9 @@ def _health_payload() -> dict:
 
 
 def handle_run_mql(mql: str) -> dict:
-    return _run_pipeline(mql)
+    out = _run_pipeline(mql)
+    _attach_assumptions(out, mql)
+    return out
 
 
 def handle_search_bhsa(question: str) -> dict:
@@ -313,6 +327,7 @@ def handle_search_bhsa(question: str) -> dict:
                 "results_shown", "error"):
         if key in run:
             out[key] = run[key]
+    _attach_assumptions(out, mql)
     return out
 
 
@@ -358,12 +373,14 @@ def handle_translate(question: str, references: bool = False) -> dict:
         return _degraded_payload(question)
     flat = _unwrap_verse(mql)               # normalise: strip any wrapper the LLM added
     wrapped = _wrap_in_verse(flat)
-    return {"question": question,
-            "mql": wrapped if references else flat,
-            "mql_flat": flat,
-            "mql_ref": wrapped,
-            "tf_flat": _derive_tf(flat),
-            "tf_ref": _derive_tf(wrapped)}
+    out = {"question": question,
+           "mql": wrapped if references else flat,
+           "mql_flat": flat,
+           "mql_ref": wrapped,
+           "tf_flat": _derive_tf(flat),
+           "tf_ref": _derive_tf(wrapped)}
+    _attach_assumptions(out, flat)
+    return out
 
 
 def _web_api_enabled() -> bool:
