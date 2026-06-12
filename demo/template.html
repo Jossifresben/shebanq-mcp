@@ -239,6 +239,7 @@
       progDone();
     }
   }
+  window.postJSON = postJSON;   // shared with the converter modal's script block
   // Render the results portion (count + truncation + table) into `host`.
   function renderResults(host, data) {
     host.innerHTML = "";
