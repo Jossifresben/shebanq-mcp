@@ -315,9 +315,6 @@ def test_search_bhsa_degrades_on_translate_error(monkeypatch):
             raise RuntimeError("spend cap reached")
 
     monkeypatch.setattr(server, "_translator", _Boom())
-    # Both translators must fail to trigger the "no artifact" degrade path.
-    # The new dual-emit design tries both; stub TF too so no API call is made.
-    monkeypatch.setattr(server, "_tf_translator", _Boom())
     monkeypatch.setattr(server, "_TRANSLATE_LIMITER", RateLimiter(100))
     out = server.handle_search_bhsa("verbs")
     assert out.get("error") and "run_mql" in out["error"]

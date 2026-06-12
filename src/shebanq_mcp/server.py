@@ -13,7 +13,6 @@ from .tf_validator import validate_tf
 from .tf_to_mql import ConversionError, tf_to_mql
 from .convert import detect_and_convert
 from .mql_to_tf import mql_to_tf
-from .tf_translate import build_tf_translator
 from . import tf_runner
 from .runner import run_query
 from .formatter import format_results
@@ -78,16 +77,13 @@ _QUOTING_RULE = (
 _ref = FeatureReference.load()
 # The configured LLM translator (None if LLM_PROVIDER=none -> translation-free).
 _translator = build_translator()
-# The TF translator shares LLM_PROVIDER/LLM_MODEL config with the MQL one.
-_tf_translator = build_tf_translator()
 # Global throttle on the paid translation path (the MCP transport has no per-IP
 # limit). LLM_RATE_PER_MIN bounds bursts; the Anthropic spend cap is the ceiling.
-# Each allowance now covers BOTH translators (one charge, up to two model calls).
+# One charge, one model call; the TF artifact is derived, not generated.
 _TRANSLATE_LIMITER = RateLimiter(int(os.environ.get("LLM_RATE_PER_MIN", "20")))
 
-# Which engine produces RESULTS for search_bhsa. Both artifacts are always
-# generated; this only selects execution. Default tf per the design spec; a
-# deploy without baked TF data sets BHSA_RESULT_ENGINE=emdros.
+# Which engine produces RESULTS for search_bhsa. Default tf per the design spec;
+# a deploy without baked TF data sets BHSA_RESULT_ENGINE=emdros.
 _RESULT_ENGINE = os.environ.get("BHSA_RESULT_ENGINE", "tf").strip().lower()
 if _RESULT_ENGINE not in ("tf", "emdros"):
     raise ValueError(
@@ -223,6 +219,17 @@ def handle_convert(text: str) -> dict:
     return detect_and_convert(text, _ref)
 
 
+def _derive_tf(mql: str) -> dict:
+    """The Text-Fabric equivalent of an MQL artifact, derived by the
+    deterministic converter (row-level equivalence is CI-proven). Returns
+    {template, notes} or {error}; never raises."""
+    try:
+        r = mql_to_tf(mql, _ref)
+        return {"template": r.text, "notes": r.notes}
+    except ConversionError as exc:
+        return {"error": str(exc)}
+
+
 def _install_tf_guard(max_concurrent: int, timeout_seconds: int) -> None:
     """Warm TF and swap the TF executor to a guarded worker. Fork only on
     Linux (the deploy target): glibc+CPython reinit their locks at fork.
@@ -272,53 +279,36 @@ def handle_search_bhsa(question: str) -> dict:
                 "error": "translation rate limit reached; try again shortly"}
     out: dict = {"question": question}
 
-    # Generate both artifacts; a failure in one never silences the other.
-    mql = tf_template = None
+    # One model call: MQL. The TF equivalent is DERIVED, not generated, so
+    # the two artifacts cannot disagree (row-level equivalence is CI-proven).
     try:
         mql = _translator.translate(question, _ref)
         out["mql"] = mql
     except Exception:  # noqa: BLE001 - API error / spend cap -> degrade
-        out["mql_error"] = "MQL translation unavailable (model API error or spend cap)"
-    if _tf_translator is not None:
-        try:
-            tf_template = _tf_translator.translate(question, _ref)
-            out["tf_template"] = tf_template
-        except Exception:  # noqa: BLE001
-            out["tf_error"] = "TF translation unavailable (model API error or spend cap)"
-    if mql is None and tf_template is None:
         out["error"] = ("translation is unavailable right now. Use run_mql or "
                         "run_tf with a query you write by hand.")
         out["guidance"] = _QUOTING_RULE
         return out
 
-    # Validate both; show invalid artifacts honestly, marked with their errors.
-    if mql is not None:
-        v = validate_mql(mql, _ref)
-        if not v.ok:
-            out["mql_validation_errors"] = v.errors
-            mql = None
-    if tf_template is not None:
-        v = validate_tf(tf_template, _ref)
-        if not v.ok:
-            out["tf_validation_errors"] = v.errors
-            tf_template = None
-
-    # Run ONE engine for results (equivalence is proven at test time). Fall
-    # back to the other engine if the selected artifact did not survive.
-    engine = _RESULT_ENGINE
-    if engine == "tf" and tf_template is None and mql is not None:
-        engine = "emdros"
-    elif engine == "emdros" and mql is None and tf_template is not None:
-        engine = "tf"
-    if engine == "tf" and tf_template is not None:
-        run = _run_tf_pipeline(tf_template)
-    elif engine == "emdros" and mql is not None:
-        run = _run_pipeline(mql)
-    else:
-        out["error"] = "no valid query artifact to run"
+    v = validate_mql(mql, _ref)
+    if not v.ok:
+        out["mql_validation_errors"] = v.errors
+        out["error"] = "the generated MQL failed validation"
         return out
+
+    out["tf"] = _derive_tf(mql)
+    tf_template = out["tf"].get("template")
+
+    # Run ONE engine for results. If derivation refused (out["tf"] carries
+    # an error), the tf engine has nothing to run; fall back to emdros.
+    engine = _RESULT_ENGINE
+    if engine == "tf" and tf_template is None:
+        engine = "emdros"
+    if engine == "tf":
+        run = _run_tf_pipeline(tf_template)
+    else:
+        run = _run_pipeline(mql)
     out["engine"] = engine
-    # pipeline re-validation cannot fail: same input, pure validator — so no validation_errors key can appear here.
     for key in ("result_count", "results", "results_truncated",
                 "results_shown", "error"):
         if key in run:
@@ -371,7 +361,9 @@ def handle_translate(question: str, references: bool = False) -> dict:
     return {"question": question,
             "mql": wrapped if references else flat,
             "mql_flat": flat,
-            "mql_ref": wrapped}
+            "mql_ref": wrapped,
+            "tf_flat": _derive_tf(flat),
+            "tf_ref": _derive_tf(wrapped)}
 
 
 def _web_api_enabled() -> bool:

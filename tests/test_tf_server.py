@@ -28,7 +28,6 @@ def stub_engines(monkeypatch):
     monkeypatch.setattr(server, "_executor",
                         lambda mql, features: RunResult(1, list(rows)))
     monkeypatch.setattr(server, "_translator", StubTranslator(GOOD_MQL))
-    monkeypatch.setattr(server, "_tf_translator", StubTranslator(GOOD_TEMPLATE))
     return rows
 
 
@@ -57,7 +56,7 @@ def test_search_bhsa_dual_emit(stub_engines, monkeypatch):
     monkeypatch.setattr(server, "_RESULT_ENGINE", "tf")
     out = server.handle_search_bhsa("all verbs")
     assert out["mql"] == GOOD_MQL
-    assert out["tf_template"] == GOOD_TEMPLATE
+    assert out["tf"] == {"template": "word sp=verb", "notes": []}
     assert out["engine"] == "tf"
     assert out["result_count"] == 1
 
@@ -66,31 +65,19 @@ def test_search_bhsa_emdros_engine(stub_engines, monkeypatch):
     monkeypatch.setattr(server, "_RESULT_ENGINE", "emdros")
     out = server.handle_search_bhsa("all verbs")
     assert out["mql"] == GOOD_MQL
-    assert out["tf_template"] == GOOD_TEMPLATE
+    assert out["tf"] == {"template": "word sp=verb", "notes": []}
     assert out["engine"] == "emdros"
     assert out["result_count"] == 1
 
 
-def test_search_bhsa_tf_translation_failure_degrades(stub_engines, monkeypatch):
-    class Boom:
-        def translate(self, question, ref):
-            raise RuntimeError("api down")
-    monkeypatch.setattr(server, "_tf_translator", Boom())
-    monkeypatch.setattr(server, "_RESULT_ENGINE", "emdros")
-    out = server.handle_search_bhsa("all verbs")
-    assert out["mql"] == GOOD_MQL                 # MQL artifact survives
-    assert "tf_template" not in out
-    assert out["tf_error"]
-    assert out["result_count"] == 1               # results still flow
+# test_search_bhsa_tf_translation_failure_degrades: removed; the TF translator
+# no longer exists (derivation cannot fail with an API error). The unconvertible
+# MQL case is covered by test_search_bhsa_tf_error_on_unconvertible_mql.
 
 
-def test_search_bhsa_invalid_tf_artifact_marked(stub_engines, monkeypatch):
-    monkeypatch.setattr(server, "_tf_translator", StubTranslator("wibble x=1"))
-    monkeypatch.setattr(server, "_RESULT_ENGINE", "emdros")
-    out = server.handle_search_bhsa("all verbs")
-    assert out["tf_template"] == "wibble x=1"     # shown, marked invalid
-    assert out["tf_validation_errors"]
-    assert out["result_count"] == 1
+# test_search_bhsa_invalid_tf_artifact_marked: removed; derivation only emits
+# valid grammar (pinned by converter tests), so tf_validation_errors cannot
+# appear. Unconvertible cases are covered by test_search_bhsa_tf_error_on_unconvertible_mql.
 
 
 def test_search_bhsa_translation_free_mode(monkeypatch):
@@ -107,30 +94,24 @@ def test_handle_ask_degrades_on_invalid_mql_artifact(stub_engines, monkeypatch):
     assert out.get("degraded") is True            # no invalid-MQL-next-to-results
 
 
-def test_search_bhsa_falls_back_to_emdros_when_tf_invalid(stub_engines, monkeypatch):
-    monkeypatch.setattr(server, "_tf_translator", StubTranslator("wibble x=1"))
+def test_search_bhsa_falls_back_to_emdros_when_derivation_refuses(stub_engines, monkeypatch):
+    focus_mql = "SELECT ALL OBJECTS WHERE [word FOCUS sp=verb] GO"
+    monkeypatch.setattr(server, "_translator", StubTranslator(focus_mql))
     monkeypatch.setattr(server, "_RESULT_ENGINE", "tf")
     out = server.handle_search_bhsa("all verbs")
-    assert out["tf_validation_errors"]
+    assert "cannot be converted" in out["tf"]["error"]
     assert out["engine"] == "emdros"              # fallback fired
     assert out["result_count"] == 1
 
 
-def test_search_bhsa_falls_back_to_tf_when_mql_invalid(stub_engines, monkeypatch):
+def test_search_bhsa_invalid_mql_early_returns(stub_engines, monkeypatch):
     monkeypatch.setattr(server, "_translator", StubTranslator("DROP DATABASE x"))
     monkeypatch.setattr(server, "_RESULT_ENGINE", "emdros")
     out = server.handle_search_bhsa("all verbs")
     assert out["mql_validation_errors"]
-    assert out["engine"] == "tf"
-    assert out["result_count"] == 1
-
-
-def test_search_bhsa_no_valid_artifact(stub_engines, monkeypatch):
-    monkeypatch.setattr(server, "_translator", StubTranslator("DROP DATABASE x"))
-    monkeypatch.setattr(server, "_tf_translator", StubTranslator("wibble x=1"))
-    out = server.handle_search_bhsa("all verbs")
-    assert out["error"] == "no valid query artifact to run"
-    assert out["mql_validation_errors"] and out["tf_validation_errors"]
+    assert out["error"] == "the generated MQL failed validation"
+    assert "result_count" not in out
+    assert "tf" not in out
 
 
 def test_to_citable_mql_happy_path():
@@ -174,3 +155,53 @@ def test_handle_convert_both_directions():
     assert a["direction"] == "tf_to_mql" and a["output"].startswith("SELECT")
     b = server.handle_convert("SELECT ALL OBJECTS WHERE [word sp=verb] GO")
     assert b["direction"] == "mql_to_tf" and b["output"] == "word sp=verb"
+
+
+class CountingTranslator:
+    """A stub that counts calls -- proves derive-not-generate."""
+
+    def __init__(self, out):
+        self._out = out
+        self.calls = 0
+
+    def translate(self, question, ref):
+        self.calls += 1
+        return self._out
+
+
+def test_search_bhsa_derives_tf_with_one_model_call(stub_engines, monkeypatch):
+    counting = CountingTranslator(GOOD_MQL)
+    monkeypatch.setattr(server, "_translator", counting)
+    monkeypatch.setattr(server, "_RESULT_ENGINE", "emdros")
+    out = server.handle_search_bhsa("all verbs")
+    assert counting.calls == 1                      # exactly one LLM call
+    assert out["tf"] == {"template": "word sp=verb", "notes": []}
+    assert out["result_count"] == 1
+
+
+def test_search_bhsa_tf_error_on_unconvertible_mql(stub_engines, monkeypatch):
+    focus_mql = "SELECT ALL OBJECTS WHERE [word FOCUS sp=verb] GO"
+    monkeypatch.setattr(server, "_translator", StubTranslator(focus_mql))
+    monkeypatch.setattr(server, "_RESULT_ENGINE", "emdros")
+    out = server.handle_search_bhsa("all verbs")
+    assert "cannot be converted" in out["tf"]["error"]
+    assert "template" not in out["tf"]
+    assert out["result_count"] == 1                 # MQL flow unaffected
+
+
+def test_translate_derives_both_forms(monkeypatch):
+    monkeypatch.setattr(server, "_translator", StubTranslator(GOOD_MQL))
+    out = server.handle_translate("all verbs", references=True)
+    assert out["tf_flat"] == {"template": "word sp=verb", "notes": []}
+    # wrap-then-derive: the ref form's template starts at the verse level
+    assert out["tf_ref"]["template"].startswith("verse")
+    assert out["tf_ref"]["notes"] == [
+        "GET clauses dropped; Text-Fabric results expose all features."]
+
+
+def test_translate_tf_error_rides_along(monkeypatch):
+    focus_mql = "SELECT ALL OBJECTS WHERE [word FOCUS sp=verb] GO"
+    monkeypatch.setattr(server, "_translator", StubTranslator(focus_mql))
+    out = server.handle_translate("all verbs")
+    assert out["mql"]                               # MQL path unaffected
+    assert "cannot be converted" in out["tf_flat"]["error"]
