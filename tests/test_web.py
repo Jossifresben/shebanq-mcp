@@ -205,3 +205,10 @@ def test_main_page_hero_and_two_box():
     assert "Opus 4.8" not in html                       # stale model name gone
     assert "Text-Fabric equivalent" in html             # TF box label
     assert "derived by plain code" in html              # intro derivation clause
+
+
+def test_examples_gallery_dual_language():
+    html = _page("index.html")
+    assert ">Examples<" in html
+    assert "Worked examples" not in html
+    assert '"tf": {"template"' in html   # showcase JSON carries tf (exact inlined form)

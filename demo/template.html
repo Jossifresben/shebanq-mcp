@@ -143,7 +143,7 @@
 
   <hr class="rule">
   <div class="examples">
-    <h2>Worked examples</h2>
+    <h2>Examples</h2>
     <div id="gallery"></div>
   </div>
 
@@ -458,7 +458,7 @@
   // Live curated gallery.
   var gallery = document.getElementById("gallery");
   (window.SHOWCASE && window.SHOWCASE.searches || []).forEach(function (s) {
-    var built = resultCard(s.question, s.mql, false, null);
+    var built = resultCard(s.question, s.mql, false, null, s.tf || null);
     gallery.appendChild(built.card);
   });
 })();

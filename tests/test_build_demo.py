@@ -33,3 +33,14 @@ def test_render_output_parses_back():
     out = render(SHOWCASE, TEMPLATE)
     blob = out.split("window.SHOWCASE = ", 1)[1].split(";</script>", 1)[0]
     assert json.loads(blob)["searches"][0]["count"] == 4145
+
+
+def test_render_derives_tf_for_each_search():
+    from scripts.build_demo import augment_with_tf
+    showcase = {"searches": [
+        {"id": "a", "mql": "SELECT ALL OBJECTS WHERE [word sp=verb] GO"},
+        {"id": "b", "mql": "SELECT ALL OBJECTS WHERE [word FOCUS sp=verb] GO"},
+    ]}
+    out = augment_with_tf(showcase)
+    assert out["searches"][0]["tf"] == {"template": "word sp=verb", "notes": []}
+    assert "cannot be converted" in out["searches"][1]["tf"]["error"]
