@@ -38,7 +38,7 @@ _GET = re.compile(r"(?i)\bGET\s+[A-Za-z0-9_,\s]+?(?=[\[\]])")
 _CONSTRAINT = re.compile(
     r"^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(?:'([^']*)'|([^\s\]]+))$")
 
-# Operator constant — swap in ONE place if CI proves << is wrong.
+# Operator constant: swap in ONE place if CI proves << is wrong.
 _ORDER_OP = "<<"
 
 _GET_NOTE = "GET clauses dropped; Text-Fabric results expose all features."
@@ -75,6 +75,12 @@ def _parse_constraints(region: str) -> list[str]:
         return []
     out: list[str] = []
     for part in re.split(r"(?i)\s+AND\s+", region):
+        if part.strip() == "..":
+            # '..' drifting into a constraint region means it was written
+            # somewhere other than between two sibling blocks.
+            raise ConversionError(
+                "'..' belongs between two sibling blocks ([A] .. [B]); "
+                "it cannot appear before a parent's first block")
         m = _CONSTRAINT.match(part.strip())
         if not m:
             raise ConversionError(
