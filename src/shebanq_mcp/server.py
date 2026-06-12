@@ -11,6 +11,8 @@ from .guard import QueryGuard, QueryTimeout, ServerBusy, WorkerCrashed
 from .validator import validate_mql
 from .tf_validator import validate_tf
 from .tf_to_mql import ConversionError, tf_to_mql
+from .convert import detect_and_convert
+from .mql_to_tf import mql_to_tf
 from .tf_translate import build_tf_translator
 from . import tf_runner
 from .runner import run_query
@@ -202,6 +204,23 @@ def handle_to_citable_mql(template: str) -> dict:
             "next": "Paste this MQL into SHEBANQ and save the query for a "
                     "citable permalink. Note the data version: this server "
                     "is pinned to ETCBC 2021."}
+
+
+def handle_to_tf_template(mql: str) -> dict:
+    try:
+        result = mql_to_tf(mql, _ref)
+    except ConversionError as exc:
+        return {"mql": mql, "error": str(exc)}
+    out = {"mql": mql, "tf_template": result.text,
+           "next": "Run this template with run_tf, or in a Text-Fabric "
+                   "notebook against the BHSA 2021 release."}
+    if result.notes:
+        out["notes"] = result.notes
+    return out
+
+
+def handle_convert(text: str) -> dict:
+    return detect_and_convert(text, _ref)
 
 
 def _install_tf_guard(max_concurrent: int, timeout_seconds: int) -> None:
@@ -418,6 +437,19 @@ def to_citable_mql(template: str) -> dict:
     with an explanation.
     """
     return handle_to_citable_mql(template)
+
+
+@mcp.tool()
+def to_tf_template(mql: str) -> dict:
+    """Convert an Emdros MQL query to the equivalent Text-Fabric search template.
+
+    Deterministic, no model involved: brackets become indentation, AND
+    becomes a space, quoted string values lose their quotes. GET clauses are
+    dropped with a note (TF results expose all features). MQL using OR, NOT,
+    FOCUS, or sequence operators is refused with an explanation. The mirror
+    of to_citable_mql.
+    """
+    return handle_to_tf_template(mql)
 
 
 @mcp.tool()

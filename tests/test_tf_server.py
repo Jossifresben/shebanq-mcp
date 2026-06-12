@@ -143,3 +143,34 @@ def test_to_citable_mql_refusal():
     out = server.handle_to_citable_mql("word lex~BR")
     assert "cannot be converted" in out["error"]
     assert "mql" not in out
+
+
+def test_to_tf_template_happy_path():
+    out = server.handle_to_tf_template(
+        "SELECT ALL OBJECTS WHERE [word sp=verb AND vs=nif] GO")
+    assert out["tf_template"] == "word sp=verb vs=nif"
+    assert out["mql"].startswith("SELECT")
+    assert "run_tf" in out["next"]
+
+
+def test_to_tf_template_get_note():
+    out = server.handle_to_tf_template(
+        "SELECT ALL OBJECTS WHERE [verse GET book, chapter, verse "
+        "[word sp=verb]] GO")
+    assert out["tf_template"] == "verse\n  word sp=verb"
+    assert out["notes"] == ["GET clauses dropped; Text-Fabric results "
+                            "expose all features."]
+
+
+def test_to_tf_template_refusal():
+    out = server.handle_to_tf_template(
+        "SELECT ALL OBJECTS WHERE [word sp=verb OR sp=subs] GO")
+    assert "cannot be converted" in out["error"]
+    assert "tf_template" not in out
+
+
+def test_handle_convert_both_directions():
+    a = server.handle_convert("word sp=verb")
+    assert a["direction"] == "tf_to_mql" and a["output"].startswith("SELECT")
+    b = server.handle_convert("SELECT ALL OBJECTS WHERE [word sp=verb] GO")
+    assert b["direction"] == "mql_to_tf" and b["output"] == "word sp=verb"
