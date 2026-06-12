@@ -82,3 +82,45 @@ def test_multi_word_value_rejected(ref):
     # 'gloss=be strong' is not expressible as a v1 feature=value pair
     errors = bad("word gloss=be strong", ref)
     assert errors
+
+
+def test_named_sibling_with_ordering_valid(ref):
+    ok("clause\n  p1:phrase function=Pred\n  p2:phrase function=Objc\np1 << p2",
+       ref)
+
+
+def test_three_named_siblings_chain_valid(ref):
+    ok("clause\n  p1:phrase\n  p2:phrase\n  p3:phrase\np1 << p2\np2 << p3", ref)
+
+
+def test_unordered_named_siblings_still_valid_as_template(ref):
+    # names without ordering are valid TF (unordered); the converter, not the
+    # validator, is what refuses converting them to MQL
+    ok("clause\n  p1:phrase function=Pred\n  p2:phrase function=Objc", ref)
+
+
+def test_duplicate_name_refused(ref):
+    errs = bad("clause\n  p1:phrase\n  p1:phrase\np1 << p1", ref)
+    assert any("duplicate" in e.lower() for e in errs)
+
+
+def test_ordering_undefined_name_refused(ref):
+    errs = bad("clause\n  p1:phrase\np1 << p9", ref)
+    assert any("p9" in e for e in errs)
+
+
+def test_self_ordering_refused(ref):
+    errs = bad("clause\n  p1:phrase\np1 << p1", ref)
+    assert any("itself" in e.lower() or "distinct" in e.lower() for e in errs)
+
+
+def test_malformed_ordering_line_refused(ref):
+    errs = bad("clause\n  p1:phrase\n  p2:phrase\np1 <> p2", ref)
+    assert errs
+
+
+def test_loosened_constraint_still_refused(ref):
+    # Guards the STRICT pairs group: loose \S+=\S+ would silently accept
+    # and then silently drop `lex~=BR`; the strict version must refuse it.
+    errs = bad("word lex~=BR", ref)
+    assert errs

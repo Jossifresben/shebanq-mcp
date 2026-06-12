@@ -26,6 +26,18 @@ _LINE = re.compile(
 )
 _PAIR = re.compile(r"([A-Za-z_][A-Za-z0-9_]*)=(\S+)")
 
+# An object line may carry a name prefix: name:otype feat=val ...
+# STRICT pairs group: same `word=value` shape as _LINE; the loose \S+=\S+
+# version silently accepts then silently DROPS constraints like `lex~=y`.
+_NAMED_LINE = re.compile(
+    r"^(?:([A-Za-z_][A-Za-z0-9_]*):)?"
+    r"([A-Za-z_][A-Za-z0-9_]*)((?:\s+[A-Za-z_][A-Za-z0-9_]*=\S+)*)\s*$")
+
+# Operator constant — swap in ONE place if CI proves << is wrong:
+_ORDER_OP = "<<"
+_ORDER_LINE = re.compile(
+    rf"^([A-Za-z_][A-Za-z0-9_]*)\s*{re.escape(_ORDER_OP)}\s*([A-Za-z_][A-Za-z0-9_]*)\s*$")
+
 
 def _check_line(otype: str, pairs: str, ref: FeatureReference,
                 lineno: int) -> list[str]:
@@ -55,10 +67,40 @@ def validate_tf(template: str, ref: FeatureReference) -> ValidationResult:
     stack: list[int] = []              # active indentation levels
     indent_step: int | None = None     # first non-zero indent increment seen
     saw_content = False
+    declared_names: set[str] = set()   # names declared so far (name: prefix)
+
     for lineno, raw in enumerate(template.splitlines(), 1):
         if not raw.strip():
             continue
         saw_content = True
+
+        # Check for ordering lines FIRST (before tab/indent logic).
+        # Ordering lines must be at column 0.
+        stripped = raw.strip()
+        om = _ORDER_LINE.match(stripped)
+        if om:
+            # Indented ordering line is an error.
+            head = raw[: len(raw) - len(raw.lstrip())]
+            if len(head) != 0:
+                errors.append(
+                    f"line {lineno}: ordering lines must be at column 0")
+                continue
+            left, right = om.group(1), om.group(2)
+            if left == right:
+                errors.append(
+                    f"line {lineno}: an object cannot be ordered before "
+                    f"itself; the two names must be distinct")
+            else:
+                if left not in declared_names:
+                    errors.append(
+                        f"line {lineno}: ordering references undefined name "
+                        f"'{left}'")
+                if right not in declared_names:
+                    errors.append(
+                        f"line {lineno}: ordering references undefined name "
+                        f"'{right}'")
+            continue
+
         head = raw[: len(raw) - len(raw.lstrip())]
         if "\t" in head:
             errors.append(f"line {lineno}: indentation uses a tab; use spaces")
@@ -88,13 +130,25 @@ def validate_tf(template: str, ref: FeatureReference) -> ValidationResult:
                     f"line {lineno}: indentation does not align with any "
                     "enclosing level")
                 stack.append(indent)   # keep going; report later lines too
-        m = _LINE.match(raw.strip())
+
+        m = _NAMED_LINE.match(stripped)
         if not m:
             errors.append(
                 f"line {lineno}: expected '<object_type> feature=value ...' "
-                f"(got '{raw.strip()}')")
+                f"(got '{stripped}')")
             continue
-        errors.extend(_check_line(m.group(1), m.group(2), ref, lineno))
+
+        name, otype, pairs = m.group(1), m.group(2), m.group(3)
+        if name is not None:
+            if name in declared_names:
+                errors.append(
+                    f"line {lineno}: duplicate name '{name}'; each atom name "
+                    f"must be unique within the template")
+            else:
+                declared_names.add(name)
+
+        errors.extend(_check_line(otype, pairs, ref, lineno))
+
     if not saw_content:
         errors.append("template is empty")
     return ValidationResult(ok=not errors, errors=errors)
