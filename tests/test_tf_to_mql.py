@@ -1,6 +1,7 @@
 import pytest
 
 from shebanq_mcp.feature_reference import FeatureReference
+from shebanq_mcp.mql_to_tf import mql_to_tf
 from shebanq_mcp.tf_to_mql import ConversionError, tf_to_mql
 from shebanq_mcp.validator import validate_mql
 
@@ -31,9 +32,41 @@ def test_nesting_becomes_brackets(ref):
                    "[clause [phrase function=Pred [word sp=verb AND vs=nif]]] GO")
 
 
-def test_siblings_refused(ref):
-    with pytest.raises(ConversionError, match="sibling lines cannot be converted"):
+def test_ordered_siblings_convert(ref):
+    out = tf_to_mql(
+        "clause\n  p1:phrase function=Pred\n  p2:phrase function=Objc\np1 << p2",
+        ref)
+    assert out == ("SELECT ALL OBJECTS WHERE "
+                   "[clause [phrase function=Pred] [phrase function=Objc]] GO")
+
+
+def test_unordered_siblings_refused_with_fixit(ref):
+    with pytest.raises(ConversionError, match="ordering"):
         tf_to_mql("clause\n  phrase function=Pred\n  phrase function=Objc", ref)
+
+
+def test_ordering_against_textual_order(ref):
+    # p2 << p1 puts Objc first
+    out = tf_to_mql(
+        "clause\n  p1:phrase function=Pred\n  p2:phrase function=Objc\np2 << p1",
+        ref)
+    assert out == ("SELECT ALL OBJECTS WHERE "
+                   "[clause [phrase function=Objc] [phrase function=Pred]] GO")
+
+
+def test_cyclic_ordering_refused(ref):
+    with pytest.raises(ConversionError, match="cycle|contradict|consistent"):
+        tf_to_mql("clause\n  p1:phrase\n  p2:phrase\np1 << p2\np2 << p1", ref)
+
+
+def test_cross_parent_ordering_refused(ref):
+    with pytest.raises(ConversionError, match="sibling"):
+        tf_to_mql("clause\n  p1:phrase\n    w1:word\n  p2:phrase\nw1 << p2", ref)
+
+
+def test_partial_order_refused(ref):
+    with pytest.raises(ConversionError, match="partial|total"):
+        tf_to_mql("clause\n  p1:phrase\n  p2:phrase\n  p3:phrase\np1 << p2", ref)
 
 
 def test_output_validates_as_mql(ref):
@@ -69,5 +102,17 @@ def test_tab_indentation_refused(ref):
 
 def test_multi_root_refused(ref):
     # Two top-level roots are siblings at root level; same ordering-semantics problem
-    with pytest.raises(ConversionError, match="sibling lines cannot be converted"):
+    with pytest.raises(ConversionError, match="ordering"):
         tf_to_mql("word sp=verb\nclause", ref)
+
+
+def test_sibling_round_trip(ref):
+    mql = ("SELECT ALL OBJECTS WHERE [clause [phrase function=Pred] "
+           "[phrase function=Objc]] GO")
+    assert tf_to_mql(mql_to_tf(mql, ref).text, ref) == mql
+
+
+def test_three_sibling_round_trip(ref):
+    mql = ("SELECT ALL OBJECTS WHERE [clause [phrase function=Pred] "
+           "[phrase function=Objc] [phrase function=Subj]] GO")
+    assert tf_to_mql(mql_to_tf(mql, ref).text, ref) == mql
