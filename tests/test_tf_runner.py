@@ -184,3 +184,18 @@ def test_nested_template_runs(require_tf):
     assert res.count > 0
     row = res.matches[0]
     assert row["text"] and row["book"]
+
+
+def test_leaf_features_skip_ordering_lines():
+    assert tf_runner._leaf_features(
+        "clause\n  p1:phrase\n  p2:phrase\n    word sp=verb\np1 << p2"
+    ) == ["sp"]
+
+
+@pytest.mark.tf
+def test_ordered_template_runs(require_tf):
+    res = tf_runner.run_template(
+        "clause\n  p1:phrase function=Pred\n    word sp=verb\n"
+        "  p2:phrase function=Objc\n    word\np1 << p2", limit=3)
+    assert res.count > 0
+    assert res.matches[0]["text"]
