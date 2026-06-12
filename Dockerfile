@@ -76,8 +76,11 @@ COPY pyproject.toml ./
 COPY src ./src
 RUN pip install --no-cache-dir .
 
-# The built demo page, served at / when WEB_API=on (unused on the MCP service).
+# The built web app, served when WEB_API=on (unused on the MCP service):
+# the main page, the about page, and the Open Graph share image.
 COPY demo/index.html /app/demo/index.html
+COPY demo/about.html /app/demo/about.html
+COPY demo/og.png /app/demo/og.png
 
 # Read-only database: file 444, directory 555 (not writable by appuser).
 COPY --from=builder /build/db/bhsa.sqlite3 /app/data/bhsa.sqlite3
