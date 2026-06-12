@@ -28,7 +28,6 @@ like Claude as a set of tools.
 
 A hosted web app where you ask in plain language and watch the query run:
 **https://shebanq-web.onrender.com**
-(The hosted instance updates with the next release; it currently runs v0.2.2.)
 
 Type a question and click **Translate to MQL**. The server drafts an MQL query
 and derives the Text-Fabric equivalent from it; both appear in side-by-side
