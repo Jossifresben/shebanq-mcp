@@ -181,6 +181,10 @@ query visible and central rather than hiding it:
 - **Honest empty results.** Zero matches returns the query and a clear "0
   results", so you can tell "the query is wrong" from "the phenomenon is not
   there".
+- **Stated assumptions.** Each answer lists the BHSA encoding choices its
+  query depends on (gender and number are word-level form; the gloss is
+  the lexeme gloss), so a query that is valid but answers a slightly
+  different question than you meant is caught, not cited.
 
 AI as a way in, not a way around.
 
@@ -390,9 +394,9 @@ catalogue from the ETCBC feature docs is a roadmap item.
       MQL sibling blocks are ordered while Text-Fabric template siblings are not
       (measured: 25827 vs 46968 rows on the same query shape), so both
       converters currently refuse the shape rather than change its meaning
-- [ ] Per-feature provenance notes ("what this query assumes"): surface the
-      encoding caveats at answer time (gender is word-level form, gloss is the
-      lexeme gloss), so a valid-but-wrong-question query is caught, not cited
+- [x] Per-feature provenance notes ("what this query assumes"): each
+      answer lists the encoding caveats its query relies on, computed from
+      the catalogue, shown on the web and in MCP responses
 - [ ] Full feature-catalogue generation from the ETCBC feature docs
 
 ## Deploy
