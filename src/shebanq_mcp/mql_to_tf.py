@@ -10,7 +10,10 @@ matches, and TF results expose every feature.
 Scope is the convertible MQL subset (the shape tf_to_mql emits, plus GET).
 Richer MQL (OR, NOT, NOTEXIST, FOCUS, sequence/adjacency operators,
 HAVING MONADS) has no place in the v1 template grammar and is refused,
-never silently dropped.
+never silently dropped. Sibling blocks (multiple children under one parent,
+or multiple top-level roots) are refused because MQL orders them while TF
+template siblings are unordered, so the two queries would match different
+results.
 """
 import re
 from dataclasses import dataclass, field
@@ -98,8 +101,12 @@ def mql_to_tf(mql: str, ref: FeatureReference) -> ConversionResult:
         notes.append(_GET_NOTE)
 
     # Walk the bracket structure; emit one line per block at 2-space depth.
+    # child_counts tracks how many direct child blocks each open block has
+    # seen so far. Index 0 is the "root level" counter; deeper indices
+    # correspond to open blocks on the stack.
     lines: list[str] = []
     depth = 0
+    child_counts: list[int] = [0]   # child_counts[0] = root-level block count
     i, n = 0, len(body)
     while i < n:
         ch = body[i]
@@ -112,6 +119,14 @@ def mql_to_tf(mql: str, ref: FeatureReference) -> ConversionResult:
             if not mo:
                 raise ConversionError("malformed block open near "
                                       f"'{body[i:i+20]}'")
+            # Refuse if the parent already has a child block (sibling).
+            if child_counts[-1] >= 1:
+                raise ConversionError(
+                    "sibling blocks cannot be converted faithfully: MQL orders "
+                    "them (the first block matches before the second) while "
+                    "Text-Fabric template siblings are unordered, so the two "
+                    "queries would match different results")
+            child_counts[-1] += 1
             otype = mo.group(1)
             # The constraint region runs to this block's first child or close.
             j = mo.end()
@@ -125,6 +140,7 @@ def mql_to_tf(mql: str, ref: FeatureReference) -> ConversionResult:
             constraints = _parse_constraints(body[j:k])
             lines.append("  " * depth + " ".join([otype] + constraints))
             depth += 1
+            child_counts.append(0)   # new frame for this block's children
             i = k
             continue
         if ch == "]":
@@ -132,6 +148,7 @@ def mql_to_tf(mql: str, ref: FeatureReference) -> ConversionResult:
             if depth < 0:
                 raise ConversionError(
                     "unbalanced brackets: more ']' than '[' in the query")
+            child_counts.pop()
             i += 1
             continue
         if ch.isspace():

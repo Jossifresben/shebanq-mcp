@@ -31,10 +31,9 @@ def test_nesting_becomes_brackets(ref):
                    "[clause [phrase function=Pred [word sp=verb AND vs=nif]]] GO")
 
 
-def test_siblings_become_sibling_blocks(ref):
-    mql = tf_to_mql("clause\n  phrase function=Pred\n  phrase function=Objc", ref)
-    assert mql == ("SELECT ALL OBJECTS WHERE "
-                   "[clause [phrase function=Pred] [phrase function=Objc]] GO")
+def test_siblings_refused(ref):
+    with pytest.raises(ConversionError, match="sibling lines cannot be converted"):
+        tf_to_mql("clause\n  phrase function=Pred\n  phrase function=Objc", ref)
 
 
 def test_output_validates_as_mql(ref):
@@ -68,7 +67,7 @@ def test_tab_indentation_refused(ref):
         tf_to_mql("clause\n\tword", ref)
 
 
-def test_multi_root_template_converts(ref):
-    mql = tf_to_mql("word sp=verb\nclause", ref)
-    assert mql == "SELECT ALL OBJECTS WHERE [word sp=verb] [clause] GO"
-    assert validate_mql(mql, ref).ok
+def test_multi_root_refused(ref):
+    # Two top-level roots are siblings at root level; same ordering-semantics problem
+    with pytest.raises(ConversionError, match="sibling lines cannot be converted"):
+        tf_to_mql("word sp=verb\nclause", ref)

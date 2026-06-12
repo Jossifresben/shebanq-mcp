@@ -34,11 +34,11 @@ def test_nesting_becomes_indentation(ref):
     assert r.text == "clause\n  phrase function=Pred\n    word sp=verb vs=nif"
 
 
-def test_siblings_align(ref):
-    r = mql_to_tf(
-        "SELECT ALL OBJECTS WHERE "
-        "[clause [phrase function=Pred] [phrase function=Objc]] GO", ref)
-    assert r.text == "clause\n  phrase function=Pred\n  phrase function=Objc"
+def test_siblings_refused(ref):
+    with pytest.raises(ConversionError, match="sibling blocks cannot be converted"):
+        mql_to_tf(
+            "SELECT ALL OBJECTS WHERE "
+            "[clause [phrase function=Pred] [phrase function=Objc]] GO", ref)
 
 
 def test_get_dropped_with_note(ref):
@@ -104,12 +104,11 @@ def test_not_a_select_refused(ref):
 
 
 def test_round_trip_tf_mql_tf(ref):
-    # tf -> mql -> tf is the identity on the v1 grammar
+    # tf -> mql -> tf is the identity on the v1 grammar (non-sibling shapes)
     for t in ("word sp=verb",
               "word sp=verb vs=nif",
               "word lex=BR>[",
-              "clause\n  phrase function=Pred\n    word sp=verb vs=nif",
-              "clause\n  phrase function=Pred\n  phrase function=Objc"):
+              "clause\n  phrase function=Pred\n    word sp=verb vs=nif"):
         assert mql_to_tf(tf_to_mql(t, ref), ref).text == t
 
 
