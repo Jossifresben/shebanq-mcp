@@ -22,16 +22,28 @@ like Claude as a set of tools.
 > on every push, and the MQL curriculum's example counts are pinned against the
 > real engine. Feedback welcome, especially from people who teach or use MQL.
 
-## Try it (live demo)
+## Try it
 
-A hosted page where you ask in plain language and watch the query run:
+A hosted web app where you ask in plain language and watch the query run:
 **https://shebanq-web.onrender.com**
+(The hosted instance updates with the next release; it currently runs v0.2.2.)
 
-Type a question and click **Translate to MQL** to see the generated query.
-Review or edit it, then **Run query** against the live BHSA engine. References
-are on by default, so each hit shows its `book chapter:verse`; untick "Include
-the reference (book chapter:verse)" for a plainer query. The worked examples run
-live too. It is read-only, and the auto-translation is capped by a monthly budget.
+Type a question and click **Translate to MQL**. The server drafts an MQL query
+and derives the Text-Fabric equivalent from it; both appear in side-by-side
+boxes. The MQL box is editable and runs against the live BHSA engine. The TF
+box is read-only and shows the derived template with a copy button. The
+**reference checkbox** swaps both boxes between the verse-scoped and bare
+versions in place, no re-translation needed. If you hand-edit the MQL and run
+it, the TF box dims until the server re-derives the equivalent.
+
+The **Examples gallery** shows pre-built searches in both languages, each with
+real results; entries where conversion is impossible show an honest "no
+Text-Fabric equivalent" note rather than a silent omission. The **TF to MQL
+converter** modal lets you paste a Text-Fabric notebook template and get back
+SHEBANQ-citable MQL with a permalink. The **/about page** explains the
+methodology and how to use the tool.
+
+The app is read-only. Auto-translation is capped by a monthly budget.
 
 ## Use it in Claude Desktop
 
@@ -72,10 +84,10 @@ Then restart Claude Desktop.
 Ask in plain language. `search_bhsa` translates server-side: the server prompts
 the configured model (`LLM_MODEL`) with an engine-verified MQL curriculum and the
 BHSA feature catalogue, validates the generated query for object-type correctness,
-runs it against the local BHSA database, and returns the MQL plus results. No
-dependency on your client's own model to write MQL. `run_mql`, `run_tf`,
-`to_citable_mql`, and `lookup_feature` are also available if you want to work
-with queries directly.
+runs it against the local BHSA database, and returns the MQL, a derived
+Text-Fabric template, and results. No dependency on your client's own model to
+write MQL. `run_mql`, `run_tf`, `to_citable_mql`, `to_tf_template`, and
+`lookup_feature` are also available if you want to work with queries directly.
 
 ### How translation works
 
@@ -84,11 +96,12 @@ with two things: an engine-verified MQL curriculum (the primer, covering nesting
 sequence and adjacency, FOCUS, quoting rules, and verse references) and the BHSA
 feature catalogue scoped per object type. Before the query runs, the
 validator checks object-type correctness: a wrong-level query fails loudly with
-a clear error rather than silently returning zero results. Honest counts come
-back every time: zero matches returns the query and a plain "0 results" so you
-can tell "the query is wrong" from "the phenomenon is not there." The model is
-configurable via the `LLM_MODEL` environment variable and bounded by a monthly
-spend cap.
+a clear error rather than silently returning zero results. The Text-Fabric
+equivalent is then derived from the validated MQL by deterministic code, with no
+second model call. Honest counts come back every time: zero matches returns the
+query and a plain "0 results" so you can tell "the query is wrong" from "the
+phenomenon is not there." The model is configurable via the `LLM_MODEL`
+environment variable and bounded by a monthly spend cap.
 
 **Example prompts**
 
@@ -134,8 +147,10 @@ catching a query that quietly asks the wrong thing. So the design keeps the
 query visible and central rather than hiding it:
 
 - **The query is the product, not the answer.** Every result carries the exact
-  MQL that produced it. It is reproducible and pastes straight into SHEBANQ to
-  save, share, and cite. Nothing comes back as a black box.
+  MQL that produced it, plus the derived Text-Fabric equivalent. Both are
+  reproducible: the MQL pastes straight into SHEBANQ to save, share, and cite;
+  the TF template goes back into a research notebook. Nothing comes back as a
+  black box.
 - **Validation before execution.** A query is checked against the BHSA feature
   catalogue first, so a wrong code like `vs=niphal` (the correct code is
   `vs=nif`) fails loudly instead of silently returning zero.
@@ -160,9 +175,9 @@ research notebook can become a saved SHEBANQ query with a citable permalink.
 `to_tf_template` is its mirror, MQL in and template out, and the web app's
 converter modal wraps both directions behind one paste box.
 
-The live web demo shows both languages side by side for every answer (MQL runs,
-TF displayed beside it) and in the Examples gallery, with build-time derivation
-so every gallery card shows the exact TF equivalent of its MQL.
+The web app shows both languages side by side for every answer (MQL runs, TF
+displayed beside it) and in the Examples gallery, with build-time derivation so
+every gallery card shows the exact TF equivalent of its MQL.
 
 The TF engine needs the optional extra: `pip install "shebanq-mcp[tf]"`. The
 corpus downloads from GitHub on first use.
@@ -186,9 +201,9 @@ an LLM, with the feature catalogue injected into the prompt.
 Translation is isolated behind a `Translator` interface, so the provider is
 swappable. Select it with the `LLM_PROVIDER` environment variable:
 
-- `anthropic` (default) — drafts MQL with the Anthropic API. Needs
+- `anthropic` (default): drafts MQL with the Anthropic API. Needs
   `ANTHROPIC_API_KEY`.
-- `none` — runs translation-free. `search_bhsa` is disabled and returns an error
+- `none`: runs translation-free. `search_bhsa` is disabled and returns an error
   pointing you at `run_mql`. Use this inside an MCP client (Claude can draft the
   query itself and call `run_mql`), so the server makes no external calls and
   needs no key.
@@ -249,12 +264,18 @@ Data files are gitignored and never committed.
 ## Tests
 
 ```bash
-pytest -q                                   # unit tests, no database needed
-BHSA_SQLITE=data/bhsa.sqlite3 pytest -m emdros   # database-backed tests
+pytest -q                                        # unit tests, no database needed
+BHSA_SQLITE=data/bhsa.sqlite3 pytest -m emdros  # Emdros database-backed tests
+pytest -m tf                                     # Text-Fabric tests (needs tf extra + BHSA TF data)
 ```
 
-Emdros-backed tests skip cleanly when the binding or database is absent. After
-building the database, confirm the Emdros Python API and pin the
+There are three test suites in CI: Emdros-backed counts and MQL execution,
+Text-Fabric execution, and cross-engine row-level equivalence (the derived TF
+template must return the same result rows as the source MQL, including a
+sibling-block case that exercises combination multiplicity). Emdros-backed and
+TF tests skip cleanly when the respective binding, data, or database is absent.
+
+After building the database, confirm the Emdros Python API and pin the
 featured-search counts:
 
 ```bash
@@ -263,8 +284,8 @@ python scripts/spike_emdros.py data/bhsa.sqlite3
 
 then fill in the `expected_count` values in
 [`tests/fixtures/featured_searches.json`](tests/fixtures/featured_searches.json)
-from real runs. Those fixtures are the regression backbone and, later, the demo
-gallery content.
+from real runs. Those fixtures are the regression backbone and the gallery
+content source.
 
 ## Feature coverage
 
@@ -316,12 +337,13 @@ catalogue from the ETCBC feature docs is the remaining roadmap item.
 Two Render services run from the same image (`Dockerfile`, declared in
 `render.yaml`), distinguished by environment:
 
-- **`shebanq-mcp`** — the public MCP endpoint. Server-side NL→MQL translation
+- **`shebanq-mcp`**: the public MCP endpoint. Server-side NL→MQL translation
   via `LLM_MODEL`; needs an API key. The validator rejects any non-read-only MQL
   before it reaches Emdros.
-- **`shebanq-web`** — the live demo. Same image with `WEB_API=on` and an
-  API key, serving the page plus `/api/translate` (question to MQL),
-  `/api/run` (run an MQL), and `/api/ask` (one-shot translate+run) same-origin.
+- **`shebanq-web`**: the web app. Same image with `WEB_API=on` and an API key,
+  serving the page plus `/api/translate` (question to MQL), `/api/run` (run an
+  MQL), `/api/ask` (one-shot translate+run), and `/api/convert` (bidirectional
+  MQL/TF conversion) same-origin.
 
 **What the image does**
 
@@ -372,7 +394,7 @@ engine. This project wraps that work; it does not replace it.
 If you use this software, please cite it via its DOI:
 
 > Fresco Benaim, Jose. (2026). *shebanq-mcp: a Model Context Protocol server for
-> querying the BHSA Hebrew Bible in plain language* (v0.3.0). Zenodo.
+> querying the BHSA Hebrew Bible in plain language* (v0.4.0). Zenodo.
 > https://doi.org/10.5281/zenodo.20625355
 
 A machine-readable `CITATION.cff` is in the repository, and GitHub's "Cite this
