@@ -10,10 +10,14 @@ matches, and TF results expose every feature.
 Scope is the convertible MQL subset (the shape tf_to_mql emits, plus GET).
 Richer MQL (OR, NOT, NOTEXIST, FOCUS, sequence/adjacency operators,
 HAVING MONADS) has no place in the v1 template grammar and is refused,
-never silently dropped. Sibling blocks (multiple children under one parent,
-or multiple top-level roots) are refused because MQL orders them while TF
-template siblings are unordered, so the two queries would match different
-results.
+never silently dropped. Sibling blocks connected with MQL's '..' ("anywhere
+after") operator are converted faithfully: each sibling gets a name
+(p1, p2, ...) and ordering lines (p1 << p2) are appended so the
+Text-Fabric template preserves MQL's textual (left-to-right) order.
+Bare sibling juxtaposition (no '..') means substrate-adjacent, which
+Text-Fabric templates cannot express, and is refused with a teaching
+message. Multiple top-level roots are still refused (TF templates require
+a single root).
 """
 import re
 from dataclasses import dataclass, field
@@ -24,14 +28,18 @@ from .validator import validate_mql
 
 _SKELETON = re.compile(r"(?is)^\s*SELECT\s+ALL\s+OBJECTS\s+WHERE\s+(.*?)\s+GO\s*$")
 # Scanned with string literals stripped, so lex='OR' cannot trip it.
+# NOTE: '..' is NOT in this list -- it is handled structurally in _parse_blocks.
 _UNSUPPORTED = re.compile(
     r"(?i)\b(OR|NOT|NOTEXIST|EXISTS|FOCUS|HAVING|RETRIEVE|NORETRIEVE"
-    r"|FIRST|LAST|AS|IN)\b|[!*]|\.\.")
+    r"|FIRST|LAST|AS|IN)\b|[!*]")
 _STRING_LITERAL = re.compile(r"'[^']*'")
 _BLOCK_OPEN = re.compile(r"\[\s*([A-Za-z_][A-Za-z0-9_]*)")
 _GET = re.compile(r"(?i)\bGET\s+[A-Za-z0-9_,\s]+?(?=[\[\]])")
 _CONSTRAINT = re.compile(
     r"^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(?:'([^']*)'|([^\s\]]+))$")
+
+# Operator constant: swap in ONE place if CI proves << is wrong.
+_ORDER_OP = "<<"
 
 _GET_NOTE = "GET clauses dropped; Text-Fabric results expose all features."
 
@@ -42,6 +50,23 @@ class ConversionResult:
     notes: list[str] = field(default_factory=list)
 
 
+# ---------------------------------------------------------------------------
+# Internal node tree used by the two-pass emitter
+# ---------------------------------------------------------------------------
+
+@dataclass
+class _Block:
+    otype: str
+    constraints: list[str]
+    children: list["_Block"] = field(default_factory=list)
+    # assigned in the naming pass; None means "no name needed"
+    name: str | None = None
+    # True if this child was preceded by '..' in the MQL (i.e. the joint
+    # between the previous sibling and this one was '..').  The first child
+    # of any parent always has preceded_by_dotdot=False.
+    preceded_by_dotdot: bool = False
+
+
 def _parse_constraints(region: str) -> list[str]:
     """'sp=verb AND lex='BR>['' -> ['sp=verb', 'lex=BR>[']. Refuses anything
     that is not feature=value pairs joined by AND."""
@@ -50,6 +75,12 @@ def _parse_constraints(region: str) -> list[str]:
         return []
     out: list[str] = []
     for part in re.split(r"(?i)\s+AND\s+", region):
+        if part.strip() == "..":
+            # '..' drifting into a constraint region means it was written
+            # somewhere other than between two sibling blocks.
+            raise ConversionError(
+                "'..' belongs between two sibling blocks ([A] .. [B]); "
+                "it cannot appear before a parent's first block")
         m = _CONSTRAINT.match(part.strip())
         if not m:
             raise ConversionError(
@@ -63,6 +94,184 @@ def _parse_constraints(region: str) -> list[str]:
                 "Text-Fabric feature=value pairs cannot carry spaces")
         out.append(f"{feat}={value}")
     return out
+
+
+# Matches '..' possibly surrounded by whitespace, used for inter-sibling gap.
+_DOTDOT = re.compile(r"^\s*\.\.\s*$")
+
+
+def _parse_blocks(body: str) -> list[_Block]:
+    """Walk the bracket structure and return the list of top-level _Block
+    nodes.  Each block's children list carries its direct child blocks.
+
+    Between a closing ']' and the next opening '[' at the same depth, the
+    only permitted text is whitespace or a single '..' operator.  A '..'
+    means "B anywhere after A in the parent" and marks
+    preceded_by_dotdot=True on the following sibling.  Bare whitespace is a
+    bare joint (substrate-adjacent); the caller checks this and refuses with
+    a teaching message.  Any other text between blocks is refused.
+
+    '..' is also refused when it appears BEFORE the first '[' at any depth
+    (no preceding sibling) or AFTER the last ']' at any depth.
+
+    Refuses multiple top-level roots (detected later)."""
+    roots: list[_Block] = []
+    stack: list[_Block] = []  # open blocks, innermost last
+    i, n = 0, len(body)
+
+    # Per-depth state: after closing a block at depth d, we enter
+    # "inter-sibling" mode for depth d.  We accumulate the text between ']'
+    # and the next '[' (or the end) and check it.
+    # inter_text[depth] = text accumulated since last ']' at that depth.
+    # We use the stack length as depth proxy: after popping, depth = len(stack).
+    inter_text: dict[int, str] = {}   # depth -> text since last ']' at depth
+    # Whether we have seen at least one ']' at each depth (so we know if
+    # we are in an inter-sibling position vs. before the first child).
+    seen_close: dict[int, bool] = {}
+
+    while i < n:
+        ch = body[i]
+        if ch == "'":                       # skip string literals whole
+            j = body.find("'", i + 1)
+            i = n if j == -1 else j + 1
+            continue
+        if ch == "[":
+            depth = len(stack)
+            # Check inter-sibling text accumulated at this depth.
+            if depth in inter_text:
+                gap = inter_text.pop(depth)
+                if _DOTDOT.match(gap):
+                    dotdot_joint = True
+                elif gap.strip() == "":
+                    dotdot_joint = False
+                else:
+                    raise ConversionError(
+                        f"unexpected text '{gap.strip()}' between blocks "
+                        "cannot be converted")
+            else:
+                # No prior sibling at this depth yet.
+                # But we need to check if '..' appears before first child.
+                dotdot_joint = False
+
+            mo = _BLOCK_OPEN.match(body, i)
+            if not mo:
+                raise ConversionError("malformed block open near "
+                                      f"'{body[i:i+20]}'")
+            otype = mo.group(1)
+            # Constraint region: from end of otype match to the next [ or ]
+            j = mo.end()
+            k = j
+            while k < n and body[k] not in "[]":
+                if body[k] == "'":
+                    k2 = body.find("'", k + 1)
+                    k = n if k2 == -1 else k2 + 1
+                    continue
+                k += 1
+            constraints = _parse_constraints(body[j:k])
+            block = _Block(otype=otype, constraints=constraints,
+                           preceded_by_dotdot=dotdot_joint)
+            if stack:
+                stack[-1].children.append(block)
+            else:
+                roots.append(block)
+            stack.append(block)
+            i = k
+            continue
+        if ch == "]":
+            if not stack:
+                raise ConversionError(
+                    "unbalanced brackets: more ']' than '[' in the query")
+            stack.pop()
+            depth = len(stack)   # depth AFTER the pop
+            inter_text[depth] = ""   # start accumulating inter-sibling text
+            seen_close[depth] = True
+            i += 1
+            continue
+        # Any character outside a block: accumulate into inter_text if we're
+        # in an inter-sibling region, else it's leading whitespace (ok) or
+        # an unexpected token.
+        depth = len(stack)
+        if depth in inter_text:
+            inter_text[depth] += ch
+        elif ch.isspace():
+            pass   # whitespace before first '[' at this depth is fine
+        else:
+            raise ConversionError(
+                f"unexpected text '{body[i:i+20].strip()}' between blocks "
+                "cannot be converted")
+        i += 1
+
+    if stack:
+        raise ConversionError(
+            "unbalanced brackets: a '[' block is never closed")
+
+    # Any leftover inter_text at depth 0 would be text after the last ']'.
+    # That will be caught by the regex scan or is trailing whitespace (ok).
+    # Check for '..' in trailing position (after last ']' at any depth).
+    for depth, gap in inter_text.items():
+        if ".." in gap:
+            raise ConversionError(
+                "'..' after the last sibling block has no meaning; "
+                "write '[A] .. [B]' to mean 'B anywhere after A'")
+
+    return roots
+
+
+_BARE_SIBLING_MSG = (
+    "bare sibling blocks mean adjacent within the parent (gaps skipped), "
+    "which Text-Fabric templates cannot express; if you mean 'anywhere after', "
+    "write [A] .. [B] and it will convert"
+)
+
+
+def _assign_names(roots: list[_Block]) -> list[tuple[str, str]]:
+    """Pre-order walk: for each block with >=2 children, check that every
+    inter-sibling joint is '..'; assign p1..pN names to ALL children and
+    record (prev, this) ordering pairs. A block with exactly one child: child
+    gets NO name (chain case). Raises ConversionError for bare joints.
+    Returns the list of ordering pairs in encountered order."""
+    counter = [0]   # mutable int in a list so the nested fn can increment it
+    pairs: list[tuple[str, str]] = []
+
+    def _walk(block: _Block) -> None:
+        if len(block.children) >= 2:
+            # Check every joint: children[1..] each carry preceded_by_dotdot.
+            for child in block.children[1:]:
+                if not child.preceded_by_dotdot:
+                    raise ConversionError(_BARE_SIBLING_MSG)
+            prev_name: str | None = None
+            for child in block.children:
+                counter[0] += 1
+                child.name = f"p{counter[0]}"
+                if prev_name is not None:
+                    pairs.append((prev_name, child.name))
+                prev_name = child.name
+        for child in block.children:
+            _walk(child)
+
+    for root in roots:
+        _walk(root)
+    return pairs
+
+
+def _render(roots: list[_Block], pairs: list[tuple[str, str]]) -> str:
+    """Emit object lines (with optional name prefix) then ordering lines."""
+    lines: list[str] = []
+
+    def _emit(block: _Block, depth: int) -> None:
+        prefix = f"{block.name}:" if block.name else ""
+        parts = [block.otype] + block.constraints
+        lines.append("  " * depth + prefix + " ".join(parts))
+        for child in block.children:
+            _emit(child, depth + 1)
+
+    for root in roots:
+        _emit(root, 0)
+
+    for a, b in pairs:
+        lines.append(f"{a} {_ORDER_OP} {b}")
+
+    return "\n".join(lines)
 
 
 def mql_to_tf(mql: str, ref: FeatureReference) -> ConversionResult:
@@ -100,66 +309,23 @@ def mql_to_tf(mql: str, ref: FeatureReference) -> ConversionResult:
         body = _GET.sub("", body)
         notes.append(_GET_NOTE)
 
-    # Walk the bracket structure; emit one line per block at 2-space depth.
-    # child_counts tracks how many direct child blocks each open block has
-    # seen so far. Index 0 is the "root level" counter; deeper indices
-    # correspond to open blocks on the stack.
-    lines: list[str] = []
-    depth = 0
-    child_counts: list[int] = [0]   # child_counts[0] = root-level block count
-    i, n = 0, len(body)
-    while i < n:
-        ch = body[i]
-        if ch == "'":                       # skip string literals whole
-            j = body.find("'", i + 1)
-            i = n if j == -1 else j + 1
-            continue
-        if ch == "[":
-            mo = _BLOCK_OPEN.match(body, i)
-            if not mo:
-                raise ConversionError("malformed block open near "
-                                      f"'{body[i:i+20]}'")
-            # Refuse if the parent already has a child block (sibling).
-            if child_counts[-1] >= 1:
-                raise ConversionError(
-                    "sibling blocks cannot be converted faithfully: MQL orders "
-                    "them (the first block matches before the second) while "
-                    "Text-Fabric template siblings are unordered, so the two "
-                    "queries would match different results")
-            child_counts[-1] += 1
-            otype = mo.group(1)
-            # The constraint region runs to this block's first child or close.
-            j = mo.end()
-            k = j
-            while k < n and body[k] not in "[]":
-                if body[k] == "'":
-                    k2 = body.find("'", k + 1)
-                    k = n if k2 == -1 else k2 + 1
-                    continue
-                k += 1
-            constraints = _parse_constraints(body[j:k])
-            lines.append("  " * depth + " ".join([otype] + constraints))
-            depth += 1
-            child_counts.append(0)   # new frame for this block's children
-            i = k
-            continue
-        if ch == "]":
-            depth -= 1
-            if depth < 0:
-                raise ConversionError(
-                    "unbalanced brackets: more ']' than '[' in the query")
-            child_counts.pop()
-            i += 1
-            continue
-        if ch.isspace():
-            i += 1
-            continue
-        raise ConversionError(
-            f"unexpected text '{body[i:i+20].strip()}' between blocks "
-            "cannot be converted")
-    if depth != 0:
-        raise ConversionError(
-            "unbalanced brackets: a '[' block is never closed")
-    if not lines:
+    # Pass 1: parse the bracket structure into a node tree.
+    roots = _parse_blocks(body)
+
+    if not roots:
         raise ConversionError("the query has no object blocks to convert")
-    return ConversionResult(text="\n".join(lines), notes=notes)
+
+    # Multiple top-level roots are refused (TF needs a single root).
+    if len(roots) > 1:
+        raise ConversionError(
+            "multiple top-level object blocks cannot be converted: "
+            "a Text-Fabric template must have a single root")
+
+    # Pass 2: assign names to siblings (multi-child parents only) and
+    # collect the ordering pairs.
+    pairs = _assign_names(roots)
+
+    # Pass 3: render.
+    text = _render(roots, pairs)
+
+    return ConversionResult(text=text, notes=notes)

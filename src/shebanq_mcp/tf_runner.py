@@ -14,6 +14,7 @@ import os
 import re
 
 from .runner import RunResult
+from .tf_validator import _ORDER_LINE
 
 DEFAULT_TF_VERSION = "2021"
 
@@ -55,7 +56,8 @@ def warm(version: str | None = None):
 def _leaf_features(template: str) -> list[str]:
     """Feature names constrained on the last template line; these are echoed
     back per row (the TF analogue of the MQL GET clause)."""
-    lines = [line for line in template.splitlines() if line.strip()]
+    lines = [line for line in template.splitlines()
+             if line.strip() and not _ORDER_LINE.match(line.strip())]
     if not lines:
         return []
     # '=' only, deliberately: tf_validator's v1 grammar admits only feature=value pairs.

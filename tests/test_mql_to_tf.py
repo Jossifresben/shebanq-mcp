@@ -34,11 +34,40 @@ def test_nesting_becomes_indentation(ref):
     assert r.text == "clause\n  phrase function=Pred\n    word sp=verb vs=nif"
 
 
-def test_siblings_refused(ref):
-    with pytest.raises(ConversionError, match="sibling blocks cannot be converted"):
-        mql_to_tf(
-            "SELECT ALL OBJECTS WHERE "
-            "[clause [phrase function=Pred] [phrase function=Objc]] GO", ref)
+def test_two_siblings_emit_names_and_ordering(ref):
+    out = mql_to_tf(
+        "SELECT ALL OBJECTS WHERE [clause [phrase function=Pred] .. "
+        "[phrase function=Objc]] GO", ref).text
+    assert out == ("clause\n  p1:phrase function=Pred\n"
+                   "  p2:phrase function=Objc\np1 << p2")
+
+
+def test_three_siblings_emit_pairwise_chain(ref):
+    out = mql_to_tf(
+        "SELECT ALL OBJECTS WHERE [clause [phrase function=Pred] .. "
+        "[phrase function=Objc] .. [phrase function=Subj]] GO", ref).text
+    assert out == ("clause\n  p1:phrase function=Pred\n"
+                   "  p2:phrase function=Objc\n  p3:phrase function=Subj\n"
+                   "p1 << p2\np2 << p3")
+
+
+def test_chain_unchanged_no_names(ref):
+    # a single child per level: byte-identical to pre-feature output
+    out = mql_to_tf(
+        "SELECT ALL OBJECTS WHERE [clause [phrase function=Pred "
+        "[word sp=verb]]] GO", ref).text
+    assert out == "clause\n  phrase function=Pred\n    word sp=verb"
+    assert ":" not in out and "<<" not in out
+
+
+def test_named_sibling_with_child_and_chain_wrapper(ref):
+    r = mql_to_tf(
+        "SELECT ALL OBJECTS WHERE [verse GET book, chapter, verse "
+        "[clause [phrase function=Pred] .. "
+        "[phrase function=Objc [word GET g_word_utf8]]]] GO", ref)
+    assert r.text == ("verse\n  clause\n    p1:phrase function=Pred\n"
+                      "    p2:phrase function=Objc\n      word\np1 << p2")
+    assert r.notes                     # GET clauses dropped, noted
 
 
 def test_get_dropped_with_note(ref):
@@ -140,3 +169,19 @@ def test_extra_close_bracket_refused(ref):
 def test_empty_body_refused(ref):
     with pytest.raises(ConversionError, match="no object blocks"):
         mql_to_tf("SELECT ALL OBJECTS WHERE  GO", ref)
+
+
+def test_bare_siblings_refused_with_teaching(ref):
+    # Old bare joint: [clause [A] [B]] -- adjacent-within-parent, not convertible.
+    with pytest.raises(ConversionError, match="adjacent within the parent"):
+        mql_to_tf(
+            "SELECT ALL OBJECTS WHERE [clause [phrase function=Pred] "
+            "[phrase function=Objc]] GO", ref)
+
+
+def test_mixed_joints_refused(ref):
+    # One '..' joint and one bare joint: the bare joint must still refuse.
+    with pytest.raises(ConversionError, match="adjacent within the parent"):
+        mql_to_tf(
+            "SELECT ALL OBJECTS WHERE [clause [phrase function=Pred] .. "
+            "[phrase function=Objc] [phrase function=Subj]] GO", ref)
