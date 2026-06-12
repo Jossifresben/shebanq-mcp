@@ -37,7 +37,7 @@ def test_ordered_siblings_convert(ref):
         "clause\n  p1:phrase function=Pred\n  p2:phrase function=Objc\np1 << p2",
         ref)
     assert out == ("SELECT ALL OBJECTS WHERE "
-                   "[clause [phrase function=Pred] [phrase function=Objc]] GO")
+                   "[clause [phrase function=Pred] .. [phrase function=Objc]] GO")
 
 
 def test_unordered_siblings_refused_with_fixit(ref):
@@ -51,7 +51,7 @@ def test_ordering_against_textual_order(ref):
         "clause\n  p1:phrase function=Pred\n  p2:phrase function=Objc\np2 << p1",
         ref)
     assert out == ("SELECT ALL OBJECTS WHERE "
-                   "[clause [phrase function=Objc] [phrase function=Pred]] GO")
+                   "[clause [phrase function=Objc] .. [phrase function=Pred]] GO")
 
 
 def test_cyclic_ordering_refused(ref):
@@ -107,12 +107,12 @@ def test_multi_root_refused(ref):
 
 
 def test_sibling_round_trip(ref):
-    mql = ("SELECT ALL OBJECTS WHERE [clause [phrase function=Pred] "
+    mql = ("SELECT ALL OBJECTS WHERE [clause [phrase function=Pred] .. "
            "[phrase function=Objc]] GO")
     assert tf_to_mql(mql_to_tf(mql, ref).text, ref) == mql
 
 
 def test_three_sibling_round_trip(ref):
-    mql = ("SELECT ALL OBJECTS WHERE [clause [phrase function=Pred] "
-           "[phrase function=Objc] [phrase function=Subj]] GO")
+    mql = ("SELECT ALL OBJECTS WHERE [clause [phrase function=Pred] .. "
+           "[phrase function=Objc] .. [phrase function=Subj]] GO")
     assert tf_to_mql(mql_to_tf(mql, ref).text, ref) == mql

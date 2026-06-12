@@ -206,10 +206,16 @@ research notebook can become a saved SHEBANQ query with a citable permalink.
 **TF → MQL converter** wraps the citation direction in one paste box.
 
 Where the two languages would mean different things, the converter is
-faithful rather than approximate. Sibling blocks are the example: MQL
-orders them, so the converter emits Text-Fabric ordering operators (named
-atoms and `<<` lines) to preserve that order, and a Text-Fabric template
-with unordered siblings is refused with a note on how to add the ordering.
+faithful rather than approximate. Sibling blocks are the key example.
+MQL's `[A] .. [B]` means "B anywhere after A in the parent" and converts
+exactly to Text-Fabric's `<<` ordering operator, row-for-row proven in CI
+(40371 rows on both engines). Bare juxtaposition `[A] [B]` in MQL means
+something narrower: B starts at the very next monad after A ends within
+the parent (gaps skipped). That relationship has no Text-Fabric template
+equivalent, so it is refused with a plain explanation and a suggestion to
+use `..` if "anywhere after" is what you meant. A Text-Fabric template
+with unordered siblings is also refused with a note on how to add ordering
+lines.
 
 The converter is pure code and runs anywhere. Actually **executing** a
 Text-Fabric template (the `run_tf` tool) needs the BHSA Text-Fabric corpus
@@ -390,9 +396,11 @@ catalogue from the ETCBC feature docs is a roadmap item.
       Text-Fabric equivalent; `to_citable_mql` and `to_tf_template` converters;
       cross-engine row-level equivalence proven in CI; the web app shows both
       languages and an about page
-- [x] Ordered sibling-block conversion via Text-Fabric ordering operators:
-      MQL sibling order is preserved with named atoms and `<<` lines;
-      row-for-row equivalence with Emdros proven in CI
+- [x] Faithful sibling-block conversion: MQL `[A] .. [B]` ("B anywhere
+      after A") maps exactly to Text-Fabric `<<`; row-for-row equivalence
+      proven in CI (40371 rows both engines). Bare juxtaposition `[A] [B]`
+      means substrate-adjacent (parent gaps skipped), which Text-Fabric
+      cannot express, and is refused with a teaching message
 - [x] Per-feature provenance notes ("what this query assumes"): each
       answer lists the encoding caveats its query relies on, computed from
       the catalogue, shown on the web and in MCP responses

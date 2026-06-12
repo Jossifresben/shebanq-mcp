@@ -237,7 +237,7 @@ def tf_to_mql(template: str, ref: FeatureReference) -> str:
             # Single child: no ordering needed
             sorted_children = children
 
-        child_blocks = " ".join(_emit_node(c) for c in sorted_children)
+        child_blocks = " .. ".join(_emit_node(c) for c in sorted_children)
         return f"[{inner_mql} {child_blocks}]"
 
     # Emit roots
