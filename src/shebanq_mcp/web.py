@@ -38,7 +38,8 @@ def client_ip(request) -> str:
 from time import monotonic  # noqa: E402 - intentional mid-file import
 
 
-def make_routes(ask, run, translate, page_html: str, limiter: "RateLimiter") -> list:
+def make_routes(ask, run, translate, page_html: str, limiter: "RateLimiter",
+                convert=None, about_html: str = "", og_png: bytes = b"") -> list:
     """Build the web demo's Starlette routes. `ask(question)`, `translate(question)`
     and `run(mql)` are the domain handlers — kept as params so this module has no
     dependency on server.py and the routes are testable in isolation. `ask`
@@ -73,6 +74,13 @@ def make_routes(ask, run, translate, page_html: str, limiter: "RateLimiter") -> 
     async def page(request):
         return HTMLResponse(page_html)
 
+    async def about(request):
+        return HTMLResponse(about_html)
+
+    async def og(request):
+        from starlette.responses import Response
+        return Response(og_png, media_type="image/png")
+
     async def translate_route(request):
         if not limiter.allow(client_ip(request), monotonic()):
             return JSONResponse({"error": "rate limit exceeded; wait a moment"},
@@ -87,18 +95,28 @@ def make_routes(ask, run, translate, page_html: str, limiter: "RateLimiter") -> 
             return JSONResponse({"error": "internal error translating the question"},
                                 status_code=500)
 
-    return [
+    routes = [
         Route("/", page, methods=["GET"]),
+        Route("/about", about, methods=["GET"]),
+        Route("/og.png", og, methods=["GET"]),
         Route("/api/translate", translate_route, methods=["POST"]),
         Route("/api/ask", _post_route(ask, "question",
               "answering the question"), methods=["POST"]),
         Route("/api/run", _post_route(run, "mql",
               "running the query"), methods=["POST"]),
     ]
+    if convert is not None:
+        routes.append(Route("/api/convert", _post_route(convert, "text",
+                            "converting the query"), methods=["POST"]))
+    return routes
 
 
 def register_web_routes(mcp, ask, run, translate, page_html: str,
-                        limiter: "RateLimiter") -> None:
+                        limiter: "RateLimiter",
+                        convert=None, about_html: str = "",
+                        og_png: bytes = b"") -> None:
     """Attach the web routes to a FastMCP instance via its custom_route hook."""
-    for route in make_routes(ask, run, translate, page_html, limiter):
+    for route in make_routes(ask, run, translate, page_html, limiter,
+                             convert=convert, about_html=about_html,
+                             og_png=og_png):
         mcp.custom_route(route.path, methods=list(route.methods))(route.endpoint)

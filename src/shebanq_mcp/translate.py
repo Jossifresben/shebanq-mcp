@@ -31,9 +31,11 @@ def _load_primer() -> str:
     )
 
 
-def _reference_block(ref: FeatureReference) -> str:
+def _reference_block(ref: FeatureReference, quoting: bool = True) -> str:
     lines = ["Object hierarchy (outermost first): "
              + " > ".join(o["name"] for o in ref.object_types())]
+    enum_tag = "[enum, UNQUOTED]" if quoting else "[enum]"
+    string_tag = "[string, QUOTED]" if quoting else "[string]"
     # A feature on several object types (e.g. typ, rela) is listed once per type
     # on purpose — its value set differs per type and the model needs each.
     for o in ref.object_types():
@@ -46,9 +48,9 @@ def _reference_block(ref: FeatureReference) -> str:
             values = spec.get("values")
             if kind == "enum" and values:
                 vals = ", ".join(f"{k}={v}" for k, v in values.items())
-                lines.append(f"- {name} [enum, UNQUOTED]: {spec.get('gloss', '')}; values: {vals}")
+                lines.append(f"- {name} {enum_tag}: {spec.get('gloss', '')}; values: {vals}")
             elif kind == "string":
-                lines.append(f"- {name} [string, QUOTED]: {spec.get('gloss', '')}")
+                lines.append(f"- {name} {string_tag}: {spec.get('gloss', '')}")
             else:
                 lines.append(f"- {name} [{kind}]: {spec.get('gloss', '')}")
     return "\n".join(lines)
@@ -80,11 +82,14 @@ class Translator(Protocol):
 
 
 class AnthropicTranslator:
-    """Default adapter: drafts MQL with the Anthropic API."""
+    """Default adapter: drafts a query with the Anthropic API. The prompt
+    builder decides the target language (MQL by default, TF when injected)."""
 
-    def __init__(self, client=None, model: str = DEFAULT_MODEL):
+    def __init__(self, client=None, model: str = DEFAULT_MODEL,
+                 prompt_builder=None):
         self._client = client
         self._model = model
+        self._prompt_builder = prompt_builder or build_prompt
 
     def _ensure_client(self):
         if self._client is None:
@@ -98,7 +103,7 @@ class AnthropicTranslator:
             model=self._model,
             max_tokens=1024,
             temperature=0,          # greedy decode: same question -> same query
-            system=build_prompt(ref),
+            system=self._prompt_builder(ref),
             messages=[{"role": "user", "content": question}],
         )
         return _strip_fences(msg.content[0].text)

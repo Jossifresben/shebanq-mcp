@@ -49,13 +49,15 @@ from starlette.testclient import TestClient
 from shebanq_mcp.web import make_routes, RateLimiter
 
 
-def _client(per_minute=100, ask=None, run=None, translate=None, page="<h1>PAGE</h1>"):
+def _client(per_minute=100, ask=None, run=None, translate=None, page="<h1>PAGE</h1>",
+            convert=None, about_html="", og_png=b""):
     ask = ask or (lambda q: {"question": q, "mql": "SELECT x GO",
                              "result_count": 0, "results": []})
     run = run or (lambda mql: {"mql": mql, "result_count": 1, "results": []})
     translate = translate or (lambda q, refs=False: {"question": q, "mql": "SELECT t GO"})
     routes = make_routes(ask=ask, run=run, translate=translate, page_html=page,
-                         limiter=RateLimiter(per_minute))
+                         limiter=RateLimiter(per_minute), convert=convert,
+                         about_html=about_html, og_png=og_png)
     return TestClient(Starlette(routes=routes))
 
 
@@ -140,3 +142,93 @@ def test_api_translate_passes_references_flag():
     assert seen["refs"] is True
     c.post("/api/translate", json={"question": "x"})
     assert seen["refs"] is False
+
+
+def test_api_convert_round_trip():
+    client = _client(convert=lambda text: {"direction": "tf_to_mql",
+                                           "output": "SELECT x GO",
+                                           "notes": []})
+    r = client.post("/api/convert", json={"text": "word sp=verb"})
+    assert r.status_code == 200
+    assert r.json()["direction"] == "tf_to_mql"
+
+
+def test_api_convert_missing_text():
+    client = _client(convert=lambda text: {})
+    r = client.post("/api/convert", json={})
+    assert r.status_code == 400
+
+
+def test_api_convert_absent_when_not_wired():
+    r = _client().post("/api/convert", json={"text": "x"})
+    assert r.status_code == 404           # convert=None registers no route
+
+
+def test_about_page_served():
+    r = _client(about_html="<html><body>About me</body></html>").get("/about")
+    assert r.status_code == 200
+    assert "About me" in r.text
+
+
+def test_og_image_served():
+    r = _client(og_png=b"\x89PNG fake").get("/og.png")
+    assert r.status_code == 200
+    assert r.headers["content-type"] == "image/png"
+    assert r.content.startswith(b"\x89PNG")
+
+
+def _page(name):
+    from pathlib import Path
+    return Path(__file__).resolve().parent.parent.joinpath(
+        "demo", name).read_text(encoding="utf-8")
+
+
+def test_main_page_has_seo_and_og_tags():
+    html = _page("index.html")
+    for needle in ('name="description"', 'rel="canonical"',
+                   'property="og:title"', 'property="og:image"',
+                   'name="twitter:card"', '"@type":"WebApplication"'):
+        assert needle in html, needle
+
+
+def test_about_page_has_seo_and_og_tags():
+    html = _page("about.html")
+    for needle in ('name="description"', 'rel="canonical"',
+                   'property="og:title"', 'property="og:image"',
+                   'name="twitter:card"'):
+        assert needle in html, needle
+
+
+def test_main_page_hero_and_two_box():
+    html = _page("index.html")
+    assert "with its Text-Fabric equivalent beside it" in html   # lede (exact)
+    assert "Opus 4.8" not in html                       # stale model name gone
+    assert "Text-Fabric equivalent" in html             # TF box label
+    assert "derived by plain code" in html              # intro derivation clause
+
+
+def test_examples_gallery_dual_language():
+    html = _page("index.html")
+    assert ">Examples<" in html
+    assert "Worked examples" not in html
+    assert '"tf": {"template"' in html   # showcase JSON carries tf (exact inlined form)
+
+
+def test_modal_renamed_tf_to_mql():
+    html = _page("index.html")
+    assert "TF → MQL converter" in html
+    assert "&#x21c4;" not in html
+
+
+def test_about_page_citation_story():
+    html = _page("about.html")
+    assert "permanent link" in html
+    assert "ETCBC 2021" in html
+    assert "Deuteronomium" in html      # book-name honesty note
+
+
+def test_about_page_what_is_this_for():
+    html = _page("about.html")
+    assert "What is this for" in html
+    assert "front door to the BHSA" in html
+    assert "Read the query before you cite it" in html

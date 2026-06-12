@@ -4,6 +4,28 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>shebanq-mcp: Query the BHSA in plain language</title>
+<meta name="description" content="Ask the Hebrew Bible a question in plain language. Get a citable query in two languages, Emdros MQL and Text-Fabric, with real results from the BHSA.">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://shebanq-web.onrender.com/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="shebanq-mcp">
+<meta property="og:title" content="Query the BHSA Hebrew Bible in plain language">
+<meta property="og:description" content="A plain-language question becomes a citable MQL query and a Text-Fabric template, validated and run live on the BHSA.">
+<meta property="og:url" content="https://shebanq-web.onrender.com/">
+<meta property="og:image" content="https://shebanq-web.onrender.com/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Query the BHSA Hebrew Bible in plain language">
+<meta name="twitter:description" content="A plain-language question becomes a citable MQL query and a Text-Fabric template, validated and run live on the BHSA.">
+<meta name="twitter:image" content="https://shebanq-web.onrender.com/og.png">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication",
+ "name":"shebanq-mcp",
+ "url":"https://shebanq-web.onrender.com/",
+ "description":"Query the BHSA Hebrew Bible in plain language: citable MQL and Text-Fabric queries with real results.",
+ "applicationCategory":"ResearchApplication",
+ "sameAs":["https://doi.org/10.5281/zenodo.20625355",
+           "https://github.com/Jossifresben/shebanq-mcp"]}
+</script>
 <!-- Google Analytics (GA4) — loaded only after the visitor consents. -->
 <script>
   (function () {
@@ -79,14 +101,34 @@
   .consent .btns{display:flex;gap:8px;flex-shrink:0}
   .consent button{font:inherit;cursor:pointer;border-radius:6px;padding:6px 16px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
   .consent button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .topnav{font-size:14px;margin:0 0 10px}
+  .topnav a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--line)}
+  .topnav a:hover{border-bottom-color:var(--accent)}
+  .topnav span{color:var(--muted);margin:0 6px}
+  .modal-backdrop{position:fixed;inset:0;background:rgba(26,26,26,.45);
+    display:flex;align-items:center;justify-content:center;z-index:60;padding:20px}
+  .modal-backdrop[hidden]{display:none}  /* display:flex defeats [hidden]; same fix as .consent (line ~74) */
+  .modal{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    max-width:680px;width:100%;padding:22px;max-height:90vh;overflow:auto}
+  .modal-head{display:flex;justify-content:space-between;align-items:center;margin:0 0 8px}
+  .modal-head h2{font-size:19px;margin:0}
+  textarea.mql.tf{background:#f8f6f0;color:#3d3d3d;min-height:40px}
+  .row[hidden]{display:none}  /* .row's display:flex defeats [hidden]; same trap as .consent/.modal-backdrop */
+  .tfnote{font-size:12.5px;color:var(--muted);margin:2px 0 0}
+  .card.tf-stale textarea.mql.tf{opacity:.45}
 </style>
 </head>
 <body>
 <div id="progress"></div>
 <div class="wrap">
   <h1>Query the BHSA in plain language</h1>
-  <p class="lede">A plain-language question becomes an MQL query: shown, editable, and run live.</p>
-  <p class="intro">Anthropic's Claude (Opus 4.8) drafts an Emdros MQL query over the BHSA, the <a href="https://vu.nl/en/about-vu/faculties/school-of-religion-and-theology/more-about/eep-talstra-centre-for-bible-and-computer" target="_blank" rel="noopener">ETCBC</a>'s linguistic database of the Hebrew Bible that powers SHEBANQ. The query is validated, then you can run the query through the <a href="https://github.com/Jossifresben/shebanq-mcp" target="_blank" rel="noopener">shebanq MCP server</a>.</p>
+  <nav class="topnav">
+    <a href="#" id="openConverter">TF → MQL converter</a>
+    <span aria-hidden="true">&#xb7;</span>
+    <a href="/about">About</a>
+  </nav>
+  <p class="lede">A plain-language question becomes a citable query in two languages: MQL, run live, with its Text-Fabric equivalent beside it.</p>
+  <p class="intro">Anthropic's Claude drafts an Emdros MQL query over the BHSA, the <a href="https://vu.nl/en/about-vu/faculties/school-of-religion-and-theology/more-about/eep-talstra-centre-for-bible-and-computer" target="_blank" rel="noopener">ETCBC</a>'s linguistic database of the Hebrew Bible that powers SHEBANQ. The query is validated, its Text-Fabric equivalent is derived by plain code, and you can run the query through the <a href="https://github.com/Jossifresben/shebanq-mcp" target="_blank" rel="noopener">shebanq MCP server</a>, or copy the Text-Fabric template and run it in your own <a href="https://github.com/annotation/text-fabric" target="_blank" rel="noopener">Text-Fabric</a> notebook. Both run the same search on BHSA 2021; a test suite verifies their results match.</p>
 
   <hr class="rule">
 
@@ -95,17 +137,36 @@
     <button type="submit" id="askBtn">Translate to MQL</button>
   </form>
   <label class="refs"><input type="checkbox" id="refs" checked> Include the reference (book chapter:verse)</label>
-  <p class="hint">This demo runs the shebanq MCP server on Render's free tier, so the first request after an idle spell can take up to a minute while the server wakes; later queries are fast. The AI translation runs on a small monthly budget, so it may occasionally pause.</p>
+  <p class="hint">The AI translation runs on a small monthly budget, so it may occasionally pause.</p>
 
   <div id="answer"></div>
 
   <hr class="rule">
   <div class="examples">
-    <h2>Worked examples</h2>
+    <h2>Examples</h2>
     <div id="gallery"></div>
   </div>
 
   <hr class="rule">
+  <div class="modal-backdrop" id="convBackdrop" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="convTitle">
+      <div class="modal-head">
+        <h2 id="convTitle">TF → MQL converter</h2>
+        <button class="ghost" id="convClose" aria-label="Close">&#x2715;</button>
+      </div>
+      <p class="hint">Paste a Text-Fabric search template and get the equivalent MQL, ready to save on SHEBANQ as a citable query. Conversion is deterministic, no AI involved.</p>
+      <textarea class="mql" id="convIn" rows="5"
+        placeholder="clause&#10;  phrase function=Pred&#10;    word sp=verb vs=nif"></textarea>
+      <div class="row">
+        <button id="convGo">Convert</button>
+      </div>
+      <textarea class="mql" id="convOut" rows="5" readonly></textarea>
+      <div class="row">
+        <button class="ghost icon" id="convCopy">Copy to clipboard</button>
+        <span class="count" id="convNote"></span>
+      </div>
+    </div>
+  </div>
   <footer class="foot">
     <p>Built by <a href="https://orcid.org/0009-0000-2026-0836" target="_blank" rel="noopener">Jose Fresco Benaim</a> (ORCID <a href="https://orcid.org/0009-0000-2026-0836" target="_blank" rel="noopener">0009-0000-2026-0836</a>). Source code on <a href="https://github.com/Jossifresben/shebanq-mcp" target="_blank" rel="noopener">GitHub</a>. DOI: <a href="https://doi.org/10.5281/zenodo.20625355" target="_blank" rel="noopener">10.5281/zenodo.20625355</a>.</p>
     <p>Built on the work of the <a href="https://vu.nl/en/about-vu/faculties/school-of-religion-and-theology/more-about/eep-talstra-centre-for-bible-and-computer" target="_blank" rel="noopener">Eep Talstra Centre for Bible and Computer (ETCBC)</a>: the <a href="https://github.com/ETCBC/bhsa" target="_blank" rel="noopener">BHSA</a> dataset and <a href="https://shebanq.ancient-data.org/" target="_blank" rel="noopener">SHEBANQ</a>, with the <a href="https://github.com/emdros/emdros" target="_blank" rel="noopener">Emdros</a> query engine. This project wraps that work; it does not replace it.</p>
@@ -180,6 +241,7 @@
       progDone();
     }
   }
+  window.postJSON = postJSON;   // shared with the converter modal's script block
   // Render the results portion (count + truncation + table) into `host`.
   function renderResults(host, data) {
     host.innerHTML = "";
@@ -207,7 +269,7 @@
     host.appendChild(table);
   }
   // Build a result card: editable MQL + Run + results. Used by Ask and gallery.
-  function resultCard(question, mql, degraded, hint) {
+  function resultCard(question, mql, degraded, hint, tf) {
     var card = h("div", "card");
     if (question) card.appendChild(h("div", "q", question));
     if (degraded) card.appendChild(h("div", "warn", hint || "Auto-translation is paused. Write an MQL query and run it."));
@@ -234,6 +296,77 @@
     shebanq.title = "Opens SHEBANQ. Paste the copied query into its query box (login required to run new queries).";
     row.appendChild(runBtn); row.appendChild(copyBtn); row.appendChild(shebanq);
     card.appendChild(row);
+    // Text-Fabric equivalent: read-only, derived server-side from the MQL.
+    var tfLabel = h("div", "label", "Text-Fabric equivalent");
+    var tfBox = h("textarea", "mql tf");
+    tfBox.readOnly = true;
+    var tfCaption = h("div", "tfnote");
+    tfCaption.title = "Text-Fabric notebooks show English book names " +
+      "(Deuteronomy) where SHEBANQ shows the ETCBC names (Deuteronomium); " +
+      "same verses, different labels.";
+    var tfRow = h("div", "row");
+    var tfCopy = h("button", "ghost icon");
+    tfCopy.type = "button";
+    tfCopy.title = "Copy the Text-Fabric template to the clipboard";
+    var tfCopyIcon = h("span");
+    tfCopyIcon.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
+    var tfCopyLabel = h("span", null, "Copy TF");
+    tfCopy.appendChild(tfCopyIcon); tfCopy.appendChild(tfCopyLabel);
+    tfRow.appendChild(tfCopy);
+    card.appendChild(tfLabel); card.appendChild(tfBox);
+    card.appendChild(tfRow); card.appendChild(tfCaption);
+    var lastDerivedMql = mql || "";
+    function fitTf(){ tfBox.style.height = "auto"; tfBox.style.height = Math.min(tfBox.scrollHeight, 240) + "px"; }
+    function renderTf(t) {
+      lastTf = t;
+      card.classList.remove("tf-stale");
+      if (!t) { tfLabel.hidden = tfBox.hidden = tfRow.hidden = tfCaption.hidden = true; return; }
+      tfLabel.hidden = tfCaption.hidden = false;
+      if (t.error) {
+        tfBox.hidden = tfRow.hidden = true;
+        tfCaption.textContent = t.error;
+        return;
+      }
+      tfBox.hidden = tfRow.hidden = false;
+      tfBox.value = t.template;
+      fitTf();
+      tfCaption.textContent =
+        "Derived from the MQL above, no AI involved; returns the same " +
+        "results on BHSA 2021." +
+        (t.notes && t.notes.length ? " " + t.notes.join(" ") : "");
+    }
+    var lastTf = tf;                       // for un-stale restore
+    renderTf(tf);
+    setTimeout(fitTf, 0);                  // scrollHeight is 0 pre-DOM, like fitMql
+    var tfCopyTimer;
+    function tfCopyFeedback(text) {
+      tfCopyLabel.textContent = text;
+      tfCopy.classList.toggle("ok", text === "Copied");
+      clearTimeout(tfCopyTimer);
+      tfCopyTimer = setTimeout(function () {
+        tfCopyLabel.textContent = "Copy TF";
+        tfCopy.classList.remove("ok");
+      }, 1400);
+    }
+    tfCopy.onclick = function () {
+      if (tfBox.hidden) return;
+      if (!navigator.clipboard) { tfCopyFeedback("Copy failed"); return; }
+      navigator.clipboard.writeText(tfBox.value).then(
+        function () { tfCopyFeedback("Copied"); },
+        function () { tfCopyFeedback("Copy failed"); }
+      );
+    };
+    // Hand-edits make the TF view stale until the next Run; editing back to
+    // the derived MQL un-stales it.
+    ta.addEventListener("input", function () {
+      if (ta.value !== lastDerivedMql) {
+        card.classList.add("tf-stale");
+        tfCaption.textContent = "MQL edited; updates when you run.";
+        tfCaption.hidden = false;
+      } else {
+        renderTf(lastTf);
+      }
+    });
     var results = h("div");
     card.appendChild(results);
     var copyTimer;
@@ -259,6 +392,20 @@
         var res = await postJSON("/api/run", {mql: ta.value});
         if (res.status === 429) { results.innerHTML = ""; results.appendChild(h("div","err","Too many requests — wait a moment.")); }
         else renderResults(results, res.data);
+        if (res.status !== 429 && ta.value !== lastDerivedMql) {
+          try {
+            var conv = await postJSON("/api/convert", {text: ta.value});
+            if (conv.status === 200 && conv.data && conv.data.direction === "mql_to_tf") {
+              lastDerivedMql = ta.value;
+              renderTf(conv.data.error ? {error: conv.data.error}
+                       : {template: conv.data.output, notes: conv.data.notes || []});
+            } else {
+              renderTf({error: "could not update the Text-Fabric view"});
+            }
+          } catch (e2) {
+            renderTf({error: "could not update the Text-Fabric view"});
+          }
+        }
       } catch (e) {
         results.innerHTML = "";
         results.appendChild(h("div", "err", "Could not reach the server. Check your connection and try again."));
@@ -266,7 +413,7 @@
         runBtn.disabled = false; runBtn.textContent = "Run query";
       }
     };
-    return {card: card, results: results, run: runBtn, ta: ta, fit: fitMql};
+    return {card: card, results: results, run: runBtn, ta: ta, fit: fitMql, setTf: function (t, m) { lastDerivedMql = m; renderTf(t); }};
   }
 
   // Free-form ask flow.
@@ -276,7 +423,7 @@
   // Both forms of the current translation. Toggling the reference checkbox swaps
   // between them in place; it never re-translates, so the same question can't
   // silently yield a different query (or different results) across a toggle.
-  var current = null;   // {flat, ref, ta, fit}
+  var current = null;   // {flat, ref, tfFlat, tfRef, ta, fit, setTf}
 
   refsBox.addEventListener("change", function () {
     if (!current) return;
@@ -284,6 +431,8 @@
     if (current.ta.value !== current.flat && current.ta.value !== current.ref) return;
     current.ta.value = refsBox.checked ? current.ref : current.flat;
     current.fit();
+    var t = refsBox.checked ? current.tfRef : current.tfFlat;
+    current.setTf(t, current.ta.value);
   });
 
   document.getElementById("askForm").addEventListener("submit", async function (ev) {
@@ -302,13 +451,15 @@
       if (res.status === 429) { answer.appendChild(h("div","err","Too many requests — wait a moment.")); }
       else {
         var d = res.data;
-        // Show the generated MQL; the user reviews/edits, then clicks Run.
-        var built = resultCard(q, d.degraded ? "" : d.mql, !!d.degraded, d.hint);
+        var tf0 = withRefs ? d.tf_ref : d.tf_flat;
+        var built = resultCard(q, d.degraded ? "" : d.mql, !!d.degraded, d.hint,
+                               d.degraded ? null : tf0);
         answer.appendChild(built.card);
         if (!d.degraded) {
           // Keep both forms so the checkbox can toggle without a new translation.
           current = {flat: d.mql_flat || d.mql, ref: d.mql_ref || d.mql,
-                     ta: built.ta, fit: built.fit};
+                     tfFlat: d.tf_flat || null, tfRef: d.tf_ref || null,
+                     ta: built.ta, fit: built.fit, setTf: built.setTf};
         }
       }
     } catch (e) {
@@ -322,8 +473,48 @@
   // Live curated gallery.
   var gallery = document.getElementById("gallery");
   (window.SHOWCASE && window.SHOWCASE.searches || []).forEach(function (s) {
-    var built = resultCard(s.question, s.mql, false, null);
+    var built = resultCard(s.question, s.mql, false, null, s.tf || null);
     gallery.appendChild(built.card);
+  });
+})();
+</script>
+<script>
+(function () {
+  var backdrop = document.getElementById("convBackdrop");
+  var input = document.getElementById("convIn");
+  var output = document.getElementById("convOut");
+  var note = document.getElementById("convNote");
+  function open() { backdrop.hidden = false; input.focus(); }
+  function close() { backdrop.hidden = true; }
+  document.getElementById("openConverter").addEventListener("click",
+    function (e) { e.preventDefault(); open(); });
+  document.getElementById("convClose").addEventListener("click", close);
+  backdrop.addEventListener("click",
+    function (e) { if (e.target === backdrop) close(); });
+  document.addEventListener("keydown",
+    function (e) { if (e.key === "Escape" && !backdrop.hidden) close(); });
+  document.getElementById("convGo").addEventListener("click", async function () {
+    var text = input.value.trim();
+    if (!text) { note.textContent = "Paste a query first."; return; }
+    note.textContent = "Converting…";
+    output.value = "";
+    var res = await postJSON("/api/convert", { text: text });
+    // postJSON returns {status, data} (see postJSON above), NOT the body.
+    if (res.status === 429) {
+      note.textContent = "Rate limit reached; wait a moment.";
+      return;
+    }
+    var d = res.data || {};
+    if (d.error) { note.textContent = d.error; return; }
+    output.value = d.output || "";
+    var dir = d.direction === "mql_to_tf"
+      ? "MQL → Text-Fabric template" : "Text-Fabric template → MQL";
+    note.textContent = dir + (d.notes && d.notes.length
+      ? ". " + d.notes.join(" ") : "");
+  });
+  document.getElementById("convCopy").addEventListener("click", function () {
+    if (!output.value) return;
+    if (navigator.clipboard) navigator.clipboard.writeText(output.value);
   });
 })();
 </script>

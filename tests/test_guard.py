@@ -75,3 +75,13 @@ def test_guard_raises_busy_when_saturated():
     with pytest.raises(ServerBusy):
         guard.run("SELECT ... GO")
     t.join()
+
+
+def test_guard_mp_context_selectable():
+    import multiprocessing
+    from shebanq_mcp.guard import QueryGuard
+    g_default = QueryGuard("db", max_concurrent=1)
+    assert g_default._ctx.get_start_method() == "spawn"
+    if "fork" in multiprocessing.get_all_start_methods():
+        g_fork = QueryGuard("db", max_concurrent=1, mp_context="fork")
+        assert g_fork._ctx.get_start_method() == "fork"

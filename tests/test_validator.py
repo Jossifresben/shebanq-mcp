@@ -160,3 +160,24 @@ def test_v2_every_fixture_query_validates():
         for c in json.loads((base / fname).read_text())[key]:
             r = validate_mql(c["mql"], ref)
             assert r.ok, f"{c['name']} should validate: {r.errors}"
+
+
+def test_m_suffix_trio_validates():
+    assert _ok("SELECT ALL OBJECTS WHERE "
+               "[word prs_ps=p3 AND prs_gn=m AND prs_nu=sg] GO").ok
+
+
+def test_m_wrong_value_on_suffix_feature_rejected():
+    r = _ok("SELECT ALL OBJECTS WHERE [word prs_ps=verb] GO")
+    assert not r.ok and any("prs_ps" in e for e in r.errors)
+
+
+def test_m_pdp_and_ls_validate():
+    assert _ok("SELECT ALL OBJECTS WHERE [word sp=subs AND pdp=advb] GO").ok
+    assert _ok("SELECT ALL OBJECTS WHERE [word ls=card] GO").ok
+
+
+def test_m_nametype_is_string_quoted():
+    assert _ok("SELECT ALL OBJECTS WHERE [word nametype='topo'] GO").ok
+    r = _ok("SELECT ALL OBJECTS WHERE [word nametype=topo] GO")
+    assert not r.ok and any("quoted" in e for e in r.errors)

@@ -68,6 +68,9 @@ def test_search_bhsa_translates_then_runs(monkeypatch):
         server, "_translator",
         _FakeTranslator("SELECT ALL OBJECTS WHERE [word vs=nif] GO"),
     )
+    # Use emdros engine so the Emdros run_query stub is exercised
+    # (TF is not installed locally).
+    monkeypatch.setattr(server, "_RESULT_ENGINE", "emdros")
     monkeypatch.setattr(
         server, "run_query",
         lambda mql, db_path, features=None, limit=None: RunResult(count=0, matches=[]),

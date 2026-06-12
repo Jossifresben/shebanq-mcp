@@ -35,17 +35,17 @@ SEARCHES = [
             "[clause typ=Ellp [phrase first function=Conj] .. "
             "[phrase function=Objc [word GET g_word_utf8, gloss]]]] GO"},
     {"id": "nominal-clause-subjects",
-     "question": "Subjects of verbless (nominal) clauses",
+     "question": "Words in the subject of verbless (nominal) clauses",
      "mql": f"SELECT ALL OBJECTS WHERE [verse {_V} "
             "[clause typ=NmCl [phrase function=Subj "
             "[word GET g_word_utf8, gloss]]]] GO"},
     {"id": "wayyiqtol-objects",
-     "question": "Objects of the verb in narrative (wayyiqtol) clauses",
+     "question": "Object words in narrative wayyiqtol clauses (clause type WayX)",
      "mql": f"SELECT ALL OBJECTS WHERE [verse {_V} "
             "[clause typ=WayX [phrase function=Objc "
             "[word GET g_word_utf8, gloss]]]] GO"},
     {"id": "construct-chain-nouns",
-     "question": "Nouns in construct chains (the genitive relation)",
+     "question": "Words in the governed member of a genitive construction (the rectum of a construct chain)",
      "mql": f"SELECT ALL OBJECTS WHERE [verse {_V} "
             "[phrase typ=NP [subphrase rela=rec "
             "[word GET g_word_utf8, gloss]]]] GO"},

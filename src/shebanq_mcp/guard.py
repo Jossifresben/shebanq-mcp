@@ -50,13 +50,17 @@ class QueryGuard:
     """Runs each query in a worker process with a concurrency cap + hard timeout."""
 
     def __init__(self, db_path, max_concurrent=4, timeout_seconds=15,
-                 busy_timeout_seconds=10, target=_default_target):
+                 busy_timeout_seconds=10, target=_default_target,
+                 mp_context="spawn"):
         self._db_path = db_path
         self._timeout = timeout_seconds
         self._busy_timeout = busy_timeout_seconds
         self._target = target
         self._sem = threading.Semaphore(max_concurrent)
-        self._ctx = multiprocessing.get_context("spawn")
+        # "spawn" is the safe default (Emdros). TF passes "fork" where
+        # available so workers inherit the warm corpus copy-on-write instead
+        # of reloading it per query.
+        self._ctx = multiprocessing.get_context(mp_context)
 
     def _kill(self, proc):
         proc.terminate()                       # SIGTERM
