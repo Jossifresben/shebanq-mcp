@@ -4,6 +4,28 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>shebanq-mcp: Query the BHSA in plain language</title>
+<meta name="description" content="Ask the Hebrew Bible a question in plain language. Get a citable query in two languages, Emdros MQL and Text-Fabric, with real results from the BHSA.">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://shebanq-web.onrender.com/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="shebanq-mcp">
+<meta property="og:title" content="Query the BHSA Hebrew Bible in plain language">
+<meta property="og:description" content="A plain-language question becomes a citable MQL query and a Text-Fabric template, validated and run live on the BHSA.">
+<meta property="og:url" content="https://shebanq-web.onrender.com/">
+<meta property="og:image" content="https://shebanq-web.onrender.com/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Query the BHSA Hebrew Bible in plain language">
+<meta name="twitter:description" content="A plain-language question becomes a citable MQL query and a Text-Fabric template, validated and run live on the BHSA.">
+<meta name="twitter:image" content="https://shebanq-web.onrender.com/og.png">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication",
+ "name":"shebanq-mcp",
+ "url":"https://shebanq-web.onrender.com/",
+ "description":"Query the BHSA Hebrew Bible in plain language: citable MQL and Text-Fabric queries with real results.",
+ "applicationCategory":"ResearchApplication",
+ "sameAs":["https://doi.org/10.5281/zenodo.20625355",
+           "https://github.com/Jossifresben/shebanq-mcp"]}
+</script>
 <!-- Google Analytics (GA4) — loaded only after the visitor consents. -->
 <script>
   (function () {
@@ -79,12 +101,28 @@
   .consent .btns{display:flex;gap:8px;flex-shrink:0}
   .consent button{font:inherit;cursor:pointer;border-radius:6px;padding:6px 16px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
   .consent button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .topnav{font-size:14px;margin:0 0 10px}
+  .topnav a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--line)}
+  .topnav a:hover{border-bottom-color:var(--accent)}
+  .topnav span{color:var(--muted);margin:0 6px}
+  .modal-backdrop{position:fixed;inset:0;background:rgba(26,26,26,.45);
+    display:flex;align-items:center;justify-content:center;z-index:60;padding:20px}
+  .modal-backdrop[hidden]{display:none}  /* display:flex defeats [hidden]; same fix as .consent (line ~74) */
+  .modal{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    max-width:680px;width:100%;padding:22px;max-height:90vh;overflow:auto}
+  .modal-head{display:flex;justify-content:space-between;align-items:center;margin:0 0 8px}
+  .modal-head h2{font-size:19px;margin:0}
 </style>
 </head>
 <body>
 <div id="progress"></div>
 <div class="wrap">
   <h1>Query the BHSA in plain language</h1>
+  <nav class="topnav">
+    <a href="#" id="openConverter">Text-Fabric &#x21c4; MQL converter</a>
+    <span aria-hidden="true">&#xb7;</span>
+    <a href="/about">About</a>
+  </nav>
   <p class="lede">A plain-language question becomes an MQL query: shown, editable, and run live.</p>
   <p class="intro">Anthropic's Claude (Opus 4.8) drafts an Emdros MQL query over the BHSA, the <a href="https://vu.nl/en/about-vu/faculties/school-of-religion-and-theology/more-about/eep-talstra-centre-for-bible-and-computer" target="_blank" rel="noopener">ETCBC</a>'s linguistic database of the Hebrew Bible that powers SHEBANQ. The query is validated, then you can run the query through the <a href="https://github.com/Jossifresben/shebanq-mcp" target="_blank" rel="noopener">shebanq MCP server</a>.</p>
 
@@ -95,7 +133,7 @@
     <button type="submit" id="askBtn">Translate to MQL</button>
   </form>
   <label class="refs"><input type="checkbox" id="refs" checked> Include the reference (book chapter:verse)</label>
-  <p class="hint">This demo runs the shebanq MCP server on Render's free tier, so the first request after an idle spell can take up to a minute while the server wakes; later queries are fast. The AI translation runs on a small monthly budget, so it may occasionally pause.</p>
+  <p class="hint">The AI translation runs on a small monthly budget, so it may occasionally pause.</p>
 
   <div id="answer"></div>
 
@@ -106,6 +144,27 @@
   </div>
 
   <hr class="rule">
+  <div class="modal-backdrop" id="convBackdrop" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="convTitle">
+      <div class="modal-head">
+        <h2 id="convTitle">Text-Fabric &#x21c4; MQL converter</h2>
+        <button class="ghost" id="convClose" aria-label="Close">&#x2715;</button>
+      </div>
+      <p class="hint">Paste a query in either language. Conversion is
+        deterministic, no AI involved. MQL is detected by its
+        <code>SELECT</code> opener.</p>
+      <textarea class="mql" id="convIn" rows="5"
+        placeholder="SELECT ALL OBJECTS WHERE [word sp=verb] GO&#10;or&#10;word sp=verb"></textarea>
+      <div class="row">
+        <button id="convGo">Convert</button>
+      </div>
+      <textarea class="mql" id="convOut" rows="5" readonly></textarea>
+      <div class="row">
+        <button class="ghost icon" id="convCopy">Copy to clipboard</button>
+        <span class="count" id="convNote"></span>
+      </div>
+    </div>
+  </div>
   <footer class="foot">
     <p>Built by <a href="https://orcid.org/0009-0000-2026-0836" target="_blank" rel="noopener">Jose Fresco Benaim</a> (ORCID <a href="https://orcid.org/0009-0000-2026-0836" target="_blank" rel="noopener">0009-0000-2026-0836</a>). Source code on <a href="https://github.com/Jossifresben/shebanq-mcp" target="_blank" rel="noopener">GitHub</a>. DOI: <a href="https://doi.org/10.5281/zenodo.20625355" target="_blank" rel="noopener">10.5281/zenodo.20625355</a>.</p>
     <p>Built on the work of the <a href="https://vu.nl/en/about-vu/faculties/school-of-religion-and-theology/more-about/eep-talstra-centre-for-bible-and-computer" target="_blank" rel="noopener">Eep Talstra Centre for Bible and Computer (ETCBC)</a>: the <a href="https://github.com/ETCBC/bhsa" target="_blank" rel="noopener">BHSA</a> dataset and <a href="https://shebanq.ancient-data.org/" target="_blank" rel="noopener">SHEBANQ</a>, with the <a href="https://github.com/emdros/emdros" target="_blank" rel="noopener">Emdros</a> query engine. This project wraps that work; it does not replace it.</p>
@@ -324,6 +383,46 @@
   (window.SHOWCASE && window.SHOWCASE.searches || []).forEach(function (s) {
     var built = resultCard(s.question, s.mql, false, null);
     gallery.appendChild(built.card);
+  });
+})();
+</script>
+<script>
+(function () {
+  var backdrop = document.getElementById("convBackdrop");
+  var input = document.getElementById("convIn");
+  var output = document.getElementById("convOut");
+  var note = document.getElementById("convNote");
+  function open() { backdrop.hidden = false; input.focus(); }
+  function close() { backdrop.hidden = true; }
+  document.getElementById("openConverter").addEventListener("click",
+    function (e) { e.preventDefault(); open(); });
+  document.getElementById("convClose").addEventListener("click", close);
+  backdrop.addEventListener("click",
+    function (e) { if (e.target === backdrop) close(); });
+  document.addEventListener("keydown",
+    function (e) { if (e.key === "Escape" && !backdrop.hidden) close(); });
+  document.getElementById("convGo").addEventListener("click", async function () {
+    var text = input.value.trim();
+    if (!text) { note.textContent = "Paste a query first."; return; }
+    note.textContent = "Converting…";
+    output.value = "";
+    var res = await postJSON("/api/convert", { text: text });
+    // postJSON returns {status, data} (see postJSON above), NOT the body.
+    if (res.status === 429) {
+      note.textContent = "Rate limit reached; wait a moment.";
+      return;
+    }
+    var d = res.data || {};
+    if (d.error) { note.textContent = d.error; return; }
+    output.value = d.output || "";
+    var dir = d.direction === "mql_to_tf"
+      ? "MQL → Text-Fabric template" : "Text-Fabric template → MQL";
+    note.textContent = dir + (d.notes && d.notes.length
+      ? ". " + d.notes.join(" ") : "");
+  });
+  document.getElementById("convCopy").addEventListener("click", function () {
+    if (!output.value) return;
+    if (navigator.clipboard) navigator.clipboard.writeText(output.value);
   });
 })();
 </script>
