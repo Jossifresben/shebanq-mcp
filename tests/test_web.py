@@ -197,3 +197,11 @@ def test_about_page_has_seo_and_og_tags():
                    'property="og:title"', 'property="og:image"',
                    'name="twitter:card"'):
         assert needle in html, needle
+
+
+def test_main_page_hero_and_two_box():
+    html = _page("index.html")
+    assert "with its Text-Fabric equivalent beside it" in html   # lede (exact)
+    assert "Opus 4.8" not in html                       # stale model name gone
+    assert "Text-Fabric equivalent" in html             # TF box label
+    assert "derived by plain code" in html              # intro derivation clause
