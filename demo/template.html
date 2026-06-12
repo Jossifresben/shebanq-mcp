@@ -123,7 +123,7 @@
 <div class="wrap">
   <h1>Query the BHSA in plain language</h1>
   <nav class="topnav">
-    <a href="#" id="openConverter">Text-Fabric &#x21c4; MQL converter</a>
+    <a href="#" id="openConverter">TF → MQL converter</a>
     <span aria-hidden="true">&#xb7;</span>
     <a href="/about">About</a>
   </nav>
@@ -151,14 +151,12 @@
   <div class="modal-backdrop" id="convBackdrop" hidden>
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="convTitle">
       <div class="modal-head">
-        <h2 id="convTitle">Text-Fabric &#x21c4; MQL converter</h2>
+        <h2 id="convTitle">TF → MQL converter</h2>
         <button class="ghost" id="convClose" aria-label="Close">&#x2715;</button>
       </div>
-      <p class="hint">Paste a query in either language. Conversion is
-        deterministic, no AI involved. MQL is detected by its
-        <code>SELECT</code> opener.</p>
+      <p class="hint">Paste a Text-Fabric search template and get the equivalent MQL, ready to save on SHEBANQ as a citable query. Conversion is deterministic, no AI involved.</p>
       <textarea class="mql" id="convIn" rows="5"
-        placeholder="SELECT ALL OBJECTS WHERE [word sp=verb] GO&#10;or&#10;word sp=verb"></textarea>
+        placeholder="clause&#10;  phrase function=Pred&#10;    word sp=verb vs=nif"></textarea>
       <div class="row">
         <button id="convGo">Convert</button>
       </div>

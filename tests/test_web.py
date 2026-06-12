@@ -212,3 +212,9 @@ def test_examples_gallery_dual_language():
     assert ">Examples<" in html
     assert "Worked examples" not in html
     assert '"tf": {"template"' in html   # showcase JSON carries tf (exact inlined form)
+
+
+def test_modal_renamed_tf_to_mql():
+    html = _page("index.html")
+    assert "TF → MQL converter" in html
+    assert "&#x21c4;" not in html
