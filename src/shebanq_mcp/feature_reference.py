@@ -107,3 +107,10 @@ class FeatureReference:
 
     def lookup(self, feature: str) -> dict | None:
         return self.features.get(feature)
+
+    def caveat_for(self, feature: str) -> str | None:
+        """The curated encoding caveat for a trap feature, or None. Lives at
+        the feature level (the caveat is about the feature's encoding, not a
+        single object type)."""
+        f = self.features.get(feature)
+        return f.get("caveat") if f else None

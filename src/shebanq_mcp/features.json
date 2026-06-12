@@ -356,7 +356,8 @@
             "AdjP": "Adjective phrase"
           }
         }
-      }
+      },
+      "caveat": "The typ value sets differ per object type: a clause typ and a phrase typ are different vocabularies."
     },
     "kind": {
       "objects": {
@@ -588,7 +589,8 @@
           "kind": "string",
           "gloss": "lexeme identifier on the lex object type"
         }
-      }
+      },
+      "caveat": "Lexemes are ETCBC transliteration. Verbs carry a trailing '[' and many nouns a trailing '/', and those characters are part of the value."
     },
     "gloss": {
       "objects": {
@@ -600,7 +602,8 @@
           "kind": "string",
           "gloss": "English gloss of the lexeme"
         }
-      }
+      },
+      "caveat": "The gloss is the dictionary (lexeme) gloss, not a translation of the inflected form. A plural form still shows its singular dictionary gloss."
     },
     "g_word_utf8": {
       "objects": {
@@ -719,7 +722,8 @@
             "NA": "not applicable (non-verbal words)"
           }
         }
-      }
+      },
+      "caveat": "The verbal tense values are form labels (perf, impf, wayq and so on), not a claim about the time the text refers to."
     },
     "ps": {
       "objects": {
@@ -748,7 +752,8 @@
             "unknown": "unknown"
           }
         }
-      }
+      },
+      "caveat": "BHSA encodes gender on the word, as grammatical form. This matches forms, which is not always the gender of the thing referred to."
     },
     "nu": {
       "objects": {
@@ -763,7 +768,8 @@
             "unknown": "unknown"
           }
         }
-      }
+      },
+      "caveat": "BHSA encodes number on the word, as grammatical form. This matches forms, which is not always the number of the thing referred to."
     },
     "st": {
       "objects": {
@@ -777,7 +783,8 @@
             "NA": "not applicable"
           }
         }
-      }
+      },
+      "caveat": "State is morphological: the construct or absolute form of the word, one side of a genitive relation."
     },
     "pdp": {
       "objects": {
@@ -815,7 +822,8 @@
             "NA": "not applicable (no suffix)"
           }
         }
-      }
+      },
+      "caveat": "This describes the pronominal suffix attached to the word, not the word itself."
     },
     "prs_gn": {
       "objects": {
@@ -828,7 +836,8 @@
             "NA": "not applicable (no suffix)"
           }
         }
-      }
+      },
+      "caveat": "This describes the pronominal suffix attached to the word, not the word itself."
     },
     "prs_nu": {
       "objects": {
@@ -841,7 +850,8 @@
             "NA": "not applicable (no suffix)"
           }
         }
-      }
+      },
+      "caveat": "This describes the pronominal suffix attached to the word, not the word itself."
     },
     "ls": {
       "objects": {

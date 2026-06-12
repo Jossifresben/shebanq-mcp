@@ -114,3 +114,25 @@ def test_mql_primer_ships_and_matches_fixtures():
     qs = json.loads((Path(__file__).parent / "fixtures" / "scholar_questions.json").read_text())
     ell = next(q for q in qs["questions"] if q["name"] == "ellipsis_conj_objc")
     assert ell["mql"] in text, "the motivating example must appear verbatim in the primer"
+
+
+def test_caveat_for_returns_trap_feature_note():
+    from shebanq_mcp.feature_reference import FeatureReference
+    ref = FeatureReference.load()
+    note = ref.caveat_for("gn")
+    assert note and "form" in note.lower()
+    assert ref.caveat_for("sp") is None          # sp is not a trap feature
+
+
+def test_every_caveat_is_clean_prose():
+    from shebanq_mcp.feature_reference import FeatureReference
+    ref = FeatureReference.load()
+    for name in ("gn", "nu", "gloss", "lex", "vt", "st",
+                 "prs_ps", "prs_gn", "prs_nu", "typ"):
+        note = ref.caveat_for(name)
+        assert note, name
+        assert "—" not in note               # no em-dash
+        low = note.lower()
+        for tell in ("delve", "comprehensive", "leverage", "resonate",
+                     "transformative"):
+            assert tell not in low, (name, tell)

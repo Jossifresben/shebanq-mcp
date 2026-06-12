@@ -9,6 +9,11 @@ Usage: python scripts/build_features.py <path-to-bhsa/docs/features> <out.json>
 This is a build-time tool; runtime never imports it. Keep the hand-seeded
 features.json as the source of truth until this generator is validated against
 it (the seeded entries must round-trip identically).
+
+NOTE (provenance caveats): features.json carries a hand-curated `caveat`
+field on trap features (gn, nu, gloss, lex, vt, st, prs_ps/gn/nu, typ).
+When this generator becomes the source of truth, it MUST merge and
+preserve that curated caveat layer; the ETCBC docs do not contain it.
 """
 import json
 import sys
