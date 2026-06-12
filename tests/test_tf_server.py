@@ -240,3 +240,8 @@ def test_lookup_feature_carries_caveat():
     assert "caveat" in out and "gender" in out["caveat"].lower()
     plain = server.handle_lookup_feature("sp")
     assert plain.get("caveat") is None
+
+
+def test_run_tf_carries_assumptions(stub_engines):
+    out = server.handle_run_tf("word gn=f")
+    assert any("gender" in n.lower() for n in out["assumptions"])

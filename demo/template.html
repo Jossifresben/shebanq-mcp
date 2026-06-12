@@ -116,6 +116,10 @@
   .row[hidden]{display:none}  /* .row's display:flex defeats [hidden]; same trap as .consent/.modal-backdrop */
   .tfnote{font-size:12.5px;color:var(--muted);margin:2px 0 0}
   .card.tf-stale textarea.mql.tf{opacity:.45}
+  #assumeList{margin:6px 0 0;padding-left:20px}
+  #assumeList li{font-size:14px;margin:0 0 8px;max-width:60ch}
+  .assume-line{font-size:13px;color:var(--muted);margin:4px 0 0;cursor:pointer}
+  .assume-line a{color:var(--accent);border-bottom:1px solid var(--line)}
 </style>
 </head>
 <body>
@@ -165,6 +169,17 @@
         <button class="ghost icon" id="convCopy">Copy to clipboard</button>
         <span class="count" id="convNote"></span>
       </div>
+    </div>
+  </div>
+  <div class="modal-backdrop" id="assumeBackdrop" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="assumeTitle">
+      <div class="modal-head">
+        <h2 id="assumeTitle">What this query assumes</h2>
+        <button class="ghost" id="assumeClose" aria-label="Close">&#10005;</button>
+      </div>
+      <p class="hint">These are BHSA encoding choices the query depends on.
+        A valid query can still answer a different question than you meant.</p>
+      <ul id="assumeList"></ul>
     </div>
   </div>
   <footer class="foot">
@@ -269,7 +284,7 @@
     host.appendChild(table);
   }
   // Build a result card: editable MQL + Run + results. Used by Ask and gallery.
-  function resultCard(question, mql, degraded, hint, tf) {
+  function resultCard(question, mql, degraded, hint, tf, assumptions) {
     var card = h("div", "card");
     if (question) card.appendChild(h("div", "q", question));
     if (degraded) card.appendChild(h("div", "warn", hint || "Auto-translation is paused. Write an MQL query and run it."));
@@ -315,6 +330,24 @@
     tfRow.appendChild(tfCopy);
     card.appendChild(tfLabel); card.appendChild(tfBox);
     card.appendChild(tfRow); card.appendChild(tfCaption);
+    var assumeLine = h("div", "assume-line");
+    function renderAssumptions(notes) {
+      assumeLine.innerHTML = "";
+      if (!notes || !notes.length) { assumeLine.hidden = true; return; }
+      assumeLine.hidden = false;
+      var n = notes.length;
+      assumeLine.appendChild(document.createTextNode(
+        "This query makes " + n + (n === 1 ? " assumption" : " assumptions") +
+        " about BHSA encoding. "));
+      var a = h("a", null, "View");
+      a.href = "#";
+      a.addEventListener("click", function (e) {
+        e.preventDefault(); window.openAssumptions(notes);
+      });
+      assumeLine.appendChild(a);
+    }
+    renderAssumptions(assumptions);
+    card.appendChild(assumeLine);
     var lastDerivedMql = mql || "";
     function fitTf(){ tfBox.style.height = "auto"; tfBox.style.height = Math.min(tfBox.scrollHeight, 240) + "px"; }
     function renderTf(t) {
@@ -392,6 +425,9 @@
         var res = await postJSON("/api/run", {mql: ta.value});
         if (res.status === 429) { results.innerHTML = ""; results.appendChild(h("div","err","Too many requests — wait a moment.")); }
         else renderResults(results, res.data);
+        if (res.status !== 429) {
+          renderAssumptions(res.data.assumptions);
+        }
         if (res.status !== 429 && ta.value !== lastDerivedMql) {
           try {
             var conv = await postJSON("/api/convert", {text: ta.value});
@@ -413,7 +449,7 @@
         runBtn.disabled = false; runBtn.textContent = "Run query";
       }
     };
-    return {card: card, results: results, run: runBtn, ta: ta, fit: fitMql, setTf: function (t, m) { lastDerivedMql = m; renderTf(t); }};
+    return {card: card, results: results, run: runBtn, ta: ta, fit: fitMql, setTf: function (t, m) { lastDerivedMql = m; renderTf(t); }, setAssumptions: renderAssumptions};
   }
 
   // Free-form ask flow.
@@ -453,12 +489,13 @@
         var d = res.data;
         var tf0 = withRefs ? d.tf_ref : d.tf_flat;
         var built = resultCard(q, d.degraded ? "" : d.mql, !!d.degraded, d.hint,
-                               d.degraded ? null : tf0);
+                               d.degraded ? null : tf0, d.assumptions || null);
         answer.appendChild(built.card);
         if (!d.degraded) {
           // Keep both forms so the checkbox can toggle without a new translation.
           current = {flat: d.mql_flat || d.mql, ref: d.mql_ref || d.mql,
                      tfFlat: d.tf_flat || null, tfRef: d.tf_ref || null,
+                     assumptions: d.assumptions || null,
                      ta: built.ta, fit: built.fit, setTf: built.setTf};
         }
       }
@@ -473,9 +510,30 @@
   // Live curated gallery.
   var gallery = document.getElementById("gallery");
   (window.SHOWCASE && window.SHOWCASE.searches || []).forEach(function (s) {
-    var built = resultCard(s.question, s.mql, false, null, s.tf || null);
+    var built = resultCard(s.question, s.mql, false, null, s.tf || null, s.assumptions || null);
     gallery.appendChild(built.card);
   });
+})();
+</script>
+<script>
+(function () {
+  var backdrop = document.getElementById("assumeBackdrop");
+  var list = document.getElementById("assumeList");
+  function close() { backdrop.hidden = true; }
+  window.openAssumptions = function (notes) {
+    list.innerHTML = "";
+    (notes || []).forEach(function (n) {
+      var li = document.createElement("li");
+      li.textContent = n;
+      list.appendChild(li);
+    });
+    backdrop.hidden = false;
+  };
+  document.getElementById("assumeClose").addEventListener("click", close);
+  backdrop.addEventListener("click",
+    function (e) { if (e.target === backdrop) close(); });
+  document.addEventListener("keydown",
+    function (e) { if (e.key === "Escape" && !backdrop.hidden) close(); });
 })();
 </script>
 <script>

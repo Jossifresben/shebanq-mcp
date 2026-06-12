@@ -232,3 +232,16 @@ def test_about_page_what_is_this_for():
     assert "What is this for" in html
     assert "front door to the BHSA" in html
     assert "Read the query before you cite it" in html
+
+
+def test_assumptions_modal_present():
+    html = _page("index.html")
+    assert 'id="assumeBackdrop"' in html
+    assert "What this query assumes" in html
+    assert "openAssumptions" in html
+
+
+def test_feminine_example_has_assumptions_line():
+    # the gallery card for feminine plural nouns carries assumptions data
+    html = _page("index.html")
+    assert '"assumptions"' in html          # showcase JSON inlines the notes
