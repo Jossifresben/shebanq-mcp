@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>About shebanq-mcp: how to use it, and how it thinks</title>
+<meta name="description" content="How to use shebanq-mcp, and its methodology: citable queries, validation before execution, honest results, two query languages over BHSA 2021.">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://shebanq-web.onrender.com/about">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="shebanq-mcp">
+<meta property="og:title" content="About shebanq-mcp">
+<meta property="og:description" content="How to use it, and the methodology: citable queries, validation before execution, honest results, two query languages over BHSA 2021.">
+<meta property="og:url" content="https://shebanq-web.onrender.com/about">
+<meta property="og:image" content="https://shebanq-web.onrender.com/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="About shebanq-mcp">
+<meta name="twitter:description" content="How to use shebanq-mcp, and its methodology: citable queries, validation, honest results, two query languages over BHSA 2021.">
+<meta name="twitter:image" content="https://shebanq-web.onrender.com/og.png">
+<style>
+  :root {
+    --ink:#1a1a1a; --muted:#6b6b6b; --line:#e3e0d8; --bg:#faf8f3;
+    --card:#fff; --accent:#7a5c2e; --code-bg:#f4f1ea;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:Georgia,"Times New Roman",serif;line-height:1.6}
+  .wrap{max-width:760px;margin:0 auto;padding:48px 24px 80px}
+  h1{font-size:28px;font-weight:600;margin:0 0 6px}
+  h2{font-size:21px;font-weight:600;margin:36px 0 10px}
+  h3{font-size:17px;font-weight:600;margin:24px 0 6px}
+  p,li{font-size:16px;max-width:68ch}
+  a{color:var(--accent)}
+  code,pre{font-family:"SF Mono",Menlo,Consolas,monospace;font-size:13px;
+    background:var(--code-bg);border-radius:4px}
+  code{padding:1px 5px}
+  pre{padding:12px;overflow:auto;border:1px solid var(--line)}
+  .topnav{font-size:14px;margin:0 0 18px}
+  .topnav a{text-decoration:none;border-bottom:1px solid var(--line)}
+  .rule{height:1px;background:var(--line);margin:32px 0;border:0}
+  .muted{color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="topnav"><a href="/">← Back to the web app</a></nav>
+  <h1>About shebanq-mcp</h1>
+  <p class="muted">Query the BHSA Hebrew Bible in plain language, and keep
+    the query.</p>
+
+  <h2>How to use</h2>
+
+  <h3>Ask, read the query, run it</h3>
+  <p>Type a question the way you would ask a colleague: "all feminine
+    plural nouns", "where does bara occur?". Click
+    <strong>Translate to MQL</strong> and the generated query appears,
+    editable, before anything runs. Read it. Change it if you like. Then
+    <strong>Run query</strong> executes it against the BHSA and the results
+    come back with vocalized Hebrew, glosses, and counts.</p>
+  <p>The <strong>reference checkbox</strong> wraps the query in a verse
+    block so each hit carries its book, chapter, and verse. Untick it for
+    the plain form. Toggling never re-translates; it switches between the
+    two forms of the same query.</p>
+
+  <h3>The converter</h3>
+  <p>The <strong>Text-Fabric ⇄ MQL converter</strong> (link at the top)
+    converts a query between the two languages. Paste either one; the
+    direction is detected automatically (MQL starts with
+    <code>SELECT</code>). The conversion is deterministic, plain code with
+    no AI involved, so the same input always gives the same output. MQL
+    <code>GET</code> clauses are dropped with a note: they only choose
+    which features come back, and Text-Fabric results expose all features.
+    A query using constructs the other language cannot express is refused
+    with a plain explanation, never converted approximately.</p>
+
+  <h3>From an MCP client</h3>
+  <p>The same engine is a remote
+    <a href="https://modelcontextprotocol.io/">MCP</a> endpoint:
+    <code>https://shebanq-mcp.onrender.com/mcp</code>. Add it in
+    Claude.ai under Settings → Connectors → Add custom connector, or
+    bridge it with <code>mcp-remote</code> in any client that loads local
+    servers (details in the
+    <a href="https://github.com/Jossifresben/shebanq-mcp">README</a>).</p>
+  <p>The tools, one line each:</p>
+  <ul>
+    <li><code>search_bhsa(question)</code>: plain language in, a citable
+      query in both languages plus results out.</li>
+    <li><code>run_mql(mql)</code>: validate and run an MQL query you
+      already have.</li>
+    <li><code>run_tf(template)</code>: validate and run a Text-Fabric
+      search template.</li>
+    <li><code>to_citable_mql(template)</code>: Text-Fabric template in,
+      SHEBANQ-citable MQL out. No model involved.</li>
+    <li><code>to_tf_template(mql)</code>: the mirror; MQL in, Text-Fabric
+      template out.</li>
+    <li><code>lookup_feature(name)</code>: a BHSA feature's meaning and
+      valid values.</li>
+  </ul>
+
+  <h2>Methodology</h2>
+  <p>Generative AI can draft a database query from a plain-language
+    question. That raises a fair worry for scholarship: if a machine
+    writes the query, does the scholar still learn anything? This project
+    takes a position. The translation was never the whole of the work. The
+    scholarly act is judging whether a query faithfully captures a
+    form-to-function question, and reading what a result does and does not
+    show. So the design keeps the query visible and central:</p>
+  <ul>
+    <li><strong>The query is the product.</strong> Every result carries
+      the exact query that produced it, in two languages: Emdros MQL,
+      which pastes straight into
+      <a href="https://shebanq.ancient-data.org/">SHEBANQ</a> to save and
+      cite, and a <a href="https://github.com/annotation/text-fabric">
+      Text-Fabric</a> search template for notebook research. Nothing comes
+      back as a black box.</li>
+    <li><strong>Validation before execution.</strong> Every query is
+      checked against the BHSA feature catalogue before it runs. A wrong
+      code like <code>vs=niphal</code> (the correct code is
+      <code>vs=nif</code>) fails loudly with the reason, instead of
+      silently returning zero.</li>
+    <li><strong>Honest empty results.</strong> Zero matches returns the
+      query and a plain "0 results", so you can tell "the query is wrong"
+      from "the phenomenon is not there".</li>
+    <li><strong>One dataset, two engines, equal answers.</strong> Both
+      engines are pinned to the BHSA 2021 release. A test suite proves on
+      every change that the same question returns the same counts from
+      both, so the two query languages are genuinely interchangeable.</li>
+    <li><strong>Conversion without a model.</strong> The MQL ⇄ Text-Fabric
+      converter is deterministic code. What you cite is exactly what ran,
+      and a query that cannot be expressed in the other language is
+      refused with the reason.</li>
+    <li><strong>The model has a small, bounded role.</strong> Only
+      the plain-language translation uses an AI model, behind a swappable
+      interface and a spend cap. Everything downstream of the generated
+      query, validation, execution, conversion, and formatting, is
+      ordinary verifiable code.</li>
+  </ul>
+  <p>AI as a way in, not a way around.</p>
+
+  <h2>Data and credits</h2>
+  <p>The linguistic data is the
+    <a href="https://github.com/ETCBC/bhsa">BHSA</a> (ETCBC 2021), created
+    and maintained by the
+    <a href="https://vu.nl/en/about-vu/faculties/school-of-religion-and-theology/more-about/eep-talstra-centre-for-bible-and-computer">
+    Eep Talstra Centre for Bible and Computer</a>. Queries run on the
+    <a href="https://github.com/emdros/emdros">Emdros</a> text database
+    engine and on
+    <a href="https://github.com/annotation/text-fabric">Text-Fabric</a>.
+    <a href="https://shebanq.ancient-data.org/">SHEBANQ</a> hosts the
+    citable saved queries this project links into.</p>
+  <p>Built by
+    <a href="https://orcid.org/0009-0000-2026-0836">Jose Fresco Benaim</a>.
+    Source on
+    <a href="https://github.com/Jossifresben/shebanq-mcp">GitHub</a>,
+    archived with DOI
+    <a href="https://doi.org/10.5281/zenodo.20625355">10.5281/zenodo.20625355</a>.</p>
+
+  <hr class="rule">
+  <p class="muted"><a href="/">← Back to the web app</a></p>
+</div>
+</body>
+</html>

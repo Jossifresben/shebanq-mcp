@@ -175,3 +175,25 @@ def test_og_image_served():
     assert r.status_code == 200
     assert r.headers["content-type"] == "image/png"
     assert r.content.startswith(b"\x89PNG")
+
+
+def _page(name):
+    from pathlib import Path
+    return Path(__file__).resolve().parent.parent.joinpath(
+        "demo", name).read_text(encoding="utf-8")
+
+
+def test_main_page_has_seo_and_og_tags():
+    html = _page("index.html")
+    for needle in ('name="description"', 'rel="canonical"',
+                   'property="og:title"', 'property="og:image"',
+                   'name="twitter:card"', '"@type":"WebApplication"'):
+        assert needle in html, needle
+
+
+def test_about_page_has_seo_and_og_tags():
+    html = _page("about.html")
+    for needle in ('name="description"', 'rel="canonical"',
+                   'property="og:title"', 'property="og:image"',
+                   'name="twitter:card"'):
+        assert needle in html, needle
