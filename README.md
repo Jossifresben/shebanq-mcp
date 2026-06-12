@@ -17,10 +17,12 @@ like Claude as a set of tools.
 
 > **Status: early, but live.** The server is built, unit-tested, and deployed:
 > a public read-only MCP endpoint and a [web app](https://shebanq-web.onrender.com)
-> both run on Render, each with server-side NL→MQL translation. A Docker image
-> bakes Emdros plus the BHSA database; a CI smoke workflow runs `run_mql` over MCP
-> on every push, and the MQL curriculum's example counts are pinned against the
-> real engine. Feedback welcome, especially from people who teach or use MQL.
+> both run on Render, each with server-side NL→MQL translation. Every answer
+> carries the query in two languages, Emdros MQL and a Text-Fabric template,
+> and a CI suite proves their results match row for row. A Docker image bakes
+> Emdros plus the BHSA database; example counts are pinned against the real
+> engine on every push. Feedback welcome, especially from people who teach or
+> use MQL or Text-Fabric.
 
 ## Try it
 
@@ -172,8 +174,9 @@ Both engines are pinned to BHSA 2021.
 It also works the other way round. `to_citable_mql` converts a Text-Fabric
 template into the equivalent MQL, with no model involved, so a query from a
 research notebook can become a saved SHEBANQ query with a citable permalink.
-`to_tf_template` is its mirror, MQL in and template out, and the web app's
-converter modal wraps both directions behind one paste box.
+`to_tf_template` is its mirror, MQL in and template out. The web app's
+**TF → MQL converter** wraps the citation direction in one paste box: a
+notebook template in, citable MQL out.
 
 The web app shows both languages side by side for every answer (MQL runs, TF
 displayed beside it) and in the Examples gallery, with build-time derivation so
@@ -231,7 +234,9 @@ benchmark to measure any model's count-match reliability before switching.
 *Who writes the query is a pluggable seam: the server's built-in model
 (`search_bhsa`) or the MCP host's own model (`run_mql`). Either way the query is
 shown, validated, and run read-only. The blue steps are where a model helps; the
-rest is deterministic and checkable.*
+rest is deterministic and checkable. The diagram predates the Text-Fabric layer:
+after validation the server now also derives the query's Text-Fabric equivalent,
+again by deterministic code.*
 
 Five small, independently testable units: a static feature reference, a
 validator, an Emdros runner, a Text-Fabric runner, and a formatter, wired
@@ -330,6 +335,10 @@ catalogue from the ETCBC feature docs is the remaining roadmap item.
       `to_citable_mql`, equivalence-tested against Emdros on BHSA 2021
 - [x] v0.4.0 Rosetta display: derived TF beside every MQL, row-level equivalence
       proven in CI, citation converter, about page
+- [ ] Ordered sibling-block conversion via Text-Fabric relational operators.
+      MQL sibling blocks are ordered while TF template siblings are not
+      (measured: 25827 vs 46968 rows on the same query shape), so both
+      converters currently refuse the shape rather than change its meaning
 - [ ] Full feature-catalogue generation from the ETCBC feature docs
 
 ## Deploy
