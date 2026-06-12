@@ -31,6 +31,18 @@ def augment_with_tf(showcase: dict) -> dict:
     return showcase
 
 
+def augment_with_assumptions(showcase: dict) -> dict:
+    """Attach the encoding caveats each showcase query relies on, computed
+    deterministically from the catalogue (no database, no model)."""
+    from shebanq_mcp.feature_reference import FeatureReference
+    from shebanq_mcp.assumptions import assumptions_for
+
+    ref = FeatureReference.load()
+    for s in showcase.get("searches", []):
+        s["assumptions"] = assumptions_for(s["mql"], ref)
+    return showcase
+
+
 def render(showcase: dict, template: str) -> str:
     return template.replace("{{DATA}}", json.dumps(showcase, ensure_ascii=False))
 
@@ -38,6 +50,7 @@ def render(showcase: dict, template: str) -> str:
 def main() -> None:
     showcase = json.loads((DEMO / "showcase.json").read_text(encoding="utf-8"))
     showcase = augment_with_tf(showcase)
+    showcase = augment_with_assumptions(showcase)
     template = (DEMO / "template.html").read_text(encoding="utf-8")
     (DEMO / "index.html").write_text(render(showcase, template), encoding="utf-8")
     print(f"wrote {DEMO / 'index.html'}")

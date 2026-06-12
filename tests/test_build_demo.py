@@ -44,3 +44,16 @@ def test_render_derives_tf_for_each_search():
     out = augment_with_tf(showcase)
     assert out["searches"][0]["tf"] == {"template": "word sp=verb", "notes": []}
     assert "cannot be converted" in out["searches"][1]["tf"]["error"]
+
+
+def test_augment_with_assumptions():
+    from scripts.build_demo import augment_with_assumptions
+    showcase = {"searches": [
+        {"id": "fem", "mql": "SELECT ALL OBJECTS WHERE [word sp=subs AND gn=f AND nu=pl GET g_word_utf8, gloss] GO"},
+        {"id": "plain", "mql": "SELECT ALL OBJECTS WHERE [word sp=verb] GO"},
+    ]}
+    out = augment_with_assumptions(showcase)
+    fem = out["searches"][0]["assumptions"]
+    assert any("gender" in n.lower() for n in fem)
+    assert any("dictionary" in n.lower() for n in fem)   # gloss via GET
+    assert out["searches"][1].get("assumptions", []) == []
