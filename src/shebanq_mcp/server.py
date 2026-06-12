@@ -378,14 +378,34 @@ def _web_api_enabled() -> bool:
     return os.environ.get("WEB_API", "").strip().lower() in ("1", "true", "on", "yes")
 
 
-def _load_web_page() -> str:
-    """Read the built demo page baked into the image (or repo, in dev)."""
+def _load_asset_text(env_var: str, default: str, fallback: str) -> str:
     from pathlib import Path
-    path = Path(os.environ.get("WEB_PAGE", "demo/index.html"))
+    path = Path(os.environ.get(env_var, default))
     try:
         return path.read_text(encoding="utf-8")
     except OSError:
-        return "<!doctype html><title>shebanq</title><p>Demo page not found.</p>"
+        return fallback
+
+
+def _load_web_page() -> str:
+    """The web app's main page, baked into the image (or repo, in dev)."""
+    return _load_asset_text("WEB_PAGE", "demo/index.html",
+                            "<!doctype html><title>shebanq</title>"
+                            "<p>Page not found.</p>")
+
+
+def _load_about_page() -> str:
+    return _load_asset_text("WEB_ABOUT", "demo/about.html",
+                            "<!doctype html><title>About</title>"
+                            "<p>About page not found.</p>")
+
+
+def _load_og_image() -> bytes:
+    from pathlib import Path
+    try:
+        return Path(os.environ.get("WEB_OG", "demo/og.png")).read_bytes()
+    except OSError:
+        return b""
 
 
 def _mql_prompt_text(question: str) -> str:
@@ -533,7 +553,10 @@ def main() -> None:
             limiter = RateLimiter(int(os.environ.get("WEB_RATE_PER_MIN", "10")))
             register_web_routes(mcp, ask=handle_ask, run=handle_run_mql,
                                 translate=handle_translate,
-                                page_html=_load_web_page(), limiter=limiter)
+                                page_html=_load_web_page(), limiter=limiter,
+                                convert=handle_convert,
+                                about_html=_load_about_page(),
+                                og_png=_load_og_image())
         mcp.settings.host = os.environ.get("MCP_HOST", "0.0.0.0")
         mcp.settings.port = int(os.environ.get("PORT", "8000"))
         mcp.run(transport="streamable-http")

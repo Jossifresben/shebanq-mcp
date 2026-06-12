@@ -49,13 +49,15 @@ from starlette.testclient import TestClient
 from shebanq_mcp.web import make_routes, RateLimiter
 
 
-def _client(per_minute=100, ask=None, run=None, translate=None, page="<h1>PAGE</h1>"):
+def _client(per_minute=100, ask=None, run=None, translate=None, page="<h1>PAGE</h1>",
+            convert=None, about_html="", og_png=b""):
     ask = ask or (lambda q: {"question": q, "mql": "SELECT x GO",
                              "result_count": 0, "results": []})
     run = run or (lambda mql: {"mql": mql, "result_count": 1, "results": []})
     translate = translate or (lambda q, refs=False: {"question": q, "mql": "SELECT t GO"})
     routes = make_routes(ask=ask, run=run, translate=translate, page_html=page,
-                         limiter=RateLimiter(per_minute))
+                         limiter=RateLimiter(per_minute), convert=convert,
+                         about_html=about_html, og_png=og_png)
     return TestClient(Starlette(routes=routes))
 
 
@@ -140,3 +142,36 @@ def test_api_translate_passes_references_flag():
     assert seen["refs"] is True
     c.post("/api/translate", json={"question": "x"})
     assert seen["refs"] is False
+
+
+def test_api_convert_round_trip():
+    client = _client(convert=lambda text: {"direction": "tf_to_mql",
+                                           "output": "SELECT x GO",
+                                           "notes": []})
+    r = client.post("/api/convert", json={"text": "word sp=verb"})
+    assert r.status_code == 200
+    assert r.json()["direction"] == "tf_to_mql"
+
+
+def test_api_convert_missing_text():
+    client = _client(convert=lambda text: {})
+    r = client.post("/api/convert", json={})
+    assert r.status_code == 400
+
+
+def test_api_convert_absent_when_not_wired():
+    r = _client().post("/api/convert", json={"text": "x"})
+    assert r.status_code == 404           # convert=None registers no route
+
+
+def test_about_page_served():
+    r = _client(about_html="<html><body>About me</body></html>").get("/about")
+    assert r.status_code == 200
+    assert "About me" in r.text
+
+
+def test_og_image_served():
+    r = _client(og_png=b"\x89PNG fake").get("/og.png")
+    assert r.status_code == 200
+    assert r.headers["content-type"] == "image/png"
+    assert r.content.startswith(b"\x89PNG")
