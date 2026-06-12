@@ -83,9 +83,17 @@ def mql_to_tf(mql: str, ref: FeatureReference) -> ConversionResult:
             f"'{bad.group(0)}' has no Text-Fabric equivalent in the v1 "
             "template grammar and cannot be converted")
 
-    # Drop GET clauses (note once if any were present).
+    # Drop GET clauses (note once if any were present). Decide on the
+    # literal-stripped text so 'GET' inside a quoted value is never touched;
+    # if a raw match overlaps a literal, refuse rather than corrupt it.
     notes: list[str] = []
     if _GET.search(body):
+        for m_get in _GET.finditer(body):
+            for m_lit in _STRING_LITERAL.finditer(body):
+                if m_get.start() < m_lit.end() and m_lit.start() < m_get.end():
+                    raise ConversionError(
+                        "a quoted value containing 'GET' cannot be "
+                        "converted safely; rename or drop that value")
         body = _GET.sub("", body)
         notes.append(_GET_NOTE)
 
@@ -121,6 +129,9 @@ def mql_to_tf(mql: str, ref: FeatureReference) -> ConversionResult:
             continue
         if ch == "]":
             depth -= 1
+            if depth < 0:
+                raise ConversionError(
+                    "unbalanced brackets: more ']' than '[' in the query")
             i += 1
             continue
         if ch.isspace():
@@ -129,4 +140,9 @@ def mql_to_tf(mql: str, ref: FeatureReference) -> ConversionResult:
         raise ConversionError(
             f"unexpected text '{body[i:i+20].strip()}' between blocks "
             "cannot be converted")
+    if depth != 0:
+        raise ConversionError(
+            "unbalanced brackets: a '[' block is never closed")
+    if not lines:
+        raise ConversionError("the query has no object blocks to convert")
     return ConversionResult(text="\n".join(lines), notes=notes)

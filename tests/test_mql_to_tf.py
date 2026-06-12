@@ -119,3 +119,25 @@ def test_round_trip_mql_tf_mql(ref):
               "SELECT ALL OBJECTS WHERE [word sp=verb AND vs=nif] GO",
               "SELECT ALL OBJECTS WHERE [word lex='BR>['] GO"):
         assert tf_to_mql(mql_to_tf(q, ref).text, ref) == q
+
+
+def test_get_inside_string_value_refused(ref):
+    with pytest.raises(ConversionError, match="cannot be converted safely"):
+        mql_to_tf("SELECT ALL OBJECTS WHERE [word gloss='GET x ]'] GO", ref)
+
+
+def test_missing_close_bracket_refused(ref):
+    with pytest.raises(ConversionError, match="never closed"):
+        mql_to_tf("SELECT ALL OBJECTS WHERE [clause [word sp=verb] GO", ref)
+
+
+def test_extra_close_bracket_refused(ref):
+    with pytest.raises(ConversionError, match="more '\\]'"):
+        mql_to_tf(
+            "SELECT ALL OBJECTS WHERE [clause [word sp=verb]]] [phrase] GO",
+            ref)
+
+
+def test_empty_body_refused(ref):
+    with pytest.raises(ConversionError, match="no object blocks"):
+        mql_to_tf("SELECT ALL OBJECTS WHERE  GO", ref)
