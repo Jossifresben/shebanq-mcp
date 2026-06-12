@@ -57,3 +57,23 @@ def test_row_sets_identical(require_emdros, require_tf, db_path, constraint):
     tf = _tf_rows(template)
     assert len(emdros) == len(tf), (len(emdros), len(tf))
     assert emdros == tf            # full multiset, every row, both engines
+
+
+@pytest.mark.tf
+@pytest.mark.emdros
+def test_sibling_blocks_row_sets_identical(require_emdros, require_tf, db_path):
+    """Sibling blocks are where multiplicity semantics could diverge: a clause
+    with several matching Pred phrases yields one row per Pred x Objc
+    COMBINATION on an engine that enumerates combinations. The multiset
+    comparison demands both engines produce the same combinations, duplicates
+    included — chains cannot test this; only siblings can."""
+    mql = ("SELECT ALL OBJECTS WHERE [verse GET book, chapter, verse "
+           "[clause [phrase function=Pred] "
+           "[phrase function=Objc [word GET g_word_utf8]]]] GO")
+    template = mql_to_tf(mql, FeatureReference.load()).text
+    assert template == ("verse\n  clause\n    phrase function=Pred\n"
+                        "    phrase function=Objc\n      word")
+    emdros = _emdros_rows(mql, db_path)
+    tf = _tf_rows(template)
+    assert len(emdros) == len(tf), (len(emdros), len(tf))
+    assert emdros == tf            # multiplicity included
