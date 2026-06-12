@@ -205,11 +205,11 @@ research notebook can become a saved SHEBANQ query with a citable permalink.
 `to_tf_template` is its mirror, MQL in and template out. The web app's
 **TF → MQL converter** wraps the citation direction in one paste box.
 
-One caution the tool enforces rather than hides: where the two languages would
-mean different things, conversion is refused with the reason instead of
-silently changing the query. Sibling blocks are the current example. MQL orders
-them while Text-Fabric template siblings are unordered, so both converters
-refuse that shape (faithful ordered conversion is on the roadmap).
+Where the two languages would mean different things, the converter is
+faithful rather than approximate. Sibling blocks are the example: MQL
+orders them, so the converter emits Text-Fabric ordering operators (named
+atoms and `<<` lines) to preserve that order, and a Text-Fabric template
+with unordered siblings is refused with a note on how to add the ordering.
 
 The converter is pure code and runs anywhere. Actually **executing** a
 Text-Fabric template (the `run_tf` tool) needs the BHSA Text-Fabric corpus
@@ -390,10 +390,9 @@ catalogue from the ETCBC feature docs is a roadmap item.
       Text-Fabric equivalent; `to_citable_mql` and `to_tf_template` converters;
       cross-engine row-level equivalence proven in CI; the web app shows both
       languages and an about page
-- [ ] Ordered sibling-block conversion via Text-Fabric relational operators.
-      MQL sibling blocks are ordered while Text-Fabric template siblings are not
-      (measured: 25827 vs 46968 rows on the same query shape), so both
-      converters currently refuse the shape rather than change its meaning
+- [x] Ordered sibling-block conversion via Text-Fabric ordering operators:
+      MQL sibling order is preserved with named atoms and `<<` lines;
+      row-for-row equivalence with Emdros proven in CI
 - [x] Per-feature provenance notes ("what this query assumes"): each
       answer lists the encoding caveats its query relies on, computed from
       the catalogue, shown on the web and in MCP responses
