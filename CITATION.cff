@@ -13,7 +13,7 @@ abstract: >-
 type: software
 version: 0.4.0
 doi: "10.5281/zenodo.20625355"
-date-released: "2026-06-11"
+date-released: "2026-06-12"
 license: MIT
 repository-code: "https://github.com/Jossifresben/shebanq-mcp"
 keywords:
