@@ -84,6 +84,20 @@ jobs:
             -H 'content-type: application/json' -d '{"question":"niphal verbs"}' \
             | jq -e '.degraded == true' >/dev/null
 
+          echo "GET /about serves the real page (not the fallback stub):"
+          curl -fsS http://localhost:8001/about | grep -q 'front door to the BHSA'
+
+          echo "GET /og.png serves a real PNG baked into the image:"
+          curl -fsS -D /tmp/og.headers -o /tmp/og.png http://localhost:8001/og.png
+          grep -qi 'content-type: image/png' /tmp/og.headers
+          test "$(head -c4 /tmp/og.png | xxd -p)" = "89504e47"   # PNG magic bytes
+
+          echo "POST /api/convert derives a TF template (pure code, no engine):"
+          curl -fsS -X POST http://localhost:8001/api/convert \
+            -H 'content-type: application/json' \
+            -d '{"text":"SELECT ALL OBJECTS WHERE [word sp=verb] GO"}' \
+            | jq -e '.direction == "mql_to_tf" and .output == "word sp=verb"' >/dev/null
+
       - name: Container logs on failure
         if: failure()
         run: docker logs shebanq || true
