@@ -16,7 +16,7 @@ This is an [MCP](https://modelcontextprotocol.io/) server: it plugs into clients
 like Claude as a set of tools.
 
 > **Status: early, but live.** The server is built, unit-tested, and deployed:
-> a public read-only MCP endpoint and a [web demo](https://shebanq-web.onrender.com)
+> a public read-only MCP endpoint and a [web app](https://shebanq-web.onrender.com)
 > both run on Render, each with server-side NL→MQL translation. A Docker image
 > bakes Emdros plus the BHSA database; a CI smoke workflow runs `run_mql` over MCP
 > on every push, and the MQL curriculum's example counts are pinned against the
@@ -117,7 +117,7 @@ SELECT ALL OBJECTS WHERE [verse GET book, chapter, verse
 The plain `[word lex='BR>[' GET g_word_utf8, gloss]` returns the words alone;
 wrapping it in `[verse GET book, chapter, verse ...]` attaches `Genesis 1:1` to
 each one. If results come back without locations, say "include the verse
-references" and the model will re-nest the query. (The web demo does this
+references" and the model will re-nest the query. (The web app does this
 wrapping for you when the reference box is ticked.)
 
 ## Why
@@ -157,6 +157,8 @@ pinned to the BHSA 2021 release, so counts agree; CI proves it on every push.
 It also works the other way round. `to_citable_mql` converts a Text-Fabric
 template into the equivalent MQL, with no model involved, so a query from a
 research notebook can become a saved SHEBANQ query with a citable permalink.
+`to_tf_template` is its mirror, MQL in and template out, and the web app's
+converter modal wraps both directions behind one paste box.
 
 The TF engine needs the optional extra: `pip install "shebanq-mcp[tf]"`. The
 corpus downloads from GitHub on first use.
@@ -169,9 +171,10 @@ corpus downloads from GitHub on first use.
 | `run_mql(mql)` | Validate and run MQL you already have |
 | `run_tf(template)` | Validate and run a Text-Fabric search template |
 | `to_citable_mql(template)` | Convert a TF template to SHEBANQ-citable MQL, no model |
+| `to_tf_template(mql)` | MQL to the equivalent Text-Fabric template; deterministic, no LLM |
 | `lookup_feature(name_or_term)` | A BHSA feature's gloss and valid values |
 
-`run_mql`, `run_tf`, `to_citable_mql`, and `lookup_feature` need no LLM. `search_bhsa` drafts the query with
+`run_mql`, `run_tf`, `to_citable_mql`, `to_tf_template`, and `lookup_feature` need no LLM. `search_bhsa` drafts the query with
 an LLM, with the feature catalogue injected into the prompt.
 
 ### LLM provider

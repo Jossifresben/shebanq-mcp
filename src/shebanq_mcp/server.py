@@ -454,7 +454,7 @@ def to_citable_mql(template: str) -> dict:
     become AND, string features get quoted from the catalogue. Use this to
     turn a notebook query into a citable SHEBANQ saved query. Templates using
     TF constructs beyond '<object_type> feature=value ...' lines are refused
-    with an explanation.
+    with an explanation. The mirror of to_tf_template.
     """
     return handle_to_citable_mql(template)
 
